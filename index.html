@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BIA HOI カタコト - 狸小路9丁目</title>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
@@ -13,8 +13,7 @@
             --main-blue: #0058f8;
             --text-white: #ffffff;
             --gray: #555555;
-            /* 基本はレトロフォント、無い文字は普通のゴシック */
-            --font-pixel: 'DotGothic16', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            --font-pixel: 'DotGothic16', sans-serif;
         }
 
         body {
@@ -26,31 +25,69 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden;
+            overflow: hidden; /* スクロール禁止（アプリっぽく） */
             text-transform: uppercase;
+            /* スマホでのタップハイライトを消す */
+            -webkit-tap-highlight-color: transparent; 
         }
 
         #game-screen {
             width: 100%;
             max-width: 600px;
+            height: 100vh; /* スマホ全画面対応 */
+            max-height: 800px;
             text-align: center;
             border: 4px solid var(--main-blue);
             padding: 20px;
             position: relative;
             background: linear-gradient(to bottom, #000 0%, #111 100%);
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* --- スタート画面（スマホの音対策） --- */
+        #start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .press-start {
+            font-family: 'Press Start 2P', cursive;
+            color: var(--main-yellow);
+            font-size: 1.2rem;
+            animation: blink 0.8s infinite;
+            margin-top: 20px;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
         }
 
         h1 {
             color: var(--main-red);
-            font-size: 2.5rem;
+            font-size: 2.2rem; /* スマホ用に少し調整 */
             margin-bottom: 0;
             text-shadow: 4px 4px 0px var(--main-yellow);
+            line-height: 1.2;
         }
 
         .subtitle {
             color: var(--main-yellow);
-            font-size: 1rem;
+            font-size: 0.9rem;
             margin-bottom: 30px;
             letter-spacing: 2px;
         }
@@ -64,31 +101,35 @@
 
         .menu-item {
             font-size: 1.5rem;
-            padding: 10px 20px;
+            padding: 15px 20px; /* スマホで押しやすく大きく */
             cursor: pointer;
             transition: all 0.1s;
             position: relative;
         }
 
-        .menu-item:hover {
-            color: var(--main-yellow);
-            transform: scale(1.1);
-        }
-
-        .menu-item:hover::before {
-            content: '▶';
-            position: absolute;
-            left: -15px;
-            color: var(--main-red);
+        /* スマホではホバー効果（マウスが乗る）を無効化して誤作動防止 */
+        @media (hover: hover) {
+            .menu-item:hover {
+                color: var(--main-yellow);
+                transform: scale(1.1);
+            }
+            .menu-item:hover::before {
+                content: '▶';
+                position: absolute;
+                left: -15px;
+                color: var(--main-red);
+            }
         }
 
         .info-panel {
             font-size: 0.9rem;
             border-top: 2px dashed var(--main-blue);
             padding-top: 20px;
+            margin-top: auto; /* 下部に配置 */
+            padding-bottom: 20px;
         }
 
-        /* --- モーダル（ウィンドウ）設定 --- */
+        /* --- モーダル設定 --- */
         #modal {
             display: none;
             position: absolute;
@@ -99,17 +140,13 @@
             border: 4px solid var(--main-yellow);
             padding: 15px;
             z-index: 10;
-            width: 85%;
-            max-height: 80vh;
-            overflow-y: auto;
+            width: 90%; /* スマホ向けに幅広に */
+            height: 70vh; /* 高さ固定 */
+            overflow-y: scroll; /* スクロール許可 */
+            -webkit-overflow-scrolling: touch; /* 滑らかなスクロール */
             text-align: left;
             box-shadow: 10px 10px 0px rgba(0,0,0,0.8);
         }
-
-        /* スクロールバーのデザイン */
-        #modal::-webkit-scrollbar { width: 10px; }
-        #modal::-webkit-scrollbar-track { background: #222; }
-        #modal::-webkit-scrollbar-thumb { background: var(--main-red); border-radius: 4px; }
 
         #modal h3 {
             text-align: center;
@@ -117,34 +154,30 @@
             padding-bottom: 10px;
             margin-top: 0;
             color: var(--main-yellow);
+            position: sticky; /* スクロールしてもタイトル固定 */
+            top: 0;
+            background: var(--bg-color);
+            z-index: 1;
         }
 
-        .category-title {
-            color: var(--main-blue);
-            margin: 15px 0 5px;
-            border-bottom: 1px dashed var(--gray);
-            font-size: 0.9rem;
-        }
-
-        /* サブメニュー項目のスタイル */
         .sub-menu-item {
-            padding: 10px 5px; /* タップしやすいように少し広めに */
-            cursor: pointer;
+            padding: 15px 5px; /* タップしやすい大きさ */
             border-bottom: 1px dotted #333;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 1rem;
         }
-        .sub-menu-item:hover {
-            color: var(--main-yellow);
-            background: #111;
+        
+        .sub-menu-item:active {
+            background-color: #222; /* タップした瞬間の色 */
         }
 
         /* 画像カードグリッド */
         .menu-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 10px;
             margin-top: 10px;
         }
 
@@ -155,7 +188,6 @@
             background: #111;
         }
 
-        /* 画像プレースホルダー */
         .img-box {
             width: 100%;
             height: 80px;
@@ -169,38 +201,29 @@
             margin-bottom: 5px;
             overflow: hidden;
         }
-        
-        /* 実際の画像が入った時の調整 */
-        .img-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .menu-name { font-size: 0.85rem; display: block; margin-bottom: 2px; }
-        .price { color: var(--main-yellow); }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
 
         .back-btn {
             color: #888;
             margin-top: 20px;
-            padding: 10px;
+            padding: 15px;
             text-align: center;
             border: 1px dashed #555;
             cursor: pointer;
         }
-        .back-btn:hover { color: #fff; border-color: #fff; }
 
         .close-btn {
             margin-top: 10px;
             text-align: center;
             border: 1px solid var(--main-red);
-            padding: 10px;
+            padding: 15px;
             background: var(--main-red);
             color: white;
             cursor: pointer;
+            position: sticky;
+            bottom: 0;
         }
 
-        /* スタッフ画面用 */
         .staff-container {
             display: flex;
             justify-content: space-around;
@@ -218,6 +241,12 @@
 <body>
 
 <div id="game-screen">
+    <div id="start-overlay" onclick="startGame()">
+        <h1>BIA HOI<br>KATAKOTO</h1>
+        <div class="press-start">PUSH START BUTTON</div>
+        <p style="margin-top: 20px; font-size: 0.7rem; color: #888;">TAP SCREEN TO START</p>
+    </div>
+
     <h1>BIA HOI カタコト</h1>
     <p class="subtitle">タヌキコウジ９チョウメ</p>
 
@@ -239,33 +268,77 @@
 </div>
 
 <script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // AudioContext変数を初期化（まだ作成しない）
+    let audioCtx;
+
+    // ゲーム開始（最初のタップ）でオーディオを起動する関数
+    function startGame() {
+        const overlay = document.getElementById('start-overlay');
+        overlay.style.display = 'none'; // オーバーレイを消す
+
+        // ここで初めてAudioContextを作る（スマホ対策）
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // 念のため再開（Resume）を呼ぶ
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        playStartSound(); // スタート音を鳴らす
+    }
+
+    // スタート音（少し豪華に）
+    function playStartSound() {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+    }
 
     function playHover() {
+        // スマホではホバー音は鳴らさない（誤作動防止）
+        if (!audioCtx || window.matchMedia('(hover: none)').matches) return;
+
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'square';
         osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
+        osc.stop(audioCtx.currentTime + 0.05);
     }
 
     function playClick() {
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'square';
         osc.frequency.setValueAtTime(440, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.15);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.2);
+        osc.stop(audioCtx.currentTime + 0.15);
     }
 
+    // --- メニュー制御 ---
     const modal = document.getElementById('modal');
     const modalContent = document.getElementById('modal-content');
 
@@ -274,7 +347,6 @@
         modal.style.display = 'block';
         modal.scrollTop = 0;
 
-        // --- 階層レベル 1: 大メニュー ---
         if (type === 'menu') {
             modalContent.innerHTML = `
                 <h3>MENU</h3>
@@ -282,7 +354,6 @@
                 <div class="sub-menu-item" onclick="showContent('drinks')">ドリンク <span>▶</span></div>
             `;
         } 
-        // --- 階層レベル 2: ベトナム料理 ---
         else if (type === 'vietnamese') {
             modalContent.innerHTML = `
                 <h3>ベトナムリョウリ</h3>
@@ -292,7 +363,6 @@
                 <div class="back-btn" onclick="showContent('menu')">◀ MENUへもどる</div>
             `;
         }
-        // --- 階層レベル 3: 料理詳細 ---
         else if (type === 'zensai') {
             modalContent.innerHTML = `
                 <h3>ゼンサイ</h3>
@@ -373,7 +443,6 @@
                 <div class="back-btn" onclick="showContent('vietnamese')">◀ ベトナムリョウリへ</div>
             `;
         }
-        // --- 階層レベル 2: ドリンク ---
         else if (type === 'drinks') {
             modalContent.innerHTML = `
                 <h3>ドリンク</h3>
@@ -383,7 +452,6 @@
                 <div class="back-btn" onclick="showContent('menu')">◀ MENUへもどる</div>
             `;
         }
-        // --- 階層レベル 3: ビール ---
         else if (type === 'beer') {
             modalContent.innerHTML = `
                 <h3>ビール（樽生）</h3>
@@ -404,24 +472,17 @@
                 </div>
             `;
         }
-        
-        // 毎回イベントリスナーをセットし直す
-        addHoverSound();
     }
 
     function closeModal() {
-        playHover();
+        playClick(); // 閉じる時もクリック音
         modal.style.display = 'none';
     }
 
-    function addHoverSound() {
-        document.querySelectorAll('.menu-item, .sub-menu-item, .close-btn, .back-btn').forEach(item => {
-            item.removeEventListener('mouseenter', playHover);
-            item.addEventListener('mouseenter', playHover);
-        });
-    }
-
-    addHoverSound();
+    // ホバー音（PCのみ）
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.addEventListener('mouseenter', playHover);
+    });
 </script>
 
 </body>

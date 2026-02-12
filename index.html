@@ -284,7 +284,7 @@
 
 <script>
     let audioCtx;
-    let currentLang = 'ja'; // 現在の言語
+    let currentLang = 'ja';
 
     function startGame() {
         const overlay = document.getElementById('start-overlay');
@@ -413,7 +413,7 @@
                 <div class="category-title">${t.cat_rec}</div>
                 <div class="menu-list-container">
                     <div class="menu-list-item">
-                        <div class="menu-img-container"><img src="３点もり.png" alt="3点盛り"></div>
+                        <div class="menu-img-container"><img src="zensai3.png" alt="3点盛り"></div>
                         <div class="menu-text-container">
                             <span class="menu-name">${currentLang === 'ja' ? '前菜3点盛合せ' : '3-Appetizer Platter'}</span>
                             <span class="price">750~</span>
@@ -425,15 +425,13 @@
         }
         else if (type === 'ippin') {
             const items = [
-                // --- 既存メニュー ---
-                { img:'牛もつ.png', ja:'牛もつ煮<br>（ファーラウボー）', en:'Beef Offal Stew<br>(Phá Lấu Bò)', price:'450' },
-                { img:'揚げ豆腐.png', ja:'揚げ豆腐トマト煮', en:'Fried Tofu<br>Tomato Stew', price:'600' },
-                { img:'とうがらしに.png', ja:'鶏肉のとうがらし煮', en:'Spicy Braised<br>Chicken', price:'600' },
-                // --- 追加メニュー ---
+                // ファイル名を英数字に変更して指定
+                { img:'motsu.png', ja:'牛もつ煮<br>（ファーラウボー）', en:'Beef Offal Stew<br>(Phá Lấu Bò)', price:'450' },
+                { img:'agedofu.png', ja:'揚げ豆腐トマト煮', en:'Fried Tofu<br>Tomato Stew', price:'600' },
+                { img:'togarashi.png', ja:'鶏肉のとうがらし煮', en:'Spicy Braised<br>Chicken', price:'600' },
                 { img:null, ja:'ライムリーフとり串<br>（ミニ4本）', en:'Lime Leaf Chicken Skewers<br>(Mini 4pcs)', price:'500' },
                 { img:null, ja:'骨付き やきとり<br>（カタイ）', en:'Bone-in Grilled Chicken<br>(Chewy Texture)', price:'700' },
                 { img:null, ja:'アヒルザンギ', en:'Deep-fried Duck<br>(Zangi Style)', price:'850' },
-                // --- 既存メニューつづき ---
                 { img:null, ja:'うずらワンタン（2本）', en:'Quail Wontons (2pcs)', price:'500' },
                 { img:null, ja:'ビャンビャン麺', en:'Biang Biang Noodles', price:'850' },
                 { img:null, ja:'大根揚げびたし', en:'Deep-fried Radish', price:'500' },
@@ -465,9 +463,9 @@
         }
         else if (type === 'main') {
             const items = [
-                { img:'バインセオ.png', ja:'バインセオ', en:'Banh Xeo<br>(Vietnamese Pancake)', price:'1500' },
+                { img:'banhxeo.png', ja:'バインセオ', en:'Banh Xeo<br>(Vietnamese Pancake)', price:'1500' },
                 { img:null, ja:'穴子とディルの香草焼き<br>（チャーカーラボン）', en:'Grilled Eel & Dill<br>(Cha Ca La Vong)', price:'950' },
-                { img:'おかゆ.png', ja:'チャオガー<br>（ベトナム鶏粥）', en:'Chao Ga<br>(Chicken Porridge)', price:'1200' }
+                { img:'okayu.png', ja:'チャオガー<br>（ベトナム鶏粥）', en:'Chao Ga<br>(Chicken Porridge)', price:'1200' }
             ];
             
             let htmlItems = '<div class="menu-list-container">';
@@ -554,8 +552,8 @@
             modalContent.innerHTML = `
                 <h3>STAFF</h3>
                 <div class="staff-container">
-                    <div class="staff-card"><img src="Erin.png" alt="Erin"><br>Erin</div>
-                    <div class="staff-card"><img src="Ichi.png" alt="Ichi"><br>Ichi</div>
+                    <div class="staff-card"><img src="erin.png" alt="Erin"><br>Erin</div>
+                    <div class="staff-card"><img src="ichi.png" alt="Ichi"><br>Ichi</div>
                 </div>
             `;
         }

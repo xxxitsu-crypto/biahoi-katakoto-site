@@ -25,16 +25,15 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden; /* スクロール禁止（アプリっぽく） */
+            overflow: hidden;
             text-transform: uppercase;
-            /* スマホでのタップハイライトを消す */
             -webkit-tap-highlight-color: transparent; 
         }
 
         #game-screen {
             width: 100%;
             max-width: 600px;
-            height: 100vh; /* スマホ全画面対応 */
+            height: 100vh;
             max-height: 800px;
             text-align: center;
             border: 4px solid var(--main-blue);
@@ -47,7 +46,7 @@
             justify-content: center;
         }
 
-        /* --- スタート画面（スマホの音対策） --- */
+        /* --- スタート画面 --- */
         #start-overlay {
             position: absolute;
             top: 0;
@@ -79,7 +78,7 @@
 
         h1 {
             color: var(--main-red);
-            font-size: 2.2rem; /* スマホ用に少し調整 */
+            font-size: 2.2rem;
             margin-bottom: 0;
             text-shadow: 4px 4px 0px var(--main-yellow);
             line-height: 1.2;
@@ -101,13 +100,12 @@
 
         .menu-item {
             font-size: 1.5rem;
-            padding: 15px 20px; /* スマホで押しやすく大きく */
+            padding: 15px 20px;
             cursor: pointer;
             transition: all 0.1s;
             position: relative;
         }
 
-        /* スマホではホバー効果（マウスが乗る）を無効化して誤作動防止 */
         @media (hover: hover) {
             .menu-item:hover {
                 color: var(--main-yellow);
@@ -125,7 +123,7 @@
             font-size: 0.9rem;
             border-top: 2px dashed var(--main-blue);
             padding-top: 20px;
-            margin-top: auto; /* 下部に配置 */
+            margin-top: auto;
             padding-bottom: 20px;
         }
 
@@ -140,10 +138,10 @@
             border: 4px solid var(--main-yellow);
             padding: 15px;
             z-index: 10;
-            width: 90%; /* スマホ向けに幅広に */
-            height: 70vh; /* 高さ固定 */
-            overflow-y: scroll; /* スクロール許可 */
-            -webkit-overflow-scrolling: touch; /* 滑らかなスクロール */
+            width: 90%;
+            height: 70vh;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
             text-align: left;
             box-shadow: 10px 10px 0px rgba(0,0,0,0.8);
         }
@@ -154,54 +152,70 @@
             padding-bottom: 10px;
             margin-top: 0;
             color: var(--main-yellow);
-            position: sticky; /* スクロールしてもタイトル固定 */
+            position: sticky;
             top: 0;
             background: var(--bg-color);
             z-index: 1;
         }
 
+        .category-title {
+            color: var(--main-blue);
+            margin: 15px 0 5px;
+            border-bottom: 1px dashed var(--gray);
+            font-size: 0.9rem;
+        }
+
         .sub-menu-item {
-            padding: 15px 5px; /* タップしやすい大きさ */
+            padding: 15px 5px;
             border-bottom: 1px dotted #333;
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 1rem;
         }
-        
-        .sub-menu-item:active {
-            background-color: #222; /* タップした瞬間の色 */
-        }
+        .sub-menu-item:active { background-color: #222; }
 
-        /* 画像カードグリッド */
-        .menu-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+        /* 画像付きリストレイアウト */
+        .menu-list-container {
+            display: flex;
+            flex-direction: column;
             gap: 10px;
             margin-top: 10px;
         }
 
-        .menu-card {
+        .menu-list-item {
+            display: flex;
+            align-items: center;
             border: 1px solid var(--gray);
-            padding: 5px;
-            text-align: center;
             background: #111;
+            padding: 5px;
         }
 
-        .img-box {
-            width: 100%;
-            height: 80px;
-            background-color: #222;
+        .menu-img-container {
+            width: 120px;
+            height: 120px;
+            background-color: #000;
             border: 1px dashed var(--gray);
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 0.7rem;
-            color: var(--gray);
-            margin-bottom: 5px;
+            flex-shrink: 0;
+            margin-right: 15px;
             overflow: hidden;
         }
-        .img-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        .menu-img-container img {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .menu-text-container { flex-grow: 1; }
+
+        .menu-name { font-size: 1rem; display: block; margin-bottom: 10px; line-height: 1.4; }
+        .price { color: var(--main-yellow); font-size: 1.1rem; }
 
         .back-btn {
             color: #888;
@@ -248,48 +262,53 @@
     </div>
 
     <h1>BIA HOI カタコト</h1>
-    <p class="subtitle">タヌキコウジ９チョウメ</p>
+    <p class="subtitle" id="subtitle">タヌキコウジ９チョウメ</p>
 
     <ul class="menu-list">
         <li class="menu-item" onclick="showContent('menu')">MENU</li>
         <li class="menu-item" onclick="window.open('https://www.instagram.com/2_9_katakoto_biahoi/', '_blank'); playClick();">INSTA</li>
         <li class="menu-item" onclick="showContent('staff')">STAFF</li>
+        <li class="menu-item" onclick="toggleLanguage()" id="lang-btn" style="color: var(--main-blue);">ENGLISH</li>
     </ul>
 
     <div class="info-panel">
         OPEN 18:00 -- 01:00<br>
-        <span style="color: var(--main-red);">不定休</span>
+        <span style="color: var(--main-red);" id="holiday-info">不定休</span>
     </div>
 
     <div id="modal">
         <div id="modal-content"></div>
-        <div class="close-btn" onclick="closeModal()">[ 閉じる ]</div>
+        <div class="close-btn" onclick="closeModal()">[ CLOSE ]</div>
     </div>
 </div>
 
 <script>
-    // AudioContext変数を初期化（まだ作成しない）
     let audioCtx;
+    let currentLang = 'ja'; // 現在の言語
 
-    // ゲーム開始（最初のタップ）でオーディオを起動する関数
     function startGame() {
         const overlay = document.getElementById('start-overlay');
-        overlay.style.display = 'none'; // オーバーレイを消す
-
-        // ここで初めてAudioContextを作る（スマホ対策）
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        
-        // 念のため再開（Resume）を呼ぶ
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-
-        playStartSound(); // スタート音を鳴らす
+        overlay.style.display = 'none';
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        playStartSound();
     }
 
-    // スタート音（少し豪華に）
+    function toggleLanguage() {
+        playClick();
+        if (currentLang === 'ja') {
+            currentLang = 'en';
+            document.getElementById('subtitle').innerText = 'TANUKIKOJI 9-CHOME';
+            document.getElementById('holiday-info').innerText = 'Irregular Holidays';
+            document.getElementById('lang-btn').innerText = '日本語';
+        } else {
+            currentLang = 'ja';
+            document.getElementById('subtitle').innerText = 'タヌキコウジ９チョウメ';
+            document.getElementById('holiday-info').innerText = '不定休';
+            document.getElementById('lang-btn').innerText = 'ENGLISH';
+        }
+    }
+
     function playStartSound() {
         if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
@@ -306,11 +325,8 @@
     }
 
     function playHover() {
-        // スマホではホバー音は鳴らさない（誤作動防止）
         if (!audioCtx || window.matchMedia('(hover: none)').matches) return;
-
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'square';
@@ -325,7 +341,6 @@
     function playClick() {
         if (!audioCtx) return;
         if (audioCtx.state === 'suspended') audioCtx.resume();
-
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'square';
@@ -338,7 +353,6 @@
         osc.stop(audioCtx.currentTime + 0.15);
     }
 
-    // --- メニュー制御 ---
     const modal = document.getElementById('modal');
     const modalContent = document.getElementById('modal-content');
 
@@ -347,139 +361,211 @@
         modal.style.display = 'block';
         modal.scrollTop = 0;
 
+        const txt = {
+            ja: {
+                menu: 'MENU', vietnamese: 'ベトナムリョウリ', drinks: 'ドリンク',
+                zensai: 'ゼンサイ', ippin: 'イッピンリョウリ', main: 'メイン',
+                back_menu: '◀ MENUへもどる', back_viet: '◀ ベトナムリョウリへ', back_drink: '◀ ドリンクへ',
+                beer: 'ビール（樽生）', alcohol: 'アルコール', soft: 'ソフトドリンク',
+                cat_400: '各種 400エン', cat_other: 'その他', cat_rec: 'おすすめ'
+            },
+            en: {
+                menu: 'MENU', vietnamese: 'VIETNAMESE FOOD', drinks: 'DRINKS',
+                zensai: 'APPETIZERS', ippin: 'A LA CARTE', main: 'MAIN DISH',
+                back_menu: '◀ BACK TO MENU', back_viet: '◀ BACK TO FOOD', back_drink: '◀ BACK TO DRINKS',
+                beer: 'DRAFT BEER', alcohol: 'ALCOHOL', soft: 'SOFT DRINKS',
+                cat_400: '¥400 EACH', cat_other: 'OTHERS', cat_rec: 'RECOMMENDED'
+            }
+        };
+
+        const t = (currentLang === 'ja') ? txt.ja : txt.en;
+
         if (type === 'menu') {
             modalContent.innerHTML = `
-                <h3>MENU</h3>
-                <div class="sub-menu-item" onclick="showContent('vietnamese')">ベトナムリョウリ <span>▶</span></div>
-                <div class="sub-menu-item" onclick="showContent('drinks')">ドリンク <span>▶</span></div>
+                <h3>${t.menu}</h3>
+                <div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div>
+                <div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>
             `;
         } 
         else if (type === 'vietnamese') {
             modalContent.innerHTML = `
-                <h3>ベトナムリョウリ</h3>
-                <div class="sub-menu-item" onclick="showContent('zensai')">ゼンサイ <span>▶</span></div>
-                <div class="sub-menu-item" onclick="showContent('ippin')">イッピンリョウリ <span>▶</span></div>
-                <div class="sub-menu-item" onclick="showContent('main')">メイン <span>▶</span></div>
-                <div class="back-btn" onclick="showContent('menu')">◀ MENUへもどる</div>
+                <h3>${t.vietnamese}</h3>
+                <div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
+                <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
+                <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>
+                <div class="back-btn" onclick="showContent('menu')">${t.back_menu}</div>
             `;
         }
         else if (type === 'zensai') {
-            modalContent.innerHTML = `
-                <h3>ゼンサイ</h3>
-                <div class="category-title">各種 400エン</div>
-                <div class="sub-menu-item">ホーレン草キムチ</div>
-                <div class="sub-menu-item">揚げナスのベトナムラー油ヅケ</div>
-                <div class="sub-menu-item">しびれるキノコ</div>
-                <div class="sub-menu-item">むしどりとパクチーのあえもの</div>
-                <div class="sub-menu-item">こんにゃくピクルス</div>
-                <div class="sub-menu-item">焼ケール</div>
-                
-                <div class="category-title">その他</div>
-                <div class="sub-menu-item">酢だこ（ニョクチャム）</div>
-                
-                <div style="margin-top:15px; border:1px solid #fff; padding:10px;">
-                    <div class="img-box">画像</div>
-                    <div>前菜3点盛合せ <span class="price">750~</span></div>
-                </div>
+            const list400 = (currentLang === 'ja') 
+                ? ['ホーレン草キムチ', '揚げナスのベトナムラー油ヅケ', 'しびれるキノコ', 'むしどりとパクチーのあえもの', 'こんにゃくピクルス', '焼ケール']
+                : ['Spinach Kimchi', 'Fried Eggplant w/ Chili Oil', 'Numbing Mushrooms', 'Steamed Chicken w/ Cilantro', 'Konjac Pickles', 'Grilled Kale'];
+            
+            let html400 = '';
+            list400.forEach(item => html400 += `<div class="sub-menu-item">${item}</div>`);
 
-                <div class="back-btn" onclick="showContent('vietnamese')">◀ ベトナムリョウリへ</div>
+            modalContent.innerHTML = `
+                <h3>${t.zensai}</h3>
+                <div class="category-title">${t.cat_400}</div>
+                ${html400}
+                <div class="sub-menu-item" style="border-top:1px dashed #555;">${currentLang === 'ja' ? '酢だこ（ニョクチャム）' : 'Vinegar Octopus (Nuoc Cham)'}</div>
+                
+                <div class="category-title">${t.cat_rec}</div>
+                <div class="menu-list-container">
+                    <div class="menu-list-item">
+                        <div class="menu-img-container"><img src="３点もり.png" alt="3点盛り"></div>
+                        <div class="menu-text-container">
+                            <span class="menu-name">${currentLang === 'ja' ? '前菜3点盛合せ' : '3-Appetizer Platter'}</span>
+                            <span class="price">750~</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
             `;
         }
         else if (type === 'ippin') {
+            const items = [
+                // --- 既存メニュー ---
+                { img:'牛もつ.png', ja:'牛もつ煮<br>（ファーラウボー）', en:'Beef Offal Stew<br>(Phá Lấu Bò)', price:'450' },
+                { img:'揚げ豆腐.png', ja:'揚げ豆腐トマト煮', en:'Fried Tofu<br>Tomato Stew', price:'600' },
+                { img:'とうがらしに.png', ja:'鶏肉のとうがらし煮', en:'Spicy Braised<br>Chicken', price:'600' },
+                // --- 追加メニュー ---
+                { img:null, ja:'ライムリーフとり串<br>（ミニ4本）', en:'Lime Leaf Chicken Skewers<br>(Mini 4pcs)', price:'500' },
+                { img:null, ja:'骨付き やきとり<br>（カタイ）', en:'Bone-in Grilled Chicken<br>(Chewy Texture)', price:'700' },
+                { img:null, ja:'アヒルザンギ', en:'Deep-fried Duck<br>(Zangi Style)', price:'850' },
+                // --- 既存メニューつづき ---
+                { img:null, ja:'うずらワンタン（2本）', en:'Quail Wontons (2pcs)', price:'500' },
+                { img:null, ja:'ビャンビャン麺', en:'Biang Biang Noodles', price:'850' },
+                { img:null, ja:'大根揚げびたし', en:'Deep-fried Radish', price:'500' },
+                { img:null, ja:'エビのサイゴンスパイス', en:'Shrimp Saigon Spice', price:'850' }
+            ];
+
+            let htmlItems = '<div class="menu-list-container">';
+            items.forEach(item => {
+                const imgTag = item.img 
+                    ? `<img src="${item.img}" alt="img">` 
+                    : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
+                
+                htmlItems += `
+                    <div class="menu-list-item">
+                        <div class="menu-img-container">${imgTag}</div>
+                        <div class="menu-text-container">
+                            <span class="menu-name">${currentLang === 'ja' ? item.ja : item.en}</span>
+                            <span class="price">${item.price}</span>
+                        </div>
+                    </div>`;
+            });
+            htmlItems += '</div>';
+
             modalContent.innerHTML = `
-                <h3>イッピンリョウリ</h3>
-                <div class="menu-grid">
-                    <div class="menu-card">
-                        <div class="img-box">画像</div>
-                        <span class="menu-name">牛もつ煮<br>（ファーラウボー）</span>
-                        <span class="price">450</span>
-                    </div>
-                    <div class="menu-card">
-                        <div class="img-box">画像</div>
-                        <span class="menu-name">揚げ豆腐<br>トマト煮</span>
-                        <span class="price">600</span>
-                    </div>
-                    <div class="menu-card">
-                        <div class="img-box">画像</div>
-                        <span class="menu-name">鶏肉の<br>とうがらし煮</span>
-                        <span class="price">600</span>
-                    </div>
-                    <div class="menu-card">
-                        <div class="img-box">画像</div>
-                        <span class="menu-name">うずらワンタン<br>（2本）</span>
-                        <span class="price">500</span>
-                    </div>
-                    <div class="menu-card">
-                        <div class="img-box">画像</div>
-                        <span class="menu-name">ビャンビャン麺</span>
-                        <span class="price">850</span>
-                    </div>
-                    <div class="menu-card">
-                        <div class="img-box">画像</div>
-                        <span class="menu-name">大根揚げびたし</span>
-                        <span class="price">500</span>
-                    </div>
-                    <div class="menu-card">
-                        <div class="img-box">画像</div>
-                        <span class="menu-name">エビのサイゴン<br>スパイス</span>
-                        <span class="price">850</span>
-                    </div>
-                </div>
-                <div class="back-btn" onclick="showContent('vietnamese')">◀ ベトナムリョウリへ</div>
+                <h3>${t.ippin}</h3>
+                ${htmlItems}
+                <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
             `;
         }
         else if (type === 'main') {
+            const items = [
+                { img:'バインセオ.png', ja:'バインセオ', en:'Banh Xeo<br>(Vietnamese Pancake)', price:'1500' },
+                { img:null, ja:'穴子とディルの香草焼き<br>（チャーカーラボン）', en:'Grilled Eel & Dill<br>(Cha Ca La Vong)', price:'950' },
+                { img:'おかゆ.png', ja:'チャオガー<br>（ベトナム鶏粥）', en:'Chao Ga<br>(Chicken Porridge)', price:'1200' }
+            ];
+            
+            let htmlItems = '<div class="menu-list-container">';
+            items.forEach(item => {
+                const imgTag = item.img ? `<img src="${item.img}" alt="img">` : `<span style="color:#555;">NO IMAGE</span>`;
+                htmlItems += `
+                    <div class="menu-list-item">
+                        <div class="menu-img-container">${imgTag}</div>
+                        <div class="menu-text-container">
+                            <span class="menu-name">${currentLang === 'ja' ? item.ja : item.en}</span>
+                            <span class="price">${item.price}</span>
+                        </div>
+                    </div>`;
+            });
+            htmlItems += '</div>';
+
             modalContent.innerHTML = `
-                <h3>メイン</h3>
-                <div class="sub-menu-item">
-                    バインセオ <span class="price">1500</span>
-                </div>
-                <div class="sub-menu-item">
-                    穴子とディルの香草焼き<br>（チャーカーラボン） <span class="price">950</span>
-                </div>
-                <div class="sub-menu-item">
-                    チャオガー<br>（ベトナム鶏粥） <span class="price">1200</span>
-                </div>
-                <div class="back-btn" onclick="showContent('vietnamese')">◀ ベトナムリョウリへ</div>
+                <h3>${t.main}</h3>
+                ${htmlItems}
+                <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
             `;
         }
         else if (type === 'drinks') {
             modalContent.innerHTML = `
-                <h3>ドリンク</h3>
-                <div class="sub-menu-item" onclick="showContent('beer')">ビール（樽生） <span>▶</span></div>
-                <div class="sub-menu-item">アルコール</div>
-                <div class="sub-menu-item">ソフトドリンク</div>
-                <div class="back-btn" onclick="showContent('menu')">◀ MENUへもどる</div>
+                <h3>${t.drinks}</h3>
+                <div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
+                <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
+                <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>
+                <div class="back-btn" onclick="showContent('menu')">${t.back_menu}</div>
             `;
         }
         else if (type === 'beer') {
+            const list = (currentLang === 'ja')
+                ? [{n:'タイガー',p:'850'}, {n:'ヒューガルデン',p:'850'}]
+                : [{n:'Tiger',p:'850'}, {n:'Hoegaarden',p:'850'}];
+            
+            let html = '';
+            list.forEach(i => html += `<div class="sub-menu-item">${i.n}<span class="price">${i.p}</span></div>`);
+
             modalContent.innerHTML = `
-                <h3>ビール（樽生）</h3>
-                <div class="sub-menu-item">タイガー<span class="price">850</span></div>
-                <div class="sub-menu-item">ヒューガルデン<span class="price">850</span></div>
+                <h3>${t.beer}</h3>
+                ${html}
                 <div class="sub-menu-item" onclick="window.open('https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MTMyODYyMTI2NDY3MDE4?igsh=MXN1dGRhZmpsZjdjMw==', '_blank'); playClick();">
-                    クラフトビール<span class="price">1400</span>
+                    ${currentLang === 'ja' ? 'クラフトビール' : 'Craft Beer'}<span class="price">1400</span>
                 </div>
-                <div class="back-btn" onclick="showContent('drinks')">◀ ドリンクへ</div>
+                <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
+            `;
+        }
+        else if (type === 'alcohol') {
+            const list = (currentLang === 'ja')
+                ? ['レッドアイ:700', 'ネプモイ:650', 'ネプカム:650', 'ハイボール:650', 'ジントニック:650', 'おいしいテキーラ:650', '電気ブラン:650', 'ケイカチンシュ:650']
+                : ['Red Eye:700', 'Nep Moi:650', 'Nep Cam:650', 'Highball:650', 'Gin Tonic:650', 'Tequila:650', 'Denki Bran:650', 'Osmanthus Wine:650'];
+            
+            let html = '';
+            list.forEach(item => {
+                const [n, p] = item.split(':');
+                html += `<div class="sub-menu-item">${n}<span class="price">${p}</span></div>`;
+            });
+
+            modalContent.innerHTML = `
+                <h3>${t.alcohol}</h3>
+                ${html}
+                <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
+            `;
+        }
+        else if (type === 'softdrinks') {
+            const list = (currentLang === 'ja')
+                ? ['コーラ:550', 'トロピカルジュース:550', 'ハス茶（HOT・ICE）:550']
+                : ['Cola:550', 'Tropical Juice:550', 'Lotus Tea (HOT/ICE):550'];
+
+            let html = '';
+            list.forEach(item => {
+                const [n, p] = item.split(':');
+                html += `<div class="sub-menu-item">${n}<span class="price">${p}</span></div>`;
+            });
+
+            modalContent.innerHTML = `
+                <h3>${t.soft}</h3>
+                ${html}
+                <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
             `;
         }
         else if (type === 'staff') {
             modalContent.innerHTML = `
                 <h3>STAFF</h3>
                 <div class="staff-container">
-                    <div class="staff-card"><img src="Erin.jpg" alt="いーリン"><br>いーリン</div>
-                    <div class="staff-card"><img src="Ichi.jpg" alt="いっちー"><br>いっちー</div>
+                    <div class="staff-card"><img src="Erin.png" alt="Erin"><br>Erin</div>
+                    <div class="staff-card"><img src="Ichi.png" alt="Ichi"><br>Ichi</div>
                 </div>
             `;
         }
     }
 
     function closeModal() {
-        playClick(); // 閉じる時もクリック音
+        playClick();
         modal.style.display = 'none';
     }
 
-    // ホバー音（PCのみ）
     document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('mouseenter', playHover);
     });

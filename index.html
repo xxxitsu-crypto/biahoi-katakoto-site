@@ -23,9 +23,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            min-height: 100dvh; 
             margin: 0;
-            overflow: hidden;
+            overflow-y: auto;
             text-transform: uppercase;
             -webkit-tap-highlight-color: transparent; 
         }
@@ -33,8 +34,8 @@
         #game-screen {
             width: 100%;
             max-width: 600px;
-            height: 100vh;
-            max-height: 800px;
+            height: 100vh; 
+            height: 100dvh; 
             text-align: center;
             border: 4px solid var(--main-blue);
             padding: 20px;
@@ -43,43 +44,57 @@
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
+            padding-bottom: 20px; 
+            overflow: hidden;
         }
 
         /* --- スタート画面 --- */
         #start-overlay {
-            position: absolute;
+            position: absolute; 
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.95);
+            background-color: rgba(0, 0, 0, 1.0);
             z-index: 100;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             cursor: pointer;
+            touch-action: none; 
         }
 
         .press-start {
             font-family: 'Press Start 2P', cursive;
             color: var(--main-yellow);
             font-size: 1.2rem;
-            animation: blink 0.8s infinite;
             margin-top: 20px;
+            animation: blink 0.8s step-end infinite;
+        }
+
+        .press-start.active {
+            color: var(--text-white);
+            animation: blink-fast 0.08s step-end infinite;
+            text-shadow: 2px 2px 0px var(--main-red);
         }
 
         @keyframes blink {
-            0% { opacity: 1; }
+            0%, 100% { opacity: 1; }
             50% { opacity: 0; }
-            100% { opacity: 1; }
+        }
+
+        @keyframes blink-fast {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         h1 {
             color: var(--main-red);
             font-size: 2.2rem;
             margin-bottom: 0;
+            margin-top: 40px;
             text-shadow: 4px 4px 0px var(--main-yellow);
             line-height: 1.2;
         }
@@ -125,25 +140,42 @@
             padding-top: 20px;
             margin-top: auto;
             padding-bottom: 20px;
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
         }
 
         /* --- モーダル設定 --- */
         #modal {
             display: none;
-            position: absolute;
-            top: 50%;
+            position: absolute; 
+            top: 100px; 
+            bottom: 110px;
+            height: auto;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             background: var(--bg-color);
             border: 4px solid var(--main-yellow);
             padding: 15px;
             z-index: 10;
             width: 90%;
-            height: 70vh;
+            max-width: 540px;
             overflow-y: scroll;
             -webkit-overflow-scrolling: touch;
             text-align: left;
             box-shadow: 10px 10px 0px rgba(0,0,0,0.8);
+        }
+
+        #modal::-webkit-scrollbar {
+            width: 10px;
+        }
+        #modal::-webkit-scrollbar-track {
+            background: #000;
+        }
+        #modal::-webkit-scrollbar-thumb {
+            background: var(--main-yellow);
+            border: 2px solid #000;
         }
 
         #modal h3 {
@@ -175,7 +207,6 @@
         }
         .sub-menu-item:active { background-color: #222; }
 
-        /* 画像付きリストレイアウト */
         .menu-list-container {
             display: flex;
             flex-direction: column;
@@ -213,7 +244,6 @@
         }
         
         .menu-text-container { flex-grow: 1; }
-
         .menu-name { font-size: 1rem; display: block; margin-bottom: 10px; line-height: 1.4; }
         .price { color: var(--main-yellow); font-size: 1.1rem; }
 
@@ -250,15 +280,63 @@
             image-rendering: pixelated;
             border: 2px solid var(--text-white);
         }
+
+        /* --- SOLD OUT スタンプ (値段部分) --- */
+        .sold-out-label {
+            font-family: 'Press Start 2P', cursive;
+            color: var(--main-red);
+            font-size: 0.8rem; /* リストに収まるサイズ */
+            border: 2px solid var(--main-red);
+            padding: 2px 4px;
+            background: #000;
+            transform: rotate(-5deg); /* 少し斜めに */
+            display: inline-block;
+            letter-spacing: -1px;
+            white-space: nowrap;
+        }
+
+        /* --- 管理画面スタイル --- */
+        #admin-modal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 200;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: scroll;
+        }
+        #admin-modal h2 { color: var(--main-red); border-bottom: 2px solid white; padding-bottom:10px; }
+        .admin-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+        }
+        .admin-item input[type="checkbox"] {
+            transform: scale(1.5);
+            margin-right: 15px;
+        }
+        .admin-close {
+            margin-top: 20px;
+            background: var(--main-blue);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
 <div id="game-screen">
-    <div id="start-overlay" onclick="startGame()">
+    <div id="start-overlay" onclick="triggerStartSequence()">
         <h1>BIA HOI<br>KATAKOTO</h1>
-        <div class="press-start">PUSH START BUTTON</div>
-        <p style="margin-top: 20px; font-size: 0.7rem; color: #888;">TAP SCREEN TO START</p>
+        <div class="press-start" id="start-text">PUSH START BUTTON</div>
+        <p style="margin-top: 20px; font-size: 0.7rem; color: #888;">
+            TAP SCREEN TO START<br>
+            <span style="font-size:0.5rem; color:#333;">(SECRET: ↑↑↓↓←→←→BA)</span>
+        </p>
     </div>
 
     <h1>BIA HOI カタコト</h1>
@@ -280,18 +358,268 @@
         <div id="modal-content"></div>
         <div class="close-btn" onclick="closeModal()">[ CLOSE ]</div>
     </div>
+
+    <div id="admin-modal">
+        <h2>STAFF ONLY MODE</h2>
+        <p style="color:#aaa; font-size:0.8rem; margin-bottom:20px;">
+            チェックを外すと「売り切れ」になります。<br>
+            Uncheck to mark as SOLD OUT.
+        </p>
+        <div id="admin-list"></div>
+        <div class="admin-close" onclick="closeAdmin()">[ SAVE & EXIT ]</div>
+    </div>
 </div>
 
 <script>
     let audioCtx;
     let currentLang = 'ja';
+    let isGameStarted = false;
+    let startSequenceTimeout = null;
 
-    function startGame() {
+    // --- メニューデータ ---
+    const menuData = {
+        zensai400: [
+            { id: 'z1', ja: 'ホーレン草キムチ', en: 'Spinach Kimchi', soldOut: false },
+            { id: 'z2', ja: '揚げナスのベトナムラー油ヅケ', en: 'Fried Eggplant w/ Chili Oil', soldOut: false },
+            { id: 'z3', ja: 'しびれるキノコ', en: 'Numbing Mushrooms', soldOut: false },
+            { id: 'z4', ja: 'むしどりとパクチーのあえもの', en: 'Steamed Chicken w/ Cilantro', soldOut: false },
+            { id: 'z5', ja: 'こんにゃくピクルス', en: 'Konjac Pickles', soldOut: false },
+            { id: 'z6', ja: '焼ケール', en: 'Grilled Kale', soldOut: false }
+        ],
+        zensaiOther: [
+             { id: 'z_other', ja: '酢だこ（ニョクチャム）', en: 'Vinegar Octopus (Nuoc Cham)', soldOut: false }
+        ],
+        zensaiRec: [
+             { id: 'z_rec', ja: '前菜3点盛合せ', en: '3-Appetizer Platter', price: '750~', img: 'zensai3.png', soldOut: false }
+        ],
+        ippin: [
+            { id: 'i1', ja:'牛もつ煮<br>（ファーラウボー）', en:'Beef Offal Stew<br>(Phá Lấu Bò)', price:'450', img:'motsu.png', soldOut: false },
+            { id: 'i2', ja:'揚げ豆腐トマト煮', en:'Fried Tofu<br>Tomato Stew', price:'600', img:'agedofu.png', soldOut: false },
+            { id: 'i3', ja:'鶏肉のとうがらし煮', en:'Spicy Braised<br>Chicken', price:'600', img:'togarashi.png', soldOut: false },
+            { id: 'i4', ja:'ライムリーフとり串<br>（ミニ4本）', en:'Lime Leaf Chicken Skewers<br>(Mini 4pcs)', price:'500', img:null, soldOut: false },
+            { id: 'i5', ja:'骨付き やきとり<br>（カタイ）', en:'Bone-in Grilled Chicken<br>(Chewy Texture)', price:'700', img:null, soldOut: false },
+            { id: 'i6', ja:'アヒルザンギ', en:'Deep-fried Duck<br>(Zangi Style)', price:'850', img:null, soldOut: false },
+            { id: 'i7', ja:'うずらワンタン（2本）', en:'Quail Wontons (2pcs)', price:'500', img:null, soldOut: false },
+            { id: 'i8', ja:'ブロッコリーのアジア炒め', en:'Asian Stir-fried Broccoli', price:'700', img:null, soldOut: false },
+            { id: 'i9', ja:'ビャンビャン麺', en:'Biang Biang Noodles', price:'850', img:null, soldOut: false },
+            { id: 'i10', ja:'大根揚げびたし', en:'Deep-fried Radish', price:'500', img:null, soldOut: false },
+            { id: 'i11', ja:'エビのサイゴンスパイス', en:'Shrimp Saigon Spice', price:'850', img:null, soldOut: false }
+        ],
+        main: [
+            { id: 'm1', ja:'バインセオ', en:'Banh Xeo<br>(Vietnamese Pancake)', price:'1500', img:'banhxeo.png', soldOut: false },
+            { id: 'm2', ja:'穴子とディルの香草焼き<br>（チャーカーラボン）', en:'Grilled Eel & Dill<br>(Cha Ca La Vong)', price:'950', img:null, soldOut: false },
+            { id: 'm3', ja:'チャオガー<br>（ベトナム鶏粥）', en:'Chao Ga<br>(Chicken Porridge)', price:'1200', img:'okayu.png', soldOut: false }
+        ],
+        beer: [
+            { id: 'b1', ja:'タイガービール', en:'Tiger Beer', price:'850', soldOut: false },
+            { id: 'b2', ja:'ヒューガルデンホワイト', en:'Hoegaarden White', price:'850', soldOut: false }
+        ],
+        craftBeer: [
+            { id: 'b_craft', ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut: false }
+        ],
+        alcohol: [
+            { id: 'a1', ja:'レッドアイ', en:'Red Eye', price:'700', soldOut: false },
+            { id: 'a2', ja:'ネプモイ', en:'Nep Moi', price:'650', soldOut: false },
+            { id: 'a3', ja:'ネプカム', en:'Nep Cam', price:'650', soldOut: false },
+            { id: 'a4', ja:'ハイボール', en:'Highball', price:'650', soldOut: false },
+            { id: 'a5', ja:'ベトナムコーヒー焼酎', en:'Vietnamese Coffee Shochu', price:'650', soldOut: false },
+            { id: 'a6', ja:'ジントニック', en:'Gin Tonic', price:'650', soldOut: false },
+            { id: 'a7', ja:'おいしいテキーラ', en:'Tequila', price:'650', soldOut: false },
+            { id: 'a8', ja:'電気ブラン', en:'Denki Bran', price:'650', soldOut: false },
+            { id: 'a9', ja:'ケイカチンシュ', en:'Osmanthus Wine', price:'650', soldOut: false }
+        ],
+        soft: [
+            { id: 's1', ja:'コーラ', en:'Cola', price:'550', soldOut: false },
+            { id: 's2', ja:'トロピカルジュース', en:'Tropical Juice', price:'550', soldOut: false },
+            { id: 's3', ja:'ハス茶（HOT・ICE）', en:'Lotus Tea (HOT/ICE)', price:'550', soldOut: false }
+        ]
+    };
+
+    function loadSoldOutState() {
+        const saved = localStorage.getItem('katakoto_menu_status');
+        if (saved) {
+            const statusMap = JSON.parse(saved);
+            Object.keys(menuData).forEach(cat => {
+                menuData[cat].forEach(item => {
+                    if (statusMap[item.id] !== undefined) {
+                        item.soldOut = statusMap[item.id];
+                    }
+                });
+            });
+        }
+    }
+    loadSoldOutState();
+
+    // --- コナミコマンド処理 ---
+    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    let keySequence = [];
+
+    document.addEventListener('keydown', (e) => {
         const overlay = document.getElementById('start-overlay');
-        overlay.style.display = 'none';
+        if (overlay.style.display === 'none') return;
+        checkInput(e.key);
+    });
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const overlay = document.getElementById('start-overlay');
+
+    overlay.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, {passive: true});
+
+    overlay.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+        const absX = Math.abs(diffX);
+        const absY = Math.abs(diffY);
+
+        if (Math.max(absX, absY) > 30) {
+            if (absX > absY) {
+                checkInput(diffX > 0 ? 'ArrowRight' : 'ArrowLeft');
+            } else {
+                checkInput(diffY > 0 ? 'ArrowDown' : 'ArrowUp');
+            }
+        } else {
+            const screenWidth = window.innerWidth;
+            if (touchEndX < screenWidth / 2) {
+                checkInput('b');
+            } else {
+                checkInput('a');
+            }
+        }
+    }, {passive: true});
+
+    function checkInput(key) {
+        keySequence.push(key);
+        if (keySequence.length > konamiCode.length) {
+            keySequence.shift();
+        }
+        if (keySequence.toString() === konamiCode.toString()) {
+            keySequence = [];
+            if (startSequenceTimeout) {
+                clearTimeout(startSequenceTimeout);
+                startSequenceTimeout = null;
+            }
+            const overlay = document.getElementById('start-overlay');
+            const startText = document.getElementById('start-text');
+            overlay.style.display = 'flex';
+            overlay.style.opacity = '1';
+            startText.classList.remove('active');
+            isGameStarted = false;
+
+            playStartSound();
+            openAdmin();
+        }
+    }
+
+    function openAdmin() {
+        const adminModal = document.getElementById('admin-modal');
+        const adminList = document.getElementById('admin-list');
+        adminList.innerHTML = ''; 
+
+        Object.keys(menuData).forEach(cat => {
+            menuData[cat].forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'admin-item';
+                const checked = !item.soldOut ? 'checked' : '';
+                const name = currentLang === 'ja' ? item.ja : item.en;
+                div.innerHTML = `
+                    <label style="display:flex; alignItems:center; width:100%; cursor:pointer;">
+                        <input type="checkbox" onchange="toggleItem('${cat}', '${item.id}', this)" ${checked}>
+                        <span>${name}</span>
+                    </label>
+                `;
+                adminList.appendChild(div);
+            });
+        });
+
+        adminModal.style.display = 'block';
+    }
+
+    function toggleItem(cat, id, checkbox) {
+        const item = menuData[cat].find(i => i.id === id);
+        if (item) item.soldOut = !checkbox.checked;
+    }
+
+    function closeAdmin() {
+        const statusMap = {};
+        Object.keys(menuData).forEach(cat => {
+            menuData[cat].forEach(item => {
+                statusMap[item.id] = item.soldOut;
+            });
+        });
+        localStorage.setItem('katakoto_menu_status', JSON.stringify(statusMap));
+        document.getElementById('admin-modal').style.display = 'none';
+        alert('SAVED! REBOOT SYSTEM...');
+        location.reload();
+    }
+
+    // ------------------------------------
+
+    function triggerStartSequence() {
+        if (isGameStarted) return;
+        isGameStarted = true;
+
+        const overlay = document.getElementById('start-overlay');
+        const startText = document.getElementById('start-text');
+
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        playStartSound();
+
+        startText.classList.add('active');
+        playStartJingle();
+
+        startSequenceTimeout = setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 2000);
+    }
+
+    function playStartSound() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function playStartJingle() {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+
+        const notes = [
+            { freq: 659.25, time: 0.0, dur: 0.1 },
+            { freq: 783.99, time: 0.1, dur: 0.1 },
+            { freq: 880.00, time: 0.2, dur: 0.4 }
+        ];
+
+        notes.forEach(note => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(note.freq, now + note.time);
+            
+            gain.gain.setValueAtTime(0.15, now + note.time);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + note.time + note.dur);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(now + note.time);
+            osc.stop(now + note.time + note.dur);
+        });
     }
 
     function toggleLanguage() {
@@ -309,52 +637,69 @@
         }
     }
 
-    function playStartSound() {
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-    }
-
-    function playHover() {
-        if (!audioCtx || window.matchMedia('(hover: none)').matches) return;
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.05);
-    }
-
     function playClick() {
         if (!audioCtx) return;
-        if (audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'square';
         osc.frequency.setValueAtTime(440, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
         osc.stop(audioCtx.currentTime + 0.15);
     }
 
+    function playHover() {
+        if (!audioCtx || window.matchMedia('(hover: none)').matches) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+    }
+
     const modal = document.getElementById('modal');
     const modalContent = document.getElementById('modal-content');
+
+    function createMenuHtml(item, hasImg = false) {
+        const name = (currentLang === 'ja') ? item.ja : item.en;
+        
+        // 売り切れ時は値段を表示せず、代わりに「SOLD OUT」スタンプを表示
+        let priceHtml = '';
+        if (item.soldOut) {
+            priceHtml = `<span class="sold-out-label">SOLD OUT</span>`;
+        } else {
+            priceHtml = item.price ? `<span class="price">${item.price}</span>` : '';
+        }
+
+        if (hasImg) {
+            const imgTag = item.img 
+                ? `<img src="${item.img}" alt="img">` 
+                : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
+            
+            return `
+                <div class="menu-list-item">
+                    <div class="menu-img-container">
+                        ${imgTag}
+                    </div>
+                    <div class="menu-text-container">
+                        <span class="menu-name">${name}</span>
+                        ${priceHtml}
+                    </div>
+                </div>`;
+        } else {
+            return `
+                <div class="sub-menu-item" style="position:relative;">
+                    ${name}${priceHtml}
+                </div>`;
+        }
+    }
 
     function showContent(type) {
         playClick();
@@ -397,62 +742,31 @@
             `;
         }
         else if (type === 'zensai') {
-            const list400 = (currentLang === 'ja') 
-                ? ['ホーレン草キムチ', '揚げナスのベトナムラー油ヅケ', 'しびれるキノコ', 'むしどりとパクチーのあえもの', 'こんにゃくピクルス', '焼ケール']
-                : ['Spinach Kimchi', 'Fried Eggplant w/ Chili Oil', 'Numbing Mushrooms', 'Steamed Chicken w/ Cilantro', 'Konjac Pickles', 'Grilled Kale'];
-            
             let html400 = '';
-            list400.forEach(item => html400 += `<div class="sub-menu-item">${item}</div>`);
+            menuData.zensai400.forEach(item => html400 += createMenuHtml(item));
+
+            let htmlOther = '';
+            menuData.zensaiOther.forEach(item => htmlOther += createMenuHtml(item));
+
+            let htmlRec = '<div class="menu-list-container">';
+            menuData.zensaiRec.forEach(item => htmlRec += createMenuHtml(item, true));
+            htmlRec += '</div>';
 
             modalContent.innerHTML = `
                 <h3>${t.zensai}</h3>
                 <div class="category-title">${t.cat_400}</div>
                 ${html400}
-                <div class="sub-menu-item" style="border-top:1px dashed #555;">${currentLang === 'ja' ? '酢だこ（ニョクチャム）' : 'Vinegar Octopus (Nuoc Cham)'}</div>
+                <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
+                ${htmlOther}
                 
                 <div class="category-title">${t.cat_rec}</div>
-                <div class="menu-list-container">
-                    <div class="menu-list-item">
-                        <div class="menu-img-container"><img src="zensai3.png" alt="3点盛り"></div>
-                        <div class="menu-text-container">
-                            <span class="menu-name">${currentLang === 'ja' ? '前菜3点盛合せ' : '3-Appetizer Platter'}</span>
-                            <span class="price">750~</span>
-                        </div>
-                    </div>
-                </div>
+                ${htmlRec}
                 <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
             `;
         }
         else if (type === 'ippin') {
-            const items = [
-                // ファイル名を英数字に変更して指定
-                { img:'motsu.png', ja:'牛もつ煮<br>（ファーラウボー）', en:'Beef Offal Stew<br>(Phá Lấu Bò)', price:'450' },
-                { img:'agedofu.png', ja:'揚げ豆腐トマト煮', en:'Fried Tofu<br>Tomato Stew', price:'600' },
-                { img:'togarashi.png', ja:'鶏肉のとうがらし煮', en:'Spicy Braised<br>Chicken', price:'600' },
-                { img:null, ja:'ライムリーフとり串<br>（ミニ4本）', en:'Lime Leaf Chicken Skewers<br>(Mini 4pcs)', price:'500' },
-                { img:null, ja:'骨付き やきとり<br>（カタイ）', en:'Bone-in Grilled Chicken<br>(Chewy Texture)', price:'700' },
-                { img:null, ja:'アヒルザンギ', en:'Deep-fried Duck<br>(Zangi Style)', price:'850' },
-                { img:null, ja:'うずらワンタン（2本）', en:'Quail Wontons (2pcs)', price:'500' },
-                { img:null, ja:'ビャンビャン麺', en:'Biang Biang Noodles', price:'850' },
-                { img:null, ja:'大根揚げびたし', en:'Deep-fried Radish', price:'500' },
-                { img:null, ja:'エビのサイゴンスパイス', en:'Shrimp Saigon Spice', price:'850' }
-            ];
-
             let htmlItems = '<div class="menu-list-container">';
-            items.forEach(item => {
-                const imgTag = item.img 
-                    ? `<img src="${item.img}" alt="img">` 
-                    : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
-                
-                htmlItems += `
-                    <div class="menu-list-item">
-                        <div class="menu-img-container">${imgTag}</div>
-                        <div class="menu-text-container">
-                            <span class="menu-name">${currentLang === 'ja' ? item.ja : item.en}</span>
-                            <span class="price">${item.price}</span>
-                        </div>
-                    </div>`;
-            });
+            menuData.ippin.forEach(item => htmlItems += createMenuHtml(item, true));
             htmlItems += '</div>';
 
             modalContent.innerHTML = `
@@ -462,24 +776,8 @@
             `;
         }
         else if (type === 'main') {
-            const items = [
-                { img:'banhxeo.png', ja:'バインセオ', en:'Banh Xeo<br>(Vietnamese Pancake)', price:'1500' },
-                { img:null, ja:'穴子とディルの香草焼き<br>（チャーカーラボン）', en:'Grilled Eel & Dill<br>(Cha Ca La Vong)', price:'950' },
-                { img:'okayu.png', ja:'チャオガー<br>（ベトナム鶏粥）', en:'Chao Ga<br>(Chicken Porridge)', price:'1200' }
-            ];
-            
             let htmlItems = '<div class="menu-list-container">';
-            items.forEach(item => {
-                const imgTag = item.img ? `<img src="${item.img}" alt="img">` : `<span style="color:#555;">NO IMAGE</span>`;
-                htmlItems += `
-                    <div class="menu-list-item">
-                        <div class="menu-img-container">${imgTag}</div>
-                        <div class="menu-text-container">
-                            <span class="menu-name">${currentLang === 'ja' ? item.ja : item.en}</span>
-                            <span class="price">${item.price}</span>
-                        </div>
-                    </div>`;
-            });
+            menuData.main.forEach(item => htmlItems += createMenuHtml(item, true));
             htmlItems += '</div>';
 
             modalContent.innerHTML = `
@@ -498,32 +796,22 @@
             `;
         }
         else if (type === 'beer') {
-            const list = (currentLang === 'ja')
-                ? [{n:'タイガー',p:'850'}, {n:'ヒューガルデン',p:'850'}]
-                : [{n:'Tiger',p:'850'}, {n:'Hoegaarden',p:'850'}];
-            
             let html = '';
-            list.forEach(i => html += `<div class="sub-menu-item">${i.n}<span class="price">${i.p}</span></div>`);
+            menuData.beer.forEach(i => html += createMenuHtml(i));
+            
+            const cb = menuData.craftBeer[0];
+            const cbHtml = createMenuHtml(cb).replace('div class="sub-menu-item', 'div class="sub-menu-item" onclick="window.open(\'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MTMyODYyMTI2NDY3MDE4?igsh=MXN1dGRhZmpsZjdjMw==\', \'_blank\'); playClick();" style="cursor:pointer;"');
 
             modalContent.innerHTML = `
                 <h3>${t.beer}</h3>
                 ${html}
-                <div class="sub-menu-item" onclick="window.open('https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MTMyODYyMTI2NDY3MDE4?igsh=MXN1dGRhZmpsZjdjMw==', '_blank'); playClick();">
-                    ${currentLang === 'ja' ? 'クラフトビール' : 'Craft Beer'}<span class="price">1400</span>
-                </div>
+                ${cbHtml}
                 <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
             `;
         }
         else if (type === 'alcohol') {
-            const list = (currentLang === 'ja')
-                ? ['レッドアイ:700', 'ネプモイ:650', 'ネプカム:650', 'ハイボール:650', 'ジントニック:650', 'おいしいテキーラ:650', '電気ブラン:650', 'ケイカチンシュ:650']
-                : ['Red Eye:700', 'Nep Moi:650', 'Nep Cam:650', 'Highball:650', 'Gin Tonic:650', 'Tequila:650', 'Denki Bran:650', 'Osmanthus Wine:650'];
-            
             let html = '';
-            list.forEach(item => {
-                const [n, p] = item.split(':');
-                html += `<div class="sub-menu-item">${n}<span class="price">${p}</span></div>`;
-            });
+            menuData.alcohol.forEach(item => html += createMenuHtml(item));
 
             modalContent.innerHTML = `
                 <h3>${t.alcohol}</h3>
@@ -532,15 +820,8 @@
             `;
         }
         else if (type === 'softdrinks') {
-            const list = (currentLang === 'ja')
-                ? ['コーラ:550', 'トロピカルジュース:550', 'ハス茶（HOT・ICE）:550']
-                : ['Cola:550', 'Tropical Juice:550', 'Lotus Tea (HOT/ICE):550'];
-
             let html = '';
-            list.forEach(item => {
-                const [n, p] = item.split(':');
-                html += `<div class="sub-menu-item">${n}<span class="price">${p}</span></div>`;
-            });
+            menuData.soft.forEach(item => html += createMenuHtml(item));
 
             modalContent.innerHTML = `
                 <h3>${t.soft}</h3>
@@ -549,11 +830,15 @@
             `;
         }
         else if (type === 'staff') {
+            const n = (currentLang === 'ja')
+                ? { erin: 'イーリン', ichi: 'いっちー' }
+                : { erin: 'E-RIN', ichi: 'ITSUKI' };
+
             modalContent.innerHTML = `
                 <h3>STAFF</h3>
                 <div class="staff-container">
-                    <div class="staff-card"><img src="erin.png" alt="Erin"><br>Erin</div>
-                    <div class="staff-card"><img src="ichi.png" alt="Ichi"><br>Ichi</div>
+                    <div class="staff-card"><img src="erin.png" alt="${n.erin}"><br>${n.erin}</div>
+                    <div class="staff-card"><img src="ichi.png" alt="${n.ichi}"><br>${n.ichi}</div>
                 </div>
             `;
         }

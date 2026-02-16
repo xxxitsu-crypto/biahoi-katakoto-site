@@ -1,20 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-  
-  <title>BIA HOI KATAKOTO | 札幌・狸小路のベトナムビアホイ & Craft Beer Sapporo Culture</title>
-  
-  <meta name="description" content="札幌・狸小路の隅にあるビール屋台。現地の「BIA HOI」な雰囲気の中で、厳選したクラフトビールとベトナム屋台料理を楽しめます。We offer nice local Craft Beer and Vietnamese and Sapporo street food in Sapporo Tanukikoji.">
-  
-  <meta name="keywords" content="札幌,ベトナム,ビアホイ,クラフトビール,狸小路,カタコト,BIA HOI,Sapporo,Craft Beer,Vietnamese Food">
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <meta name="google-site-verification" content="vP-AbCdeFgHiJkLmNoPqRsTuVwXyZ123456789" />
-
-  <link rel="stylesheet" href="style.css">
-    <meta name="google-site-verification" content="i2nDKIOsPBkSSCaddVA6uquVMjOuMgTa4JiWDIdcm2U" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BIA HOI カタコト - 狸小路9丁目</title>
@@ -40,7 +26,7 @@
             min-height: 100vh;
             min-height: 100dvh; 
             margin: 0;
-            overflow-y: auto;
+            overflow: hidden; /* スクロール防止 */
             text-transform: uppercase;
             -webkit-tap-highlight-color: transparent; 
         }
@@ -60,293 +46,179 @@
             flex-direction: column;
             justify-content: flex-start;
             padding-bottom: 20px; 
-            overflow: hidden;
         }
 
         /* --- スタート画面 --- */
         #start-overlay {
             position: absolute; 
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 1.0);
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            touch-action: none; 
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 1.0); z-index: 200;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; touch-action: none; 
         }
-
         .press-start {
-            font-family: 'Press Start 2P', cursive;
-            color: var(--main-yellow);
-            font-size: 1.2rem;
-            margin-top: 20px;
-            animation: blink 0.8s step-end infinite;
+            font-family: 'Press Start 2P', cursive; color: var(--main-yellow); font-size: 1.2rem; margin-top: 20px; animation: blink 0.8s step-end infinite;
         }
-
         .press-start.active {
-            color: var(--text-white);
-            animation: blink-fast 0.08s step-end infinite;
-            text-shadow: 2px 2px 0px var(--main-red);
+            color: var(--text-white); animation: blink-fast 0.08s step-end infinite; text-shadow: 2px 2px 0px var(--main-red);
         }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
-
-        @keyframes blink-fast {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes blink-fast { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
         h1 {
-            color: var(--main-red);
-            font-size: 2.2rem;
-            margin-bottom: 0;
-            margin-top: 40px;
-            text-shadow: 4px 4px 0px var(--main-yellow);
-            line-height: 1.2;
+            color: var(--main-red); font-size: 2.2rem; margin-bottom: 0; margin-top: 40px; text-shadow: 4px 4px 0px var(--main-yellow); line-height: 1.2;
         }
+        .subtitle { color: var(--main-yellow); font-size: 0.9rem; margin-bottom: 30px; letter-spacing: 2px; }
 
-        .subtitle {
-            color: var(--main-yellow);
-            font-size: 0.9rem;
-            margin-bottom: 30px;
-            letter-spacing: 2px;
-        }
-
-        .menu-list {
-            list-style: none;
-            padding: 0;
-            margin: 0 auto 30px;
-            width: fit-content;
-        }
-
-        .menu-item {
-            font-size: 1.5rem;
-            padding: 15px 20px;
-            cursor: pointer;
-            transition: all 0.1s;
-            position: relative;
-        }
-
+        .menu-list { list-style: none; padding: 0; margin: 0 auto 30px; width: fit-content; }
+        .menu-item { font-size: 1.5rem; padding: 15px 20px; cursor: pointer; transition: all 0.1s; position: relative; }
         @media (hover: hover) {
-            .menu-item:hover {
-                color: var(--main-yellow);
-                transform: scale(1.1);
-            }
-            .menu-item:hover::before {
-                content: '▶';
-                position: absolute;
-                left: -15px;
-                color: var(--main-red);
-            }
+            .menu-item:hover { color: var(--main-yellow); transform: scale(1.1); }
+            .menu-item:hover::before { content: '▶'; position: absolute; left: -15px; color: var(--main-red); }
         }
 
         .info-panel {
-            font-size: 0.9rem;
-            border-top: 2px dashed var(--main-blue);
-            padding-top: 20px;
-            margin-top: auto;
-            padding-bottom: 20px;
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
+            font-size: 0.9rem; border-top: 2px dashed var(--main-blue); padding-top: 20px; margin-top: auto; padding-bottom: 20px; position: absolute; bottom: 20px; left: 0; width: 100%;
         }
 
         /* --- モーダル設定 --- */
         #modal {
             display: none;
             position: absolute; 
-            top: 100px; 
-            bottom: 110px;
-            height: auto;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-color);
             border: 4px solid var(--main-yellow);
-            padding: 15px;
-            z-index: 10;
-            width: 90%;
-            max-width: 540px;
-            overflow-y: scroll;
-            -webkit-overflow-scrolling: touch;
-            text-align: left;
-            box-shadow: 10px 10px 0px rgba(0,0,0,0.8);
-        }
-
-        #modal::-webkit-scrollbar {
-            width: 10px;
-        }
-        #modal::-webkit-scrollbar-track {
-            background: #000;
-        }
-        #modal::-webkit-scrollbar-thumb {
-            background: var(--main-yellow);
-            border: 2px solid #000;
-        }
-
-        #modal h3 {
-            text-align: center;
-            border-bottom: 2px solid var(--main-red);
-            padding-bottom: 10px;
-            margin-top: 0;
-            color: var(--main-yellow);
-            position: sticky;
-            top: 0;
-            background: var(--bg-color);
-            z-index: 1;
-            /* 戻るボタンの配置用 */
-            position: sticky;
-        }
-
-        /* 左上の戻るボタン */
-        .header-back {
-            position: absolute;
-            left: 0;
-            top: 0;
-            font-size: 1rem;
-            color: #888;
-            cursor: pointer;
-            border: 1px solid #555;
-            padding: 2px 5px;
-            background: #000;
-        }
-        .header-back:active {
-            color: var(--main-red);
-            border-color: var(--main-red);
-        }
-
-        .category-title {
-            color: var(--main-blue);
-            margin: 15px 0 5px;
-            border-bottom: 1px dashed var(--gray);
-            font-size: 0.9rem;
-        }
-
-        .sub-menu-item {
-            padding: 15px 5px;
-            border-bottom: 1px dotted #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1rem;
-        }
-        .sub-menu-item:active { background-color: #222; }
-
-        .menu-list-container {
-            display: flex;
+            padding: 15px; padding-top: 40px;
+            z-index: 100;
+            box-sizing: border-box;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .menu-list-item {
-            display: flex;
-            align-items: center;
-            border: 1px solid var(--gray);
-            background: #111;
-            padding: 5px;
-            position: relative; 
-        }
-
-        .menu-img-container {
-            width: 120px;
-            height: 120px;
-            background-color: #000;
-            border: 1px dashed var(--gray);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-shrink: 0;
-            margin-right: 15px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .menu-img-container img {
-            width: auto;
-            height: auto;
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
         }
         
+        #modal-scroll-area {
+             flex-grow: 1; 
+             overflow-y: auto;
+             -webkit-overflow-scrolling: touch;
+             margin-bottom: 10px;
+        }
+
+        /* チャットモード時はモーダル全体のスクロールを止める */
+        #modal.chat-mode #modal-scroll-area {
+            overflow: hidden; 
+            padding: 0;
+            display: flex;
+        }
+        #modal.chat-mode #modal-content {
+            width: 100%;
+            height: 100%;
+        }
+
+        #modal::-webkit-scrollbar { width: 10px; }
+        #modal::-webkit-scrollbar-track { background: #000; }
+        #modal::-webkit-scrollbar-thumb { background: var(--main-yellow); border: 2px solid #000; }
+
+        #modal h3 {
+            text-align: center; border-bottom: 2px solid var(--main-red); padding-bottom: 10px; margin-top: 0; margin-bottom: 20px;
+            color: var(--main-yellow); position: sticky; top: 0; background: var(--bg-color); z-index: 1; font-size: 1.5rem;
+        }
+
+        .header-back {
+            position: absolute; left: 15px; top: 15px; font-size: 1rem; color: #888; cursor: pointer; border: 1px solid #555; padding: 5px 10px; background: #000;
+        }
+
+        .category-title, .sub-menu-item, .menu-list-item, .back-btn { text-align: left; }
+        .category-title { color: var(--main-blue); margin: 15px 0 5px; border-bottom: 1px dashed var(--gray); font-size: 0.9rem; }
+        .sub-menu-item { padding: 15px 5px; border-bottom: 1px dotted #333; display: flex; justify-content: space-between; align-items: center; font-size: 1rem; }
+        .sub-menu-item:active { background-color: #222; }
+        .menu-list-container { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .menu-list-item { display: flex; align-items: center; border: 1px solid var(--gray); background: #111; padding: 5px; position: relative; }
+        .menu-img-container { width: 120px; height: 120px; background-color: #000; border: 1px dashed var(--gray); display: flex; justify-content: center; align-items: center; flex-shrink: 0; margin-right: 15px; overflow: hidden; }
+        .menu-img-container img { width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
         .menu-text-container { flex-grow: 1; }
         .menu-name { font-size: 1rem; display: block; margin-bottom: 10px; line-height: 1.4; }
         .price { color: var(--main-yellow); font-size: 1.1rem; }
+        .back-btn { color: #888; margin-top: 20px; padding: 15px; text-align: center; border: 1px dashed #555; cursor: pointer; }
+        .close-btn { margin-top: auto; text-align: center; border: 1px solid var(--main-red); padding: 15px; background: var(--main-red); color: white; cursor: pointer; flex-shrink: 0; }
 
-        .back-btn {
-            color: #888;
-            margin-top: 20px;
-            padding: 15px;
-            text-align: center;
-            border: 1px dashed #555;
-            cursor: pointer;
-        }
+        .staff-container { display: flex; justify-content: space-around; margin-top: 30px; text-align: center; align-items: flex-end; }
+        .staff-card { cursor: pointer; transition: transform 0.1s; }
+        .staff-card:active { transform: scale(0.95); }
+        .staff-card img { width: 80px; height: auto; image-rendering: pixelated; border: 2px solid var(--text-white); }
+        .staff-card.tentyo img { width: 100px; border-color: var(--main-yellow); }
 
-        .close-btn {
-            margin-top: 10px;
-            text-align: center;
-            border: 1px solid var(--main-red);
-            padding: 15px;
-            background: var(--main-red);
-            color: white;
-            cursor: pointer;
-            position: sticky;
-            bottom: 0;
-        }
+        .sold-out-label { font-family: 'Press Start 2P', cursive; color: var(--main-red); font-size: 0.8rem; border: 2px solid var(--main-red); padding: 2px 4px; background: #000; transform: rotate(-5deg); display: inline-block; letter-spacing: -1px; white-space: nowrap; }
+        .item-sold-out { position: relative; }
 
-        .staff-container {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 15px;
-            text-align: center;
-        }
-        .staff-card img {
-            width: 80px;
-            height: auto;
-            image-rendering: pixelated;
-            border: 2px solid var(--text-white);
-        }
-
-        /* --- SOLD OUT スタンプ --- */
-        .sold-out-label {
-            font-family: 'Press Start 2P', cursive;
-            color: var(--main-red);
-            font-size: 0.8rem;
-            border: 2px solid var(--main-red);
-            padding: 2px 4px;
-            background: #000;
-            transform: rotate(-5deg);
-            display: inline-block;
-            letter-spacing: -1px;
-            white-space: nowrap;
-        }
-
-        .item-sold-out {
-            /* 写真はそのまま見せるためグレーアウトは削除 */
-            position: relative;
-        }
-
-        /* Loading表示 */
         #loading-overlay {
-            display: none;
-            position: absolute; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 300;
-            color: var(--main-yellow);
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            font-family: 'Press Start 2P', cursive;
+            display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 300; color: var(--main-yellow); justify-content: center; align-items: center; flex-direction: column; font-family: 'Press Start 2P', cursive;
         }
+
+        /* --- Q&A(チャット)関連レイアウト --- */
+        #qa-split-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* コンテナ自体はスクロールしない */
+        }
+        
+        /* 左側：店長固定エリア */
+        #qa-tentyo-fixed {
+            width: 120px;
+            background: #111;
+            border-right: 2px solid var(--main-blue);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* 上下中央配置 */
+            flex-shrink: 0;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        #tentyo-img {
+            width: 100%;
+            height: auto;
+            border: 3px solid var(--main-yellow);
+            background: #000;
+            image-rendering: pixelated;
+        }
+
+        /* 右側：ログスクロールエリア */
+        #qa-log-scroll {
+            flex-grow: 1;
+            overflow-y: auto; /* ここだけスクロール */
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #000;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 店長の回答枠（フキダシ） */
+        .qa-bubble-ai {
+            position: relative; background: #000; border: 3px solid var(--main-yellow); padding: 15px; color: var(--text-white); border-radius: 10px; text-align: left; line-height: 1.5; min-height: 60px;
+            margin-right: 5px;
+        }
+        .qa-bubble-ai::before { 
+            content: ''; position: absolute; top: 15px; left: -16px; border-style: solid; border-width: 10px 18px 10px 0; border-color: transparent var(--main-yellow) transparent transparent;
+        }
+        /* ユーザーの質問枠 */
+        .qa-bubble-user {
+             background: #111; border: 2px solid var(--main-blue); padding: 10px 15px; color: #0f0; border-radius: 15px 15px 0 15px; text-align: right; align-self: flex-end; max-width: 85%;
+        }
+
+        #chat-input-area-fixed {
+            display: flex; gap: 10px; padding: 15px; background: #000; border-top: 3px solid var(--main-blue); position: sticky; bottom: 0; flex-shrink: 0;
+        }
+        #chat-input {
+            flex-grow: 1; background: #222; border: 2px solid var(--main-blue); color: white; padding: 10px; font-family: var(--font-pixel); font-size: 1.1rem;
+        }
+        #chat-send-btn {
+            background: var(--main-blue); color: white; border: none; padding: 0 20px; cursor: pointer; font-family: var(--font-pixel); font-size: 1.1rem; border: 2px solid #fff;
+        }
+        #chat-send-btn:active { background: #fff; color: var(--main-blue); }
+
+        .typing-cursor::after { content: '▋'; color: var(--main-yellow); animation: blink 1s infinite; }
+
     </style>
 </head>
 <body>
@@ -382,410 +254,258 @@
     </div>
 
     <div id="modal">
-        <div id="modal-content"></div>
-        <div class="close-btn" onclick="closeModal()">[ CLOSE ]</div>
+        <h3 id="modal-title">TITLE</h3>
+        <span class="header-back" id="modal-back-btn" onclick="closeModal()">← BACK</span>
+        
+        <div id="modal-scroll-area">
+            <div id="modal-content"></div>
+        </div>
+
+        <div id="chat-input-area-fixed" style="display: none;">
+            <input type="text" id="chat-input" placeholder="店長に質問...">
+            <button id="chat-send-btn" onclick="sendChat()">送信</button>
+        </div>
+
+        <div class="close-btn" id="normal-close-btn" onclick="closeModal()">[ CLOSE ]</div>
     </div>
 </div>
 
 <script>
-    // ★★★ 最新のURLに更新しました ★★★
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwaCtt3tf-LA0pzvYpkQVRyPOzhh-EZzuUU-NAIw0ZSyZYMSdPCxPvVd0TX2FfkG4oejA/exec'; 
+    // ★★★ 重要：新しいデプロイで発行されたURLに書き換えてください ★★★
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxpfIC4uRNVNOB8lMIokSCqXvOByAjZDZCLBtKB6BKUcE7nNP8FuopmpLbfM9Wb8nI/exec';
 
     let audioCtx;
     let currentLang = 'ja';
     let isGameStarted = false;
-    let startSequenceTimeout = null;
+    let menuData = {};
 
-    // メニューデータ格納用
-    let menuData = {
-        zensai400: [], zensaiOther: [], zensaiRec: [],
-        ippin: [], main: [],
-        beer: [], craftBeer: [], alcohol: [], soft: []
-    };
+    // --- ここで画像を3種類定義します ---
+    const IMG_STAFF_ICON = 'tentyo.png'; // STAFF画面のアイコン
+    const IMG_QA_STATIC  = 'taiki.png';   // Q&Aの待機（静止画）←ここを変更しました！
+    const IMG_QA_TALK    = 'tentyo.gif';  // Q&Aの会話（GIF）
 
-    // --- データ読み込み ---
     async function fetchMenuData() {
         const loading = document.getElementById('loading-overlay');
         loading.style.display = 'flex';
-        
         try {
             const response = await fetch(GOOGLE_SCRIPT_URL);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const data = await response.json();
-            menuData = data;
-            console.log("Menu Data Loaded!", menuData);
+            if (!response.ok) throw new Error('Network response');
+            menuData = await response.json();
+            console.log("Menu Loaded");
         } catch (e) {
-            console.error("Load Failed", e);
-            alert("通信エラー：メニューを読み込めませんでした。\n※アクセス権限(全員)の設定を確認してください。");
+            console.error("Load Failed", e); alert("通信エラー：メニューを読み込めませんでした。");
         } finally {
             loading.style.display = 'none';
         }
     }
+    window.addEventListener('load', fetchMenuData);
 
-    window.addEventListener('load', () => {
-        fetchMenuData();
-    });
-
-    // --- コナミコマンド処理 (リロード機能) ---
     const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
     let keySequence = [];
-
-    function checkInput(key) {
-        keySequence.push(key);
-        if (keySequence.length > konamiCode.length) keySequence.shift();
-        
-        if (keySequence.toString() === konamiCode.toString()) {
-            keySequence = [];
-            playStartSound();
-            alert("SYSTEM RELOAD: FETCHING LATEST MENU...");
-            fetchMenuData();
-        }
-    }
-
     document.addEventListener('keydown', (e) => {
-        const overlay = document.getElementById('start-overlay');
-        if (overlay.style.display === 'none') return;
-        checkInput(e.key);
+        keySequence.push(e.key); if (keySequence.length > konamiCode.length) keySequence.shift();
+        if (keySequence.toString() === konamiCode.toString()) { keySequence = []; playStartSound(); alert("SYSTEM RELOAD..."); fetchMenuData(); }
     });
 
-    let touchStartX = 0;
-    let touchStartY = 0;
-    const overlay = document.getElementById('start-overlay');
-
-    overlay.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
-    }, {passive: true});
-
-    overlay.addEventListener('touchend', (e) => {
-        const diffX = e.changedTouches[0].screenX - touchStartX;
-        const diffY = e.changedTouches[0].screenY - touchStartY;
-        const absX = Math.abs(diffX);
-        const absY = Math.abs(diffY);
-
-        if (Math.max(absX, absY) > 30) {
-            if (absX > absY) checkInput(diffX > 0 ? 'ArrowRight' : 'ArrowLeft');
-            else checkInput(diffY > 0 ? 'ArrowDown' : 'ArrowUp');
-        } else {
-            if (e.changedTouches[0].screenX < window.innerWidth / 2) checkInput('b');
-            else checkInput('a');
-        }
-    }, {passive: true});
-
-    // --- 以下、表示・演出ロジック ---
-
     function triggerStartSequence() {
-        if (isGameStarted) return;
-        isGameStarted = true;
-        const overlay = document.getElementById('start-overlay');
-        const startText = document.getElementById('start-text');
-
+        if (isGameStarted) return; isGameStarted = true;
+        const overlay = document.getElementById('start-overlay'); document.getElementById('start-text').classList.add('active');
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
-
-        startText.classList.add('active');
-        playStartJingle();
-
-        startSequenceTimeout = setTimeout(() => {
-            overlay.style.display = 'none';
-        }, 2000);
+        playStartJingle(); setTimeout(() => { overlay.style.display = 'none'; }, 2000);
     }
-
-    function playStartSound() {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-    }
-
-    function playStartJingle() {
+    function playStartSound() { if(!audioCtx)return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(440,audioCtx.currentTime);o.frequency.linearRampToValueAtTime(880,audioCtx.currentTime+0.1);g.gain.setValueAtTime(0.1,audioCtx.currentTime);g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.3);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.3); }
+    function playStartJingle() { if(!audioCtx)return; const t=audioCtx.currentTime,n=[{f:659.25,t:0,d:0.1},{f:783.99,t:0.1,d:0.1},{f:880,t:0.2,d:0.4}];n.forEach(e=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(e.f,t+e.t);g.gain.setValueAtTime(0.15,t+e.t);g.gain.exponentialRampToValueAtTime(0.001,t+e.t+e.d);o.connect(g);g.connect(audioCtx.destination);o.start(t+e.t);o.stop(t+e.t+e.d)}); }
+    function playClick() { if(!audioCtx)return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(440,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(880,audioCtx.currentTime+0.1);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.15); }
+    function playHover() { if(!audioCtx||window.matchMedia('(hover: none)').matches)return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(880,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.05);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.05); }
+    
+    function playTypingSound() {
         if (!audioCtx) return;
-        const now = audioCtx.currentTime;
-        const notes = [{f:659.25,t:0.0,d:0.1}, {f:783.99,t:0.1,d:0.1}, {f:880.00,t:0.2,d:0.4}];
-        notes.forEach(n => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(n.f, now + n.t);
-            gain.gain.setValueAtTime(0.15, now + n.t);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now + n.t);
-            osc.stop(now + n.t + n.d);
-        });
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.type = 'square'; osc.frequency.setValueAtTime(1200, audioCtx.currentTime); 
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.03);
     }
 
-    function toggleLanguage() {
-        playClick();
-        if (currentLang === 'ja') {
-            currentLang = 'en';
-            document.getElementById('subtitle').innerText = 'TANUKIKOJI 9-CHOME';
-            document.getElementById('holiday-info').innerText = 'Irregular Holidays';
-            document.getElementById('lang-btn').innerText = '日本語';
-        } else {
-            currentLang = 'ja';
-            document.getElementById('subtitle').innerText = 'タ ヌ キ コ ウ ジ ９ チョ ウ メ';
-            document.getElementById('holiday-info').innerText = '不定休';
-            document.getElementById('lang-btn').innerText = 'ENGLISH';
-        }
-    }
-
-    function playClick() {
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.15);
-    }
-
-    function playHover() {
-        if (!audioCtx || window.matchMedia('(hover: none)').matches) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.05);
+    function toggleLanguage() { playClick(); currentLang = currentLang === 'ja' ? 'en' : 'ja'; updateUIText(); }
+    function updateUIText() {
+        document.getElementById('subtitle').innerText = currentLang === 'ja' ? 'タヌキコウジ９チョウメ' : 'TANUKIKOJI 9-CHOME';
+        document.getElementById('holiday-info').innerText = currentLang === 'ja' ? '不定休' : 'Irregular Holidays';
+        document.getElementById('lang-btn').innerText = currentLang === 'ja' ? 'ENGLISH' : '日本語';
     }
 
     const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modal-title');
     const modalContent = document.getElementById('modal-content');
+    const modalBackBtn = document.getElementById('modal-back-btn');
+    const chatInputArea = document.getElementById('chat-input-area-fixed');
+    const normalCloseBtn = document.getElementById('normal-close-btn');
 
     function createMenuHtml(item, hasImg = false) {
         const name = (currentLang === 'ja') ? item.ja : item.en;
-        let priceHtml = '';
-        if (item.soldOut) {
-            priceHtml = `<span class="sold-out-label">SOLD OUT</span>`;
-        } else {
-            priceHtml = item.price ? `<span class="price">${item.price}</span>` : '';
-        }
+        let priceHtml = item.soldOut ? `<span class="sold-out-label">SOLD OUT</span>` : (item.price ? `<span class="price">${item.price}</span>` : '');
         const soldOutClass = item.soldOut ? 'item-sold-out' : '';
-
         if (hasImg) {
-            const imgTag = item.img 
-                ? `<img src="${item.img}" alt="img">` 
-                : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
-            
-            return `
-                <div class="menu-list-item ${soldOutClass}">
-                    <div class="menu-img-container">
-                        ${imgTag}
-                    </div>
-                    <div class="menu-text-container">
-                        <span class="menu-name">${name}</span>
-                        ${priceHtml}
-                    </div>
-                </div>`;
+            const imgTag = item.img ? `<img src="${item.img}" alt="img">` : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
+            return `<div class="menu-list-item ${soldOutClass}"><div class="menu-img-container">${imgTag}</div><div class="menu-text-container"><span class="menu-name">${name}</span>${priceHtml}</div></div>`;
         } else {
-            return `
-                <div class="sub-menu-item ${soldOutClass}" style="position:relative;">
-                    ${name}${priceHtml}
-                </div>`;
+            return `<div class="sub-menu-item ${soldOutClass}" style="position:relative;">${name}${priceHtml}</div>`;
         }
     }
 
     function showContent(type) {
         playClick();
-        modal.style.display = 'block';
-        modal.scrollTop = 0;
+        modal.style.display = 'flex';
+        document.getElementById('modal-scroll-area').scrollTop = 0;
+        
+        // モードリセット
+        modal.classList.remove('chat-mode');
 
-        const txt = {
-            ja: {
-                menu: 'MENU', vietnamese: 'ベトナムリョウリ', drinks: 'ドリンク',
-                zensai: 'ゼンサイ', ippin: 'イッピンリョウリ', main: 'メイン',
-                back_menu: '◀ MENUへもどる', back_viet: '◀ ベトナムリョウリへ', back_drink: '◀ ドリンクへ',
-                beer: 'ビール（樽生）', alcohol: 'アルコール', soft: 'ソフトドリンク',
-                cat_400: '各種 400エン', cat_other: 'その他', cat_rec: 'おすすめ'
-            },
-            en: {
-                menu: 'MENU', vietnamese: 'VIETNAMESE FOOD', drinks: 'DRINKS',
-                zensai: 'APPETIZERS', ippin: 'A LA CARTE', main: 'MAIN DISH',
-                back_menu: '◀ BACK TO MENU', back_viet: '◀ BACK TO FOOD', back_drink: '◀ BACK TO DRINKS',
-                beer: 'DRAFT BEER', alcohol: 'ALCOHOL', soft: 'SOFT DRINKS',
-                cat_400: '¥400 EACH', cat_other: 'OTHERS', cat_rec: 'RECOMMENDED'
-            }
-        };
-
-        const t = (currentLang === 'ja') ? txt.ja : txt.en;
-
-        // 戻り先の定義
-        let backTarget = '';
-        if (['vietnamese', 'drinks', 'sns', 'staff'].includes(type)) backTarget = 'menu';
-        else if (['zensai', 'ippin', 'main'].includes(type)) backTarget = 'vietnamese';
-        else if (['beer', 'alcohol', 'softdrinks'].includes(type)) backTarget = 'drinks';
-        else if (type === 'craft_beer_confirm') backTarget = 'beer';
-
-        // 左上の戻るボタンHTML
-        const backBtnHtml = backTarget ? `<span class="header-back" onclick="showContent('${backTarget}')">← 戻</span>` : '';
-
-        // テンプレート関数（タイトル部分に戻るボタンを埋め込む）
-        const setModal = (title, content) => {
-            modalContent.innerHTML = `
-                <h3>${backBtnHtml}${title}</h3>
-                ${content}
-            `;
-        };
-
-        if (type === 'menu') {
-            setModal(t.menu, `
-                <div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div>
-                <div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>
-            `);
-        } 
-        else if (type === 'sns') {
-            setModal('SNS', `
-                <div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;">
-                    <div style="cursor:pointer;" onclick="window.open('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links', '_blank'); playClick();">
-                        <img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook">
-                    </div>
-                    <div style="cursor:pointer;" onclick="window.open('https://www.instagram.com/2_9_katakoto_biahoi/', '_blank'); playClick();">
-                        <img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram">
-                    </div>
-                </div>
-                <div class="back-btn" onclick="showContent('menu')">${t.back_menu}</div>
-            `);
-        }
-        else if (type === 'vietnamese') {
-            setModal(t.vietnamese, `
-                <div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
-                <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
-                <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>
-                <div class="back-btn" onclick="showContent('menu')">${t.back_menu}</div>
-            `);
-        }
-        else if (type === 'zensai') {
-            let html400 = '';
-            if(menuData.zensai400) menuData.zensai400.forEach(item => html400 += createMenuHtml(item));
-            let htmlOther = '';
-            if(menuData.zensaiOther) menuData.zensaiOther.forEach(item => htmlOther += createMenuHtml(item));
-            let htmlRec = '<div class="menu-list-container">';
-            if(menuData.zensaiRec) menuData.zensaiRec.forEach(item => htmlRec += createMenuHtml(item, true));
-            htmlRec += '</div>';
-
-            setModal(t.zensai, `
-                <div class="category-title">${t.cat_400}</div>
-                ${html400}
-                <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
-                ${htmlOther}
-                <div class="category-title">${t.cat_rec}</div>
-                ${htmlRec}
-                <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
-            `);
-        }
-        else if (type === 'ippin') {
-            let htmlItems = '<div class="menu-list-container">';
-            if(menuData.ippin) menuData.ippin.forEach(item => htmlItems += createMenuHtml(item, true));
-            htmlItems += '</div>';
-
-            setModal(t.ippin, `
-                ${htmlItems}
-                <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
-            `);
-        }
-        else if (type === 'main') {
-            let htmlItems = '<div class="menu-list-container">';
-            if(menuData.main) menuData.main.forEach(item => htmlItems += createMenuHtml(item, true));
-            htmlItems += '</div>';
-
-            setModal(t.main, `
-                ${htmlItems}
-                <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
-            `);
-        }
-        else if (type === 'drinks') {
-            setModal(t.drinks, `
-                <div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
-                <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
-                <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>
-                <div class="back-btn" onclick="showContent('menu')">${t.back_menu}</div>
-            `);
-        }
-        else if (type === 'beer') {
-            let html = '';
-            if(menuData.beer) menuData.beer.forEach(i => html += createMenuHtml(i));
+        if (type === 'chat') {
+            modal.style.top = '0'; modal.style.bottom = '0'; 
+            chatInputArea.style.display = 'flex'; 
+            normalCloseBtn.style.display = 'none'; 
+            modalBackBtn.innerText = '← BACK TO STAFF';
+            modalBackBtn.onclick = () => showContent('staff');
             
-            const cb = (menuData.craftBeer && menuData.craftBeer[0]) ? menuData.craftBeer[0] : {ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut:false};
-            let cbHtml = createMenuHtml(cb);
-            if (!cb.soldOut) {
-                cbHtml = cbHtml.replace('div class="sub-menu-item', 'div class="sub-menu-item" onclick="showContent(\'craft_beer_confirm\');" style="cursor:pointer;"');
-            }
-
-            setModal(t.beer, `
-                ${html}
-                ${cbHtml}
-                <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
-            `);
+            // チャットモード用CSS適用
+            modal.classList.add('chat-mode');
+        } else {
+            modal.style.top = ''; modal.style.bottom = ''; 
+            chatInputArea.style.display = 'none';
+            normalCloseBtn.style.display = 'block';
+            modalBackBtn.innerText = '← BACK';
+            modalBackBtn.onclick = closeModal;
         }
-        else if (type === 'craft_beer_confirm') {
-            const confirmMsg = currentLang === 'ja' ? 'インスタのページへとびます' : 'JUMP TO INSTAGRAM PAGE';
-            setModal('LINK', `
-                <div style="text-align:center; margin-top:30px; cursor:pointer;" onclick="window.open('https://www.instagram.com/stories/highlights/18132862126467018/', '_blank'); playClick();">
-                    <img src="insta.png" style="width:80px; height:80px; image-rendering:pixelated; margin-bottom:10px;" alt="insta">
-                    <br>
-                    <span style="font-size:0.9rem; border-bottom:1px solid var(--main-yellow);">${confirmMsg}</span>
+
+        const txt = { ja: { menu:'MENU', vietnamese:'ベトナムリョウリ', drinks:'ドリンク', zensai:'ゼンサイ', ippin:'イッピンリョウリ', main:'メイン', beer:'ビール（樽生）', alcohol:'アルコール', soft:'ソフトドリンク', cat_400:'各種 400エン', cat_other:'その他', cat_rec:'おすすめ' }, en: { menu:'MENU', vietnamese:'VIETNAMESE FOOD', drinks:'DRINKS', zensai:'APPETIZERS', ippin:'A LA CARTE', main:'MAIN DISH', beer:'DRAFT BEER', alcohol:'ALCOHOL', soft:'SOFT DRINKS', cat_400:'¥400 EACH', cat_other:'OTHERS', cat_rec:'RECOMMENDED' } };
+        const t = (currentLang === 'ja') ? txt.ja : txt.en;
+        
+        let title = '', content = '';
+        let backTarget = '';
+
+        if (type === 'menu') { title = t.menu; content = `<div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>`; }
+        else if (type === 'sns') { title = 'SNS'; content = `<div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;"><div style="cursor:pointer;" onclick="window.open('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links', '_blank'); playClick();"><img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook"></div><div style="cursor:pointer;" onclick="window.open('https://www.instagram.com/2_9_katakoto_biahoi/', '_blank'); playClick();"><img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram"></div></div>`; backTarget = 'menu'; } 
+        
+        // --- Q&A画面（左右分割版） ---
+        else if (type === 'chat') {
+            title = 'Q & A';
+            content = `
+                <div id="qa-split-container">
+                    <div id="qa-tentyo-fixed">
+                        <img src="${IMG_QA_STATIC}" id="tentyo-img" alt="店長">
+                        <div style="margin-top:10px; font-size:0.8rem; color:var(--main-yellow);">店長</div>
+                    </div>
+                    <div id="qa-log-scroll">
+                        </div>
                 </div>
-                <div class="back-btn" onclick="showContent('beer')">◀ ${currentLang === 'ja' ? 'もどる' : 'BACK'}</div>
-            `);
+            `;
+            setTimeout(() => { addAiMessage("ｲﾗｯｼｬｲﾏｾー　何かご用件は？"); }, 500);
         }
-        else if (type === 'alcohol') {
-            let html = '';
-            if(menuData.alcohol) menuData.alcohol.forEach(item => html += createMenuHtml(item));
-
-            setModal(t.alcohol, `
-                ${html}
-                <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
-            `);
-        }
-        else if (type === 'softdrinks') {
-            let html = '';
-            if(menuData.soft) menuData.soft.forEach(item => html += createMenuHtml(item));
-
-            setModal(t.soft, `
-                ${html}
-                <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
-            `);
-        }
+        
+        else if (type === 'vietnamese') { title = t.vietnamese; content = `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`; backTarget = 'menu'; } 
+        else if (type === 'zensai') { title = t.zensai; let h4='', hO='', hR='<div class="menu-list-container">'; if(menuData.zensai400) menuData.zensai400.forEach(i => h4 += createMenuHtml(i)); if(menuData.zensaiOther) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i)); if(menuData.zensaiRec) menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true)); hR+='</div>'; content = `<div class="category-title">${t.cat_400}</div>${h4}<div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>${hO}<div class="category-title">${t.cat_rec}</div>${hR}`; backTarget = 'vietnamese'; } 
+        else if (type === 'ippin') { title = t.ippin; let h='<div class="menu-list-container">'; if(menuData.ippin) menuData.ippin.forEach(i => h+=createMenuHtml(i,true)); h+='</div>'; content = h; backTarget = 'vietnamese'; } 
+        else if (type === 'main') { title = t.main; let h='<div class="menu-list-container">'; if(menuData.main) menuData.main.forEach(i => h+=createMenuHtml(i,true)); h+='</div>'; content = h; backTarget = 'vietnamese'; } 
+        else if (type === 'drinks') { title = t.drinks; content = `<div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>`; backTarget = 'menu'; } 
+        else if (type === 'beer') { title = t.beer; let h=''; if(menuData.beer) menuData.beer.forEach(i => h+=createMenuHtml(i)); const cb = (menuData.craftBeer && menuData.craftBeer[0]) ? menuData.craftBeer[0] : {ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut:false}; let cbHtml = createMenuHtml(cb); if (!cb.soldOut) cbHtml = cbHtml.replace('div class="sub-menu-item', 'div class="sub-menu-item" onclick="showContent(\'craft_beer_confirm\');" style="cursor:pointer;"'); content = `${h}${cbHtml}`; backTarget = 'drinks'; } 
+        else if (type === 'craft_beer_confirm') { title = 'LINK'; const m = currentLang==='ja'?'インスタのページへとびます':'JUMP TO INSTAGRAM PAGE'; content = `<div style="text-align:center; margin-top:30px; cursor:pointer;" onclick="window.open('https://www.instagram.com/stories/highlights/18132862126467018/', '_blank'); playClick();"><img src="insta.png" style="width:80px; height:80px; image-rendering:pixelated; margin-bottom:10px;"><br><span style="font-size:0.9rem; border-bottom:1px solid var(--main-yellow);">${m}</span></div>`; backTarget = 'beer'; } 
+        else if (type === 'alcohol') { title = t.alcohol; let h=''; if(menuData.alcohol) menuData.alcohol.forEach(i => h+=createMenuHtml(i)); content = h; backTarget = 'drinks'; } 
+        else if (type === 'softdrinks') { title = t.soft; let h=''; if(menuData.soft) menuData.soft.forEach(i => h+=createMenuHtml(i)); content = h; backTarget = 'drinks'; } 
+        
         else if (type === 'staff') {
-            const n = (currentLang === 'ja')
-                ? { erin: 'イーリン', ichi: 'いっちー' }
-                : { erin: 'E-RIN', ichi: 'ITSUKI' };
-
-            setModal('STAFF', `
+            title = 'STAFF';
+            const n = (currentLang === 'ja') ? { erin: 'イーリン', ichi: 'いっちー', tentyo: '店長' } : { erin: 'E-RIN', ichi: 'ITSUKI', tentyo: 'MANAGER' };
+            content = `
                 <div class="staff-container">
                     <div class="staff-card"><img src="erin.png" alt="${n.erin}"><br>${n.erin}</div>
+                    <div class="staff-card tentyo" onclick="showContent('chat')">
+                        <img src="${IMG_STAFF_ICON}" alt="${n.tentyo}"><br>
+                        <span style="color:var(--main-yellow);">${n.tentyo}</span><br>
+                        <span style="font-size:0.7rem; color:#888;">(TAP TO CHAT)</span>
+                    </div>
                     <div class="staff-card"><img src="ichi.png" alt="${n.ichi}"><br>${n.ichi}</div>
-                </div>
-            `);
+                </div>`;
+            backTarget = 'menu';
+        }
+
+        modalTitle.innerText = title;
+        modalContent.innerHTML = content;
+        if (backTarget && type !== 'chat') {
+             modalBackBtn.innerText = currentLang === 'ja' ? '← 戻る' : '← BACK';
+             modalBackBtn.onclick = () => showContent(backTarget);
         }
     }
 
-    function closeModal() {
-        playClick();
-        modal.style.display = 'none';
+    function closeModal() { playClick(); modal.style.display = 'none'; modal.classList.remove('chat-mode'); }
+    document.querySelectorAll('.menu-item').forEach(item => { item.addEventListener('mouseenter', playHover); });
+
+    // --- 画像切り替え関数 ---
+    function setTentyoAnimating(isAnimating) {
+        const img = document.getElementById('tentyo-img');
+        if (img) {
+            // trueならGIF（喋る）、falseなら静止画(taiki.png)に切り替え
+            img.src = isAnimating ? IMG_QA_TALK : IMG_QA_STATIC;
+        }
     }
 
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('mouseenter', playHover);
+    async function typeWriter(element, text) {
+        element.innerHTML = '';
+        element.classList.add('typing-cursor');
+        setTentyoAnimating(true); // タイピング開始（GIF）
+
+        for (let i = 0; i < text.length; i++) {
+            element.innerHTML += text.charAt(i);
+            playTypingSound();
+            const scrollArea = document.getElementById('qa-log-scroll');
+            if(scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        element.classList.remove('typing-cursor');
+        setTentyoAnimating(false); // 終了（taiki.png）
+    }
+
+    async function addAiMessage(text) {
+        const logArea = document.getElementById('qa-log-scroll');
+        if (!logArea) return;
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'qa-bubble-ai';
+        logArea.appendChild(msgDiv);
+        await typeWriter(msgDiv, text);
+    }
+
+    function addUserMessage(text) {
+        const logArea = document.getElementById('qa-log-scroll');
+        if (!logArea) return;
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'qa-bubble-user';
+        msgDiv.innerText = text;
+        logArea.appendChild(msgDiv);
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    async function sendChat() {
+        const input = document.getElementById('chat-input');
+        const msg = input.value;
+        if (!msg) return;
+        playClick();
+        addUserMessage(msg);
+        input.value = '';
+
+        try {
+            const response = await fetch(`${GOOGLE_SCRIPT_URL}?ask=${encodeURIComponent(msg)}`);
+            const data = await response.json();
+            await addAiMessage(data.reply);
+        } catch (e) {
+             await addAiMessage("エラー... ツウシン... デキナイ...");
+        }
+    }
+    document.getElementById('chat-input-area-fixed').addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter') sendChat();
     });
+
 </script>
 
 </body>

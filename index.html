@@ -220,6 +220,7 @@
             border: 1px solid var(--gray);
             background: #111;
             padding: 5px;
+            position: relative; /* SOLD OUT表示のため */
         }
 
         .menu-img-container {
@@ -233,6 +234,7 @@
             flex-shrink: 0;
             margin-right: 15px;
             overflow: hidden;
+            position: relative;
         }
 
         .menu-img-container img {
@@ -281,61 +283,72 @@
             border: 2px solid var(--text-white);
         }
 
-        /* --- SOLD OUT スタンプ (値段部分) --- */
+        /* --- SOLD OUT スタンプ --- */
         .sold-out-label {
             font-family: 'Press Start 2P', cursive;
             color: var(--main-red);
-            font-size: 0.8rem; /* リストに収まるサイズ */
+            font-size: 0.8rem;
             border: 2px solid var(--main-red);
             padding: 2px 4px;
             background: #000;
-            transform: rotate(-5deg); /* 少し斜めに */
+            transform: rotate(-5deg);
             display: inline-block;
             letter-spacing: -1px;
             white-space: nowrap;
         }
 
-        /* --- 管理画面スタイル --- */
-        #admin-modal {
-            display: none;
+        .sold-out-stamp {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 200;
-            padding: 20px;
-            box-sizing: border-box;
-            overflow-y: scroll;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-10deg);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.8rem;
+            color: var(--main-red);
+            border: 6px solid var(--main-red);
+            padding: 5px 15px;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 20;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 6px 6px 0px rgba(0,0,0,0.5);
+            text-shadow: 3px 3px 0px #000;
         }
-        #admin-modal h2 { color: var(--main-red); border-bottom: 2px solid white; padding-bottom:10px; }
-        .admin-item {
-            display: flex;
+        
+        .item-sold-out {
+            opacity: 0.6;
+            filter: grayscale(100%);
+            position: relative;
+        }
+
+        /* Loading表示 */
+        #loading-overlay {
+            display: none;
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 300;
+            color: var(--main-yellow);
+            justify-content: center;
             align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #333;
-        }
-        .admin-item input[type="checkbox"] {
-            transform: scale(1.5);
-            margin-right: 15px;
-        }
-        .admin-close {
-            margin-top: 20px;
-            background: var(--main-blue);
-            color: white;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
+            flex-direction: column;
+            font-family: 'Press Start 2P', cursive;
         }
     </style>
 </head>
 <body>
 
 <div id="game-screen">
+    <div id="loading-overlay">
+        <div style="margin-bottom:20px;">NOW LOADING...</div>
+        <div style="font-size:0.7rem; color:#888;">ACCESSING DATABASE</div>
+    </div>
+
     <div id="start-overlay" onclick="triggerStartSequence()">
         <h1>BIA HOI<br>KATAKOTO</h1>
         <div class="press-start" id="start-text">PUSH START BUTTON</div>
         <p style="margin-top: 20px; font-size: 0.7rem; color: #888;">
             TAP SCREEN TO START<br>
-            <span style="font-size:0.5rem; color:#333;">(SECRET: ↑↑↓↓←→←→BA)</span>
+            <span style="font-size:0.5rem; color:#333;">(KONAMI CODE TO RELOAD)</span>
         </p>
     </div>
 
@@ -358,108 +371,72 @@
         <div id="modal-content"></div>
         <div class="close-btn" onclick="closeModal()">[ CLOSE ]</div>
     </div>
-
-    <div id="admin-modal">
-        <h2>STAFF ONLY MODE</h2>
-        <p style="color:#aaa; font-size:0.8rem; margin-bottom:20px;">
-            チェックを外すと「売り切れ」になります。<br>
-            Uncheck to mark as SOLD OUT.
-        </p>
-        <div id="admin-list"></div>
-        <div class="admin-close" onclick="closeAdmin()">[ SAVE & EXIT ]</div>
-    </div>
 </div>
 
 <script>
+    // ★ご提示いただいたURLをここに埋め込みました★
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby8_rrDb3Vj3Fsl8ky23GF-8cFeopsStnlPCmFnMgqZDXm470gkqLvYU7_x5wbh_oTDWw/exec'; 
+
     let audioCtx;
     let currentLang = 'ja';
     let isGameStarted = false;
     let startSequenceTimeout = null;
 
-    // --- メニューデータ ---
-    const menuData = {
-        zensai400: [
-            { id: 'z1', ja: 'ホーレン草キムチ', en: 'Spinach Kimchi', soldOut: false },
-            { id: 'z2', ja: '揚げナスのベトナムラー油ヅケ', en: 'Fried Eggplant w/ Chili Oil', soldOut: false },
-            { id: 'z3', ja: 'しびれるキノコ', en: 'Numbing Mushrooms', soldOut: false },
-            { id: 'z4', ja: 'むしどりとパクチーのあえもの', en: 'Steamed Chicken w/ Cilantro', soldOut: false },
-            { id: 'z5', ja: 'こんにゃくピクルス', en: 'Konjac Pickles', soldOut: false },
-            { id: 'z6', ja: '焼ケール', en: 'Grilled Kale', soldOut: false }
-        ],
-        zensaiOther: [
-             { id: 'z_other', ja: '酢だこ（ニョクチャム）', en: 'Vinegar Octopus (Nuoc Cham)', soldOut: false }
-        ],
-        zensaiRec: [
-             { id: 'z_rec', ja: '前菜3点盛合せ', en: '3-Appetizer Platter', price: '750~', img: 'zensai3.png', soldOut: false }
-        ],
-        ippin: [
-            { id: 'i1', ja:'牛もつ煮<br>（ファーラウボー）', en:'Beef Offal Stew<br>(Phá Lấu Bò)', price:'450', img:'motsu.png', soldOut: false },
-            { id: 'i2', ja:'揚げ豆腐トマト煮', en:'Fried Tofu<br>Tomato Stew', price:'600', img:'agedofu.png', soldOut: false },
-            { id: 'i3', ja:'鶏肉のとうがらし煮', en:'Spicy Braised<br>Chicken', price:'600', img:'togarashi.png', soldOut: false },
-            { id: 'i4', ja:'ライムリーフとり串<br>（ミニ4本）', en:'Lime Leaf Chicken Skewers<br>(Mini 4pcs)', price:'500', img:null, soldOut: false },
-            { id: 'i5', ja:'骨付き やきとり<br>（カタイ）', en:'Bone-in Grilled Chicken<br>(Chewy Texture)', price:'700', img:null, soldOut: false },
-            { id: 'i6', ja:'アヒルザンギ', en:'Deep-fried Duck<br>(Zangi Style)', price:'850', img:null, soldOut: false },
-            { id: 'i7', ja:'うずらワンタン（2本）', en:'Quail Wontons (2pcs)', price:'500', img:null, soldOut: false },
-            { id: 'i8', ja:'ブロッコリーのアジア炒め', en:'Asian Stir-fried Broccoli', price:'700', img:null, soldOut: false },
-            { id: 'i9', ja:'ビャンビャン麺', en:'Biang Biang Noodles', price:'850', img:null, soldOut: false },
-            { id: 'i10', ja:'大根揚げびたし', en:'Deep-fried Radish', price:'500', img:null, soldOut: false },
-            { id: 'i11', ja:'エビのサイゴンスパイス', en:'Shrimp Saigon Spice', price:'850', img:null, soldOut: false }
-        ],
-        main: [
-            { id: 'm1', ja:'バインセオ', en:'Banh Xeo<br>(Vietnamese Pancake)', price:'1500', img:'banhxeo.png', soldOut: false },
-            { id: 'm2', ja:'穴子とディルの香草焼き<br>（チャーカーラボン）', en:'Grilled Eel & Dill<br>(Cha Ca La Vong)', price:'950', img:null, soldOut: false },
-            { id: 'm3', ja:'チャオガー<br>（ベトナム鶏粥）', en:'Chao Ga<br>(Chicken Porridge)', price:'1200', img:'okayu.png', soldOut: false }
-        ],
-        beer: [
-            { id: 'b1', ja:'タイガービール', en:'Tiger Beer', price:'850', soldOut: false },
-            { id: 'b2', ja:'ヒューガルデンホワイト', en:'Hoegaarden White', price:'850', soldOut: false }
-        ],
-        craftBeer: [
-            { id: 'b_craft', ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut: false }
-        ],
-        alcohol: [
-            { id: 'a1', ja:'レッドアイ', en:'Red Eye', price:'700', soldOut: false },
-            { id: 'a2', ja:'ネプモイ', en:'Nep Moi', price:'650', soldOut: false },
-            { id: 'a3', ja:'ネプカム', en:'Nep Cam', price:'650', soldOut: false },
-            { id: 'a4', ja:'ハイボール', en:'Highball', price:'650', soldOut: false },
-            { id: 'a5', ja:'ベトナムコーヒー焼酎', en:'Vietnamese Coffee Shochu', price:'650', soldOut: false },
-            { id: 'a6', ja:'ジントニック', en:'Gin Tonic', price:'650', soldOut: false },
-            { id: 'a7', ja:'おいしいテキーラ', en:'Tequila', price:'650', soldOut: false },
-            { id: 'a8', ja:'電気ブラン', en:'Denki Bran', price:'650', soldOut: false },
-            { id: 'a9', ja:'ケイカチンシュ', en:'Osmanthus Wine', price:'650', soldOut: false }
-        ],
-        soft: [
-            { id: 's1', ja:'コーラ', en:'Cola', price:'550', soldOut: false },
-            { id: 's2', ja:'トロピカルジュース', en:'Tropical Juice', price:'550', soldOut: false },
-            { id: 's3', ja:'ハス茶（HOT・ICE）', en:'Lotus Tea (HOT/ICE)', price:'550', soldOut: false }
-        ]
+    // メニューデータ格納用（初期値は空）
+    let menuData = {
+        zensai400: [], zensaiOther: [], zensaiRec: [],
+        ippin: [], main: [],
+        beer: [], craftBeer: [], alcohol: [], soft: []
     };
 
-    function loadSoldOutState() {
-        const saved = localStorage.getItem('katakoto_menu_status');
-        if (saved) {
-            const statusMap = JSON.parse(saved);
-            Object.keys(menuData).forEach(cat => {
-                menuData[cat].forEach(item => {
-                    if (statusMap[item.id] !== undefined) {
-                        item.soldOut = statusMap[item.id];
-                    }
-                });
-            });
+    // --- データ読み込み ---
+    async function fetchMenuData() {
+        const loading = document.getElementById('loading-overlay');
+        loading.style.display = 'flex'; // ローディング表示
+        
+        try {
+            const response = await fetch(GOOGLE_SCRIPT_URL);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            menuData = data; // データを更新
+            console.log("Menu Data Loaded!", menuData);
+        } catch (e) {
+            console.error("Load Failed", e);
+            alert("通信エラー：メニューを読み込めませんでした。\n※アクセス権限(全員)の設定を確認してください。");
+        } finally {
+            loading.style.display = 'none'; // ローディング消去
         }
     }
-    loadSoldOutState();
 
-    // --- コナミコマンド処理 ---
+    // ページ読み込み時にデータを取得
+    window.addEventListener('load', () => {
+        fetchMenuData();
+    });
+
+    // --- コナミコマンド処理 (リロード機能に変更) ---
     const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
     let keySequence = [];
 
+    function checkInput(key) {
+        keySequence.push(key);
+        if (keySequence.length > konamiCode.length) keySequence.shift();
+        
+        if (keySequence.toString() === konamiCode.toString()) {
+            keySequence = [];
+            playStartSound();
+            alert("SYSTEM RELOAD: FETCHING LATEST MENU...");
+            fetchMenuData(); // データを再取得
+        }
+    }
+
+    // PCキーボード監視
     document.addEventListener('keydown', (e) => {
         const overlay = document.getElementById('start-overlay');
         if (overlay.style.display === 'none') return;
         checkInput(e.key);
     });
 
+    // スマホスワイプ監視
     let touchStartX = 0;
     let touchStartY = 0;
     const overlay = document.getElementById('start-overlay');
@@ -470,100 +447,25 @@
     }, {passive: true});
 
     overlay.addEventListener('touchend', (e) => {
-        const touchEndX = e.changedTouches[0].screenX;
-        const touchEndY = e.changedTouches[0].screenY;
-        const diffX = touchEndX - touchStartX;
-        const diffY = touchEndY - touchStartY;
+        const diffX = e.changedTouches[0].screenX - touchStartX;
+        const diffY = e.changedTouches[0].screenY - touchStartY;
         const absX = Math.abs(diffX);
         const absY = Math.abs(diffY);
 
         if (Math.max(absX, absY) > 30) {
-            if (absX > absY) {
-                checkInput(diffX > 0 ? 'ArrowRight' : 'ArrowLeft');
-            } else {
-                checkInput(diffY > 0 ? 'ArrowDown' : 'ArrowUp');
-            }
+            if (absX > absY) checkInput(diffX > 0 ? 'ArrowRight' : 'ArrowLeft');
+            else checkInput(diffY > 0 ? 'ArrowDown' : 'ArrowUp');
         } else {
-            const screenWidth = window.innerWidth;
-            if (touchEndX < screenWidth / 2) {
-                checkInput('b');
-            } else {
-                checkInput('a');
-            }
+            if (e.changedTouches[0].screenX < window.innerWidth / 2) checkInput('b');
+            else checkInput('a');
         }
     }, {passive: true});
 
-    function checkInput(key) {
-        keySequence.push(key);
-        if (keySequence.length > konamiCode.length) {
-            keySequence.shift();
-        }
-        if (keySequence.toString() === konamiCode.toString()) {
-            keySequence = [];
-            if (startSequenceTimeout) {
-                clearTimeout(startSequenceTimeout);
-                startSequenceTimeout = null;
-            }
-            const overlay = document.getElementById('start-overlay');
-            const startText = document.getElementById('start-text');
-            overlay.style.display = 'flex';
-            overlay.style.opacity = '1';
-            startText.classList.remove('active');
-            isGameStarted = false;
-
-            playStartSound();
-            openAdmin();
-        }
-    }
-
-    function openAdmin() {
-        const adminModal = document.getElementById('admin-modal');
-        const adminList = document.getElementById('admin-list');
-        adminList.innerHTML = ''; 
-
-        Object.keys(menuData).forEach(cat => {
-            menuData[cat].forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'admin-item';
-                const checked = !item.soldOut ? 'checked' : '';
-                const name = currentLang === 'ja' ? item.ja : item.en;
-                div.innerHTML = `
-                    <label style="display:flex; alignItems:center; width:100%; cursor:pointer;">
-                        <input type="checkbox" onchange="toggleItem('${cat}', '${item.id}', this)" ${checked}>
-                        <span>${name}</span>
-                    </label>
-                `;
-                adminList.appendChild(div);
-            });
-        });
-
-        adminModal.style.display = 'block';
-    }
-
-    function toggleItem(cat, id, checkbox) {
-        const item = menuData[cat].find(i => i.id === id);
-        if (item) item.soldOut = !checkbox.checked;
-    }
-
-    function closeAdmin() {
-        const statusMap = {};
-        Object.keys(menuData).forEach(cat => {
-            menuData[cat].forEach(item => {
-                statusMap[item.id] = item.soldOut;
-            });
-        });
-        localStorage.setItem('katakoto_menu_status', JSON.stringify(statusMap));
-        document.getElementById('admin-modal').style.display = 'none';
-        alert('SAVED! REBOOT SYSTEM...');
-        location.reload();
-    }
-
-    // ------------------------------------
+    // --- ここから下は表示・演出ロジック（前と同じ） ---
 
     function triggerStartSequence() {
         if (isGameStarted) return;
         isGameStarted = true;
-
         const overlay = document.getElementById('start-overlay');
         const startText = document.getElementById('start-text');
 
@@ -597,28 +499,18 @@
     function playStartJingle() {
         if (!audioCtx) return;
         const now = audioCtx.currentTime;
-
-        const notes = [
-            { freq: 659.25, time: 0.0, dur: 0.1 },
-            { freq: 783.99, time: 0.1, dur: 0.1 },
-            { freq: 880.00, time: 0.2, dur: 0.4 }
-        ];
-
-        notes.forEach(note => {
+        const notes = [{f:659.25,t:0.0,d:0.1}, {f:783.99,t:0.1,d:0.1}, {f:880.00,t:0.2,d:0.4}];
+        notes.forEach(n => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            
             osc.type = 'square';
-            osc.frequency.setValueAtTime(note.freq, now + note.time);
-            
-            gain.gain.setValueAtTime(0.15, now + note.time);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + note.time + note.dur);
-
+            osc.frequency.setValueAtTime(n.f, now + n.t);
+            gain.gain.setValueAtTime(0.15, now + n.t);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            
-            osc.start(now + note.time);
-            osc.stop(now + note.time + note.dur);
+            osc.start(now + n.t);
+            osc.stop(now + n.t + n.d);
         });
     }
 
@@ -669,14 +561,15 @@
 
     function createMenuHtml(item, hasImg = false) {
         const name = (currentLang === 'ja') ? item.ja : item.en;
-        
-        // 売り切れ時は値段を表示せず、代わりに「SOLD OUT」スタンプを表示
         let priceHtml = '';
         if (item.soldOut) {
             priceHtml = `<span class="sold-out-label">SOLD OUT</span>`;
         } else {
             priceHtml = item.price ? `<span class="price">${item.price}</span>` : '';
         }
+        
+        const bigStamp = item.soldOut && hasImg ? '<div class="sold-out-stamp">SOLD OUT</div>' : '';
+        const soldOutClass = item.soldOut ? 'item-sold-out' : '';
 
         if (hasImg) {
             const imgTag = item.img 
@@ -684,7 +577,8 @@
                 : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
             
             return `
-                <div class="menu-list-item">
+                <div class="menu-list-item ${soldOutClass}">
+                    ${bigStamp}
                     <div class="menu-img-container">
                         ${imgTag}
                     </div>
@@ -695,7 +589,7 @@
                 </div>`;
         } else {
             return `
-                <div class="sub-menu-item" style="position:relative;">
+                <div class="sub-menu-item ${soldOutClass}" style="position:relative;">
                     ${name}${priceHtml}
                 </div>`;
         }
@@ -743,13 +637,14 @@
         }
         else if (type === 'zensai') {
             let html400 = '';
-            menuData.zensai400.forEach(item => html400 += createMenuHtml(item));
+            // データがまだ空（読み込み失敗時など）の場合は空文字のまま
+            if(menuData.zensai400) menuData.zensai400.forEach(item => html400 += createMenuHtml(item));
 
             let htmlOther = '';
-            menuData.zensaiOther.forEach(item => htmlOther += createMenuHtml(item));
+            if(menuData.zensaiOther) menuData.zensaiOther.forEach(item => htmlOther += createMenuHtml(item));
 
             let htmlRec = '<div class="menu-list-container">';
-            menuData.zensaiRec.forEach(item => htmlRec += createMenuHtml(item, true));
+            if(menuData.zensaiRec) menuData.zensaiRec.forEach(item => htmlRec += createMenuHtml(item, true));
             htmlRec += '</div>';
 
             modalContent.innerHTML = `
@@ -766,7 +661,7 @@
         }
         else if (type === 'ippin') {
             let htmlItems = '<div class="menu-list-container">';
-            menuData.ippin.forEach(item => htmlItems += createMenuHtml(item, true));
+            if(menuData.ippin) menuData.ippin.forEach(item => htmlItems += createMenuHtml(item, true));
             htmlItems += '</div>';
 
             modalContent.innerHTML = `
@@ -777,7 +672,7 @@
         }
         else if (type === 'main') {
             let htmlItems = '<div class="menu-list-container">';
-            menuData.main.forEach(item => htmlItems += createMenuHtml(item, true));
+            if(menuData.main) menuData.main.forEach(item => htmlItems += createMenuHtml(item, true));
             htmlItems += '</div>';
 
             modalContent.innerHTML = `
@@ -797,9 +692,9 @@
         }
         else if (type === 'beer') {
             let html = '';
-            menuData.beer.forEach(i => html += createMenuHtml(i));
+            if(menuData.beer) menuData.beer.forEach(i => html += createMenuHtml(i));
             
-            const cb = menuData.craftBeer[0];
+            const cb = (menuData.craftBeer && menuData.craftBeer[0]) ? menuData.craftBeer[0] : {ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut:false};
             const cbHtml = createMenuHtml(cb).replace('div class="sub-menu-item', 'div class="sub-menu-item" onclick="window.open(\'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MTMyODYyMTI2NDY3MDE4?igsh=MXN1dGRhZmpsZjdjMw==\', \'_blank\'); playClick();" style="cursor:pointer;"');
 
             modalContent.innerHTML = `
@@ -811,7 +706,7 @@
         }
         else if (type === 'alcohol') {
             let html = '';
-            menuData.alcohol.forEach(item => html += createMenuHtml(item));
+            if(menuData.alcohol) menuData.alcohol.forEach(item => html += createMenuHtml(item));
 
             modalContent.innerHTML = `
                 <h3>${t.alcohol}</h3>
@@ -821,7 +716,7 @@
         }
         else if (type === 'softdrinks') {
             let html = '';
-            menuData.soft.forEach(item => html += createMenuHtml(item));
+            if(menuData.soft) menuData.soft.forEach(item => html += createMenuHtml(item));
 
             modalContent.innerHTML = `
                 <h3>${t.soft}</h3>

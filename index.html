@@ -188,6 +188,25 @@
             top: 0;
             background: var(--bg-color);
             z-index: 1;
+            /* 戻るボタンの配置用 */
+            position: sticky;
+        }
+
+        /* 左上の戻るボタン */
+        .header-back {
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-size: 1rem;
+            color: #888;
+            cursor: pointer;
+            border: 1px solid #555;
+            padding: 2px 5px;
+            background: #000;
+        }
+        .header-back:active {
+            color: var(--main-red);
+            border-color: var(--main-red);
         }
 
         .category-title {
@@ -283,7 +302,7 @@
             border: 2px solid var(--text-white);
         }
 
-        /* --- SOLD OUT スタンプ (値段部分) --- */
+        /* --- SOLD OUT スタンプ --- */
         .sold-out-label {
             font-family: 'Press Start 2P', cursive;
             color: var(--main-red);
@@ -295,6 +314,11 @@
             display: inline-block;
             letter-spacing: -1px;
             white-space: nowrap;
+        }
+
+        .item-sold-out {
+            /* 写真はそのまま見せるためグレーアウトは削除 */
+            position: relative;
         }
 
         /* Loading表示 */
@@ -333,7 +357,7 @@
 
     <ul class="menu-list">
         <li class="menu-item" onclick="showContent('menu')">MENU</li>
-        <li class="menu-item" onclick="window.open('https://www.instagram.com/2_9_katakoto_biahoi/', '_blank'); playClick();">INSTA</li>
+        <li class="menu-item" onclick="showContent('sns')">SNS</li>
         <li class="menu-item" onclick="showContent('staff')">STAFF</li>
         <li class="menu-item" onclick="toggleLanguage()" id="lang-btn" style="color: var(--main-blue);">ENGLISH</li>
     </ul>
@@ -350,7 +374,7 @@
 </div>
 
 <script>
-    // ★★★ 重要：ここにコピーしたGoogle Apps ScriptのURLを貼り付けてください ★★★
+    // ★★★ 最新のURLに更新しました ★★★
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby5gsbyaTglcCjMAdmf82wGot2Re12W7ieYmyldPaP66gP7l0rtWjHL6DDS2wOFehEWOw/exec'; 
 
     let audioCtx;
@@ -358,7 +382,7 @@
     let isGameStarted = false;
     let startSequenceTimeout = null;
 
-    // メニューデータ格納用（初期値は空）
+    // メニューデータ格納用
     let menuData = {
         zensai400: [], zensaiOther: [], zensaiRec: [],
         ippin: [], main: [],
@@ -368,23 +392,22 @@
     // --- データ読み込み ---
     async function fetchMenuData() {
         const loading = document.getElementById('loading-overlay');
-        loading.style.display = 'flex'; // ローディング表示
+        loading.style.display = 'flex';
         
         try {
             const response = await fetch(GOOGLE_SCRIPT_URL);
             if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
-            menuData = data; // データを更新
+            menuData = data;
             console.log("Menu Data Loaded!", menuData);
         } catch (e) {
             console.error("Load Failed", e);
             alert("通信エラー：メニューを読み込めませんでした。\n※アクセス権限(全員)の設定を確認してください。");
         } finally {
-            loading.style.display = 'none'; // ローディング消去
+            loading.style.display = 'none';
         }
     }
 
-    // ページ読み込み時にデータを取得
     window.addEventListener('load', () => {
         fetchMenuData();
     });
@@ -401,7 +424,7 @@
             keySequence = [];
             playStartSound();
             alert("SYSTEM RELOAD: FETCHING LATEST MENU...");
-            fetchMenuData(); // データを再取得
+            fetchMenuData();
         }
     }
 
@@ -536,16 +559,12 @@
     function createMenuHtml(item, hasImg = false) {
         const name = (currentLang === 'ja') ? item.ja : item.en;
         let priceHtml = '';
-        
-        // 売り切れ時は値段を「SOLD OUT」に置換
         if (item.soldOut) {
             priceHtml = `<span class="sold-out-label">SOLD OUT</span>`;
         } else {
             priceHtml = item.price ? `<span class="price">${item.price}</span>` : '';
         }
-        
-        // グレーアウト処理は削除（写真はそのまま見せる）
-        const soldOutClass = ''; 
+        const soldOutClass = item.soldOut ? 'item-sold-out' : '';
 
         if (hasImg) {
             const imgTag = item.img 
@@ -594,122 +613,154 @@
 
         const t = (currentLang === 'ja') ? txt.ja : txt.en;
 
-        if (type === 'menu') {
+        // 戻り先の定義
+        let backTarget = '';
+        if (['vietnamese', 'drinks', 'sns', 'staff'].includes(type)) backTarget = 'menu';
+        else if (['zensai', 'ippin', 'main'].includes(type)) backTarget = 'vietnamese';
+        else if (['beer', 'alcohol', 'softdrinks'].includes(type)) backTarget = 'drinks';
+        else if (type === 'craft_beer_confirm') backTarget = 'beer';
+
+        // 左上の戻るボタンHTML
+        const backBtnHtml = backTarget ? `<span class="header-back" onclick="showContent('${backTarget}')">← 戻</span>` : '';
+
+        // テンプレート関数（タイトル部分に戻るボタンを埋め込む）
+        const setModal = (title, content) => {
             modalContent.innerHTML = `
-                <h3>${t.menu}</h3>
+                <h3>${backBtnHtml}${title}</h3>
+                ${content}
+            `;
+        };
+
+        if (type === 'menu') {
+            setModal(t.menu, `
                 <div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div>
                 <div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>
-            `;
+            `);
         } 
+        else if (type === 'sns') {
+            setModal('SNS', `
+                <div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;">
+                    <div style="cursor:pointer;" onclick="window.open('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links', '_blank'); playClick();">
+                        <img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook">
+                    </div>
+                    <div style="cursor:pointer;" onclick="window.open('https://www.instagram.com/2_9_katakoto_biahoi/', '_blank'); playClick();">
+                        <img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram">
+                    </div>
+                </div>
+                <div class="back-btn" onclick="showContent('menu')">${t.back_menu}</div>
+            `);
+        }
         else if (type === 'vietnamese') {
-            modalContent.innerHTML = `
-                <h3>${t.vietnamese}</h3>
+            setModal(t.vietnamese, `
                 <div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
                 <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
                 <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>
                 <div class="back-btn" onclick="showContent('menu')">${t.back_menu}</div>
-            `;
+            `);
         }
         else if (type === 'zensai') {
             let html400 = '';
             if(menuData.zensai400) menuData.zensai400.forEach(item => html400 += createMenuHtml(item));
-
             let htmlOther = '';
             if(menuData.zensaiOther) menuData.zensaiOther.forEach(item => htmlOther += createMenuHtml(item));
-
             let htmlRec = '<div class="menu-list-container">';
             if(menuData.zensaiRec) menuData.zensaiRec.forEach(item => htmlRec += createMenuHtml(item, true));
             htmlRec += '</div>';
 
-            modalContent.innerHTML = `
-                <h3>${t.zensai}</h3>
+            setModal(t.zensai, `
                 <div class="category-title">${t.cat_400}</div>
                 ${html400}
                 <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
                 ${htmlOther}
-                
                 <div class="category-title">${t.cat_rec}</div>
                 ${htmlRec}
                 <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
-            `;
+            `);
         }
         else if (type === 'ippin') {
             let htmlItems = '<div class="menu-list-container">';
             if(menuData.ippin) menuData.ippin.forEach(item => htmlItems += createMenuHtml(item, true));
             htmlItems += '</div>';
 
-            modalContent.innerHTML = `
-                <h3>${t.ippin}</h3>
+            setModal(t.ippin, `
                 ${htmlItems}
                 <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
-            `;
+            `);
         }
         else if (type === 'main') {
             let htmlItems = '<div class="menu-list-container">';
             if(menuData.main) menuData.main.forEach(item => htmlItems += createMenuHtml(item, true));
             htmlItems += '</div>';
 
-            modalContent.innerHTML = `
-                <h3>${t.main}</h3>
+            setModal(t.main, `
                 ${htmlItems}
                 <div class="back-btn" onclick="showContent('vietnamese')">${t.back_viet}</div>
-            `;
+            `);
         }
         else if (type === 'drinks') {
-            modalContent.innerHTML = `
-                <h3>${t.drinks}</h3>
+            setModal(t.drinks, `
                 <div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
                 <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
                 <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>
                 <div class="back-btn" onclick="showContent('menu')">${t.back_menu}</div>
-            `;
+            `);
         }
         else if (type === 'beer') {
             let html = '';
             if(menuData.beer) menuData.beer.forEach(i => html += createMenuHtml(i));
             
             const cb = (menuData.craftBeer && menuData.craftBeer[0]) ? menuData.craftBeer[0] : {ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut:false};
-            const cbHtml = createMenuHtml(cb).replace('div class="sub-menu-item', 'div class="sub-menu-item" onclick="window.open(\'https://www.instagram.com/s/aGlnaGxpZ2h0OjE4MTMyODYyMTI2NDY3MDE4?igsh=MXN1dGRhZmpsZjdjMw==\', \'_blank\'); playClick();" style="cursor:pointer;"');
+            let cbHtml = createMenuHtml(cb);
+            if (!cb.soldOut) {
+                cbHtml = cbHtml.replace('div class="sub-menu-item', 'div class="sub-menu-item" onclick="showContent(\'craft_beer_confirm\');" style="cursor:pointer;"');
+            }
 
-            modalContent.innerHTML = `
-                <h3>${t.beer}</h3>
+            setModal(t.beer, `
                 ${html}
                 ${cbHtml}
                 <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
-            `;
+            `);
+        }
+        else if (type === 'craft_beer_confirm') {
+            const confirmMsg = currentLang === 'ja' ? 'インスタのページへとびます' : 'JUMP TO INSTAGRAM PAGE';
+            setModal('LINK', `
+                <div style="text-align:center; margin-top:30px; cursor:pointer;" onclick="window.open('https://www.instagram.com/stories/highlights/18132862126467018/', '_blank'); playClick();">
+                    <img src="insta.png" style="width:80px; height:80px; image-rendering:pixelated; margin-bottom:10px;" alt="insta">
+                    <br>
+                    <span style="font-size:0.9rem; border-bottom:1px solid var(--main-yellow);">${confirmMsg}</span>
+                </div>
+                <div class="back-btn" onclick="showContent('beer')">◀ ${currentLang === 'ja' ? 'もどる' : 'BACK'}</div>
+            `);
         }
         else if (type === 'alcohol') {
             let html = '';
             if(menuData.alcohol) menuData.alcohol.forEach(item => html += createMenuHtml(item));
 
-            modalContent.innerHTML = `
-                <h3>${t.alcohol}</h3>
+            setModal(t.alcohol, `
                 ${html}
                 <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
-            `;
+            `);
         }
         else if (type === 'softdrinks') {
             let html = '';
             if(menuData.soft) menuData.soft.forEach(item => html += createMenuHtml(item));
 
-            modalContent.innerHTML = `
-                <h3>${t.soft}</h3>
+            setModal(t.soft, `
                 ${html}
                 <div class="back-btn" onclick="showContent('drinks')">${t.back_drink}</div>
-            `;
+            `);
         }
         else if (type === 'staff') {
             const n = (currentLang === 'ja')
                 ? { erin: 'イーリン', ichi: 'いっちー' }
                 : { erin: 'E-RIN', ichi: 'ITSUKI' };
 
-            modalContent.innerHTML = `
-                <h3>STAFF</h3>
+            setModal('STAFF', `
                 <div class="staff-container">
                     <div class="staff-card"><img src="erin.png" alt="${n.erin}"><br>${n.erin}</div>
                     <div class="staff-card"><img src="ichi.png" alt="${n.ichi}"><br>${n.ichi}</div>
                 </div>
-            `;
+            `);
         }
     }
 

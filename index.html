@@ -220,7 +220,7 @@
             border: 1px solid var(--gray);
             background: #111;
             padding: 5px;
-            position: relative; /* SOLD OUT表示のため */
+            position: relative; 
         }
 
         .menu-img-container {
@@ -283,7 +283,7 @@
             border: 2px solid var(--text-white);
         }
 
-        /* --- SOLD OUT スタンプ --- */
+        /* --- SOLD OUT スタンプ (値段部分) --- */
         .sold-out-label {
             font-family: 'Press Start 2P', cursive;
             color: var(--main-red);
@@ -295,30 +295,6 @@
             display: inline-block;
             letter-spacing: -1px;
             white-space: nowrap;
-        }
-
-        .sold-out-stamp {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-10deg);
-            font-family: 'Press Start 2P', cursive;
-            font-size: 1.8rem;
-            color: var(--main-red);
-            border: 6px solid var(--main-red);
-            padding: 5px 15px;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 20;
-            white-space: nowrap;
-            pointer-events: none;
-            box-shadow: 6px 6px 0px rgba(0,0,0,0.5);
-            text-shadow: 3px 3px 0px #000;
-        }
-        
-        .item-sold-out {
-            opacity: 0.6;
-            filter: grayscale(100%);
-            position: relative;
         }
 
         /* Loading表示 */
@@ -374,7 +350,7 @@
 </div>
 
 <script>
-    // ★ご提示いただいたURLをここに埋め込みました★
+    // ★★★ 重要：ここにコピーしたGoogle Apps ScriptのURLを貼り付けてください ★★★
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby5gsbyaTglcCjMAdmf82wGot2Re12W7ieYmyldPaP66gP7l0rtWjHL6DDS2wOFehEWOw/exec'; 
 
     let audioCtx;
@@ -413,7 +389,7 @@
         fetchMenuData();
     });
 
-    // --- コナミコマンド処理 (リロード機能に変更) ---
+    // --- コナミコマンド処理 (リロード機能) ---
     const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
     let keySequence = [];
 
@@ -429,14 +405,12 @@
         }
     }
 
-    // PCキーボード監視
     document.addEventListener('keydown', (e) => {
         const overlay = document.getElementById('start-overlay');
         if (overlay.style.display === 'none') return;
         checkInput(e.key);
     });
 
-    // スマホスワイプ監視
     let touchStartX = 0;
     let touchStartY = 0;
     const overlay = document.getElementById('start-overlay');
@@ -461,7 +435,7 @@
         }
     }, {passive: true});
 
-    // --- ここから下は表示・演出ロジック（前と同じ） ---
+    // --- 以下、表示・演出ロジック ---
 
     function triggerStartSequence() {
         if (isGameStarted) return;
@@ -562,14 +536,16 @@
     function createMenuHtml(item, hasImg = false) {
         const name = (currentLang === 'ja') ? item.ja : item.en;
         let priceHtml = '';
+        
+        // 売り切れ時は値段を「SOLD OUT」に置換
         if (item.soldOut) {
             priceHtml = `<span class="sold-out-label">SOLD OUT</span>`;
         } else {
             priceHtml = item.price ? `<span class="price">${item.price}</span>` : '';
         }
         
-        const bigStamp = item.soldOut && hasImg ? '<div class="sold-out-stamp">SOLD OUT</div>' : '';
-        const soldOutClass = item.soldOut ? 'item-sold-out' : '';
+        // グレーアウト処理は削除（写真はそのまま見せる）
+        const soldOutClass = ''; 
 
         if (hasImg) {
             const imgTag = item.img 
@@ -578,7 +554,6 @@
             
             return `
                 <div class="menu-list-item ${soldOutClass}">
-                    ${bigStamp}
                     <div class="menu-img-container">
                         ${imgTag}
                     </div>
@@ -637,7 +612,6 @@
         }
         else if (type === 'zensai') {
             let html400 = '';
-            // データがまだ空（読み込み失敗時など）の場合は空文字のまま
             if(menuData.zensai400) menuData.zensai400.forEach(item => html400 += createMenuHtml(item));
 
             let htmlOther = '';

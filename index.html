@@ -451,520 +451,70 @@
   </div>
 
 <script>
-  // ---------------------------
-  // 設定（ここだけ最初に触ればOK）
-  // ---------------------------
+  // ここだけ自分の値にする
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwSq5s0moxIe5WGrzPm-pDvYAliJja-0PdyK4vb9fPaRx34DY3CpMt9jRtEqrzLkrA6/exec';
+  const GAS_TOKEN = 'KATAKOTO09_tanukikouji';
 
-  // 1) リポジトリにトークンを書きたくない場合：空のまま（初回に入力→localStorage保存）
-  // 2) どうしても固定したい場合：ここにトークン文字列を入れる（ただしGitHubに公開されるので「秘密」にはなりません）
-  const GAS_TOKEN = 'KATAKOTO_2026_menu_v1_9c2Fh7pLxQ4mN8sT';
-
-  // 画像（同じフォルダに置く）
-  const IMG_STAFF_ICON = 'tentyo.png';
-  const IMG_QA_STATIC  = 'taiki.png';
-  const IMG_QA_TALK    = 'tentyo.gif';
-
-  // ---------------------------
-  // 状態
-  // ---------------------------
   let audioCtx;
   let currentLang = 'ja';
   let isGameStarted = false;
   let menuData = {};
 
-  // ---------------------------
-  // Token helper
-  // ---------------------------
-  function getGasToken() {
-    const hard = String(GAS_TOKEN_HARDCODED || '').trim();
-    if (hard) return hard;
-
-    let t = String(localStorage.getItem('gas_access_token') || '').trim();
-    if (!t) {
-      t = String(prompt('ACCESS TOKEN を入力してください') || '').trim();
-      if (t) localStorage.setItem('gas_access_token', t);
-    }
-    return t;
-  }
-
-  // ---------------------------
-  // Security helpers
-  // ---------------------------
-  function escapeHtml(value) {
-    const str = String(value ?? '');
-    return str.replace(/[&<>"'`]/g, (m) => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-      '`': '&#x60;'
-    }[m]));
-  }
-
-  function safeUrl(url) {
-    const s = String(url ?? '').trim();
-    if (!s) return '';
-    try {
-      const u = new URL(s, location.href);
-      if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
-      return '';
-    } catch {
-      return '';
-    }
-  }
-
-  function openExternalLink(url) {
-    const w = window.open(url, '_blank', 'noopener,noreferrer');
-    if (w) w.opener = null;
-  }
-
-  // ---------------------------
-  // Data fetch
-  // ---------------------------
-  async function fetchMenuData() {
-    const loading = document.getElementById('loading-overlay');
-    loading.style.display = 'flex';
-
-    try {
-      const token = getGasToken();
-      if (!token) throw new Error('NO_TOKEN');
-
-      const response = await fetch(`${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(token)}`, { cache: 'no-store' });
-      const data = await response.json();
-
-      if (data?.error) throw new Error(String(data.error));
-      menuData = data;
-
-      console.log("Menu Loaded");
-    } catch (e) {
-      console.error("Load Failed", e);
-      alert("通信エラー：メニューを読み込めませんでした。");
-    } finally {
-      loading.style.display = 'none';
-    }
-  }
-  window.addEventListener('load', () => {
-    updateUIText();
-    fetchMenuData();
-  });
-
-  // ---------------------------
-  // Konami
-  // ---------------------------
-  const konamiCode = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
-  let keySequence = [];
-  document.addEventListener('keydown', (e) => {
-    keySequence.push(e.key);
-    if (keySequence.length > konamiCode.length) keySequence.shift();
-    if (keySequence.toString() === konamiCode.toString()) {
-      keySequence = [];
-      playStartSound();
-      alert("SYSTEM RELOAD...");
-      fetchMenuData();
-    }
-  });
-
-  // ---------------------------
-  // Start sequence + sounds
-  // ---------------------------
+  // START押したら必ず画面が消える（まずここを確実に）
   function triggerStartSequence() {
     if (isGameStarted) return;
     isGameStarted = true;
 
     const overlay = document.getElementById('start-overlay');
-    document.getElementById('start-text').classList.add('active');
-
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-
-    playStartJingle();
-    setTimeout(() => { overlay.style.display = 'none'; }, 2000);
-  }
-
-  function playStartSound() {
-    if(!audioCtx) return;
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'square';
-    o.frequency.setValueAtTime(440, audioCtx.currentTime);
-    o.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-    g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + 0.3);
-  }
-
-  function playStartJingle() {
-    if(!audioCtx) return;
-    const t = audioCtx.currentTime;
-    const n = [{f:659.25,t:0,d:0.1},{f:783.99,t:0.1,d:0.1},{f:880,t:0.2,d:0.4}];
-    n.forEach(e=>{
-      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='square'; o.frequency.setValueAtTime(e.f, t+e.t);
-      g.gain.setValueAtTime(0.15, t+e.t);
-      g.gain.exponentialRampToValueAtTime(0.001, t+e.t+e.d);
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start(t+e.t); o.stop(t+e.t+e.d);
-    });
-  }
-
-  function playClick() {
-    if(!audioCtx) return;
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type='square';
-    o.frequency.setValueAtTime(440, audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime+0.1);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.15);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime+0.15);
-  }
-
-  function playHover() {
-    if(!audioCtx || window.matchMedia('(hover: none)').matches) return;
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type='square';
-    o.frequency.setValueAtTime(880, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.05);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime+0.05);
-  }
-
-  function playTypingSound() {
-    if (!audioCtx) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.03);
-  }
-
-  // ---------------------------
-  // Language
-  // ---------------------------
-  function toggleLanguage() { playClick(); currentLang = currentLang === 'ja' ? 'en' : 'ja'; updateUIText(); }
-  function updateUIText() {
-    document.getElementById('subtitle').innerText =
-      currentLang === 'ja' ? 'タヌキコウジ９チョウメ' : 'TANUKIKOJI 9-CHOME';
-    document.getElementById('holiday-info').innerText =
-      currentLang === 'ja' ? '不定休' : 'Irregular Holidays';
-    document.getElementById('lang-btn').innerText =
-      currentLang === 'ja' ? 'ENGLISH' : '日本語';
-  }
-
-  // ---------------------------
-  // Modal / UI build
-  // ---------------------------
-  const modal = document.getElementById('modal');
-  const modalTitle = document.getElementById('modal-title');
-  const modalContent = document.getElementById('modal-content');
-  const modalBackBtn = document.getElementById('modal-back-btn');
-  const chatInputArea = document.getElementById('chat-input-area-fixed');
-  const normalCloseBtn = document.getElementById('normal-close-btn');
-
-  function createMenuHtml(item, hasImg = false) {
-    const name = escapeHtml((currentLang === 'ja') ? item.ja : item.en);
-    const price = escapeHtml(item.price);
-    const soldOutClass = item.soldOut ? 'item-sold-out' : '';
-
-    let priceHtml = item.soldOut
-      ? `<span class="sold-out-label">SOLD OUT</span>`
-      : (item.price ? `<span class="price">${price}</span>` : '');
-
-    if (hasImg) {
-      const img = safeUrl(item.img);
-      const imgTag = img
-        ? `<img src="${img}" alt="img">`
-        : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
-      return `<div class="menu-list-item ${soldOutClass}">
-        <div class="menu-img-container">${imgTag}</div>
-        <div class="menu-text-container"><span class="menu-name">${name}</span>${priceHtml}</div>
-      </div>`;
-    } else {
-      return `<div class="sub-menu-item ${soldOutClass}" style="position:relative;">${name}${priceHtml}</div>`;
-    }
-  }
-
-  function showContent(type) {
-    playClick();
-    modal.style.display = 'flex';
-    document.getElementById('modal-scroll-area').scrollTop = 0;
-    modal.classList.remove('chat-mode');
-
-    if (type === 'chat') {
-      modal.style.top = '0'; modal.style.bottom = '0';
-      chatInputArea.style.display = 'flex';
-      normalCloseBtn.style.display = 'none';
-      modalBackBtn.innerText = '← BACK TO STAFF';
-      modalBackBtn.onclick = () => showContent('staff');
-      modal.classList.add('chat-mode');
-    } else {
-      modal.style.top = ''; modal.style.bottom = '';
-      chatInputArea.style.display = 'none';
-      normalCloseBtn.style.display = 'block';
-      modalBackBtn.innerText = '← BACK';
-      modalBackBtn.onclick = closeModal;
-    }
-
-    const txt = {
-      ja: {
-        menu:'MENU', vietnamese:'ベトナムリョウリ', drinks:'ドリンク',
-        zensai:'ゼンサイ', ippin:'イッピンリョウリ', main:'メイン',
-        beer:'ビール（樽生）', alcohol:'アルコール', soft:'ソフトドリンク',
-        cat_400:'各種 400エン', cat_other:'その他', cat_rec:'おすすめ'
-      },
-      en: {
-        menu:'MENU', vietnamese:'VIETNAMESE FOOD', drinks:'DRINKS',
-        zensai:'APPETIZERS', ippin:'A LA CARTE', main:'MAIN DISH',
-        beer:'DRAFT BEER', alcohol:'ALCOHOL', soft:'SOFT DRINKS',
-        cat_400:'¥400 EACH', cat_other:'OTHERS', cat_rec:'RECOMMENDED'
-      }
-    };
-    const t = (currentLang === 'ja') ? txt.ja : txt.en;
-
-    let title = '', content = '';
-    let backTarget = '';
-
-    if (type === 'menu') {
-      title = t.menu;
-      content =
-        `<div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>`;
-    }
-    else if (type === 'sns') {
-      title = 'SNS';
-      content =
-        `<div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;">
-          <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links')">
-            <img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook">
-          </div>
-          <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.instagram.com/2_9_katakoto_biahoi/')">
-            <img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram">
-          </div>
-        </div>`;
-      backTarget = 'menu';
-    }
-    else if (type === 'chat') {
-      title = 'Q & A';
-      content =
-        `<div id="qa-split-container">
-          <div id="qa-tentyo-fixed">
-            <img src="${IMG_QA_STATIC}" id="tentyo-img" alt="店長">
-            <div style="margin-top:10px; font-size:0.8rem; color:var(--main-yellow);">店長</div>
-          </div>
-          <div id="qa-log-scroll"></div>
-        </div>`;
-      setTimeout(() => { addAiMessage("ｲﾗｯｼｬｲﾏｾー　何かご用件は？"); }, 500);
-    }
-    else if (type === 'vietnamese') {
-      title = t.vietnamese;
-      content =
-        `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`;
-      backTarget = 'menu';
-    }
-    else if (type === 'zensai') {
-      title = t.zensai;
-      let h4 = '', hO = '', hR = '<div class="menu-list-container">';
-      if (menuData.zensai400) menuData.zensai400.forEach(i => h4 += createMenuHtml(i));
-      if (menuData.zensaiOther) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i));
-      if (menuData.zensaiRec) menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true));
-      hR += '</div>';
-      content =
-        `<div class="category-title">${t.cat_400}</div>${h4}
-         <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
-         ${hO}
-         <div class="category-title">${t.cat_rec}</div>${hR}`;
-      backTarget = 'vietnamese';
-    }
-    else if (type === 'ippin') {
-      title = t.ippin;
-      let h = '<div class="menu-list-container">';
-      if (menuData.ippin) menuData.ippin.forEach(i => h += createMenuHtml(i, true));
-      h += '</div>';
-      content = h;
-      backTarget = 'vietnamese';
-    }
-    else if (type === 'main') {
-      title = t.main;
-      let h = '<div class="menu-list-container">';
-      if (menuData.main) menuData.main.forEach(i => h += createMenuHtml(i, true));
-      h += '</div>';
-      content = h;
-      backTarget = 'vietnamese';
-    }
-    else if (type === 'drinks') {
-      title = t.drinks;
-      content =
-        `<div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>`;
-      backTarget = 'menu';
-    }
-    else if (type === 'beer') {
-      title = t.beer;
-      let h = '';
-      if (menuData.beer) menuData.beer.forEach(i => h += createMenuHtml(i));
-
-      const cb = (menuData.craftBeer && menuData.craftBeer[0])
-        ? menuData.craftBeer[0]
-        : { ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut:false };
-
-      let cbHtml = createMenuHtml(cb);
-      if (!cb.soldOut) {
-        cbHtml = cbHtml.replace(
-          'div class="sub-menu-item',
-          'div class="sub-menu-item" onclick="showContent(\\'craft_beer_confirm\\');" style="cursor:pointer;"'
-        );
-      }
-      content = `${h}${cbHtml}`;
-      backTarget = 'drinks';
-    }
-    else if (type === 'craft_beer_confirm') {
-      title = 'LINK';
-      const m = (currentLang==='ja') ? 'インスタのページへとびます' : 'JUMP TO INSTAGRAM PAGE';
-      content =
-        `<div style="text-align:center; margin-top:30px; cursor:pointer;"
-              onclick="playClick(); openExternalLink('https://www.instagram.com/stories/highlights/18132862126467018/')">
-          <img src="insta.png" style="width:80px; height:80px; image-rendering:pixelated; margin-bottom:10px;"><br>
-          <span style="font-size:0.9rem; border-bottom:1px solid var(--main-yellow);">${m}</span>
-        </div>`;
-      backTarget = 'beer';
-    }
-    else if (type === 'alcohol') {
-      title = t.alcohol;
-      let h = '';
-      if (menuData.alcohol) menuData.alcohol.forEach(i => h += createMenuHtml(i));
-      content = h;
-      backTarget = 'drinks';
-    }
-    else if (type === 'softdrinks') {
-      title = t.soft;
-      let h = '';
-      if (menuData.soft) menuData.soft.forEach(i => h += createMenuHtml(i));
-      content = h;
-      backTarget = 'drinks';
-    }
-    else if (type === 'staff') {
-      title = 'STAFF';
-      const n = (currentLang === 'ja')
-        ? { erin: 'イーリン', ichi: 'いっちー', tentyo: '店長' }
-        : { erin: 'E-RIN', ichi: 'ITSUKI', tentyo: 'MANAGER' };
-
-      content =
-        `<div class="staff-container">
-          <div class="staff-card"><img src="erin.png" alt="${escapeHtml(n.erin)}"><br>${escapeHtml(n.erin)}</div>
-          <div class="staff-card tentyo" onclick="showContent('chat')">
-            <img src="${IMG_STAFF_ICON}" alt="${escapeHtml(n.tentyo)}"><br>
-            <span style="color:var(--main-yellow);">${escapeHtml(n.tentyo)}</span><br>
-            <span style="font-size:0.7rem; color:#888;">(TAP TO CHAT)</span>
-          </div>
-          <div class="staff-card"><img src="ichi.png" alt="${escapeHtml(n.ichi)}"><br>${escapeHtml(n.ichi)}</div>
-        </div>`;
-      backTarget = 'menu';
-    }
-
-    modalTitle.innerText = title;
-    modalContent.innerHTML = content;
-
-    if (backTarget && type !== 'chat') {
-      modalBackBtn.innerText = (currentLang === 'ja') ? '← 戻る' : '← BACK';
-      modalBackBtn.onclick = () => showContent(backTarget);
-    }
-  }
-
-  function closeModal() {
-    playClick();
-    modal.style.display = 'none';
-    modal.classList.remove('chat-mode');
-  }
-
-  document.querySelectorAll('.menu-item').forEach(item => {
-    item.addEventListener('mouseenter', playHover);
-  });
-
-  function setTentyoAnimating(isAnimating) {
-    const img = document.getElementById('tentyo-img');
-    if (img) img.src = isAnimating ? IMG_QA_TALK : IMG_QA_STATIC;
-  }
-
-  // ---------------------------
-  // Chat UI (XSS safe)
-  // ---------------------------
-  async function typeWriter(element, text) {
-    element.textContent = '';
-    element.classList.add('typing-cursor');
-    setTentyoAnimating(true);
-
-    const s = String(text ?? '');
-    for (let i = 0; i < s.length; i++) {
-      element.textContent += s.charAt(i);
-      playTypingSound();
-      const scrollArea = document.getElementById('qa-log-scroll');
-      if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-
-    element.classList.remove('typing-cursor');
-    setTentyoAnimating(false);
-  }
-
-  async function addAiMessage(text) {
-    const logArea = document.getElementById('qa-log-scroll');
-    if (!logArea) return;
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'qa-bubble-ai';
-    logArea.appendChild(msgDiv);
-    await typeWriter(msgDiv, text);
-  }
-
-  function addUserMessage(text) {
-    const logArea = document.getElementById('qa-log-scroll');
-    if (!logArea) return;
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'qa-bubble-user';
-    msgDiv.innerText = String(text ?? '');
-    logArea.appendChild(msgDiv);
-    logArea.scrollTop = logArea.scrollHeight;
-  }
-
-  async function sendChat() {
-    const input = document.getElementById('chat-input');
-    const msg = input.value;
-    if (!msg) return;
-
-    playClick();
-    input.value = '';
-    addUserMessage(msg);
+    const startText = document.getElementById('start-text');
+    if (startText) startText.classList.add('active');
 
     try {
-      const token = getGasToken();
-      if (!token) throw new Error('NO_TOKEN');
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) {}
 
-      const response = await fetch(
-        `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(token)}&ask=${encodeURIComponent(msg)}`,
+    setTimeout(() => {
+      if (overlay) overlay.style.display = 'none';
+    }, 2000);
+  }
+
+  // 外部リンク（タブ乗っ取り対策）
+  function openExternalLink(url) {
+    const w = window.open(url, '_blank', 'noopener,noreferrer');
+    if (w) w.opener = null;
+  }
+
+  // メニュー取得（失敗してもSTARTは動く）
+  async function fetchMenuData() {
+    const loading = document.getElementById('loading-overlay');
+    if (loading) loading.style.display = 'flex';
+
+    try {
+      const res = await fetch(
+        `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(GAS_TOKEN)}`,
         { cache: 'no-store' }
       );
-
-      const data = await response.json();
-      if (data?.error) throw new Error(String(data.error));
-
-      await addAiMessage(data?.reply ?? "…返答が空でした");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      menuData = await res.json();
+      console.log('Menu Loaded', menuData);
     } catch (e) {
-      console.error(e);
-      await addAiMessage("エラー... ツウシン... デキナイ...");
+      console.error('Load Failed', e);
+      alert('通信エラー：メニューを読み込めませんでした。');
+    } finally {
+      if (loading) loading.style.display = 'none';
     }
   }
 
-  document.getElementById('chat-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      sendChat();
-    }
+  // ページ読み込み時にメニュー取得
+  window.addEventListener('load', () => {
+    fetchMenuData();
+  });
+
+  // もしHTML側に onclick="triggerStartSequence()" が付いてなくても動くように保険
+  window.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('start-overlay');
+    if (overlay) overlay.addEventListener('click', triggerStartSequence);
   });
 </script>
 

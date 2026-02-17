@@ -1,544 +1,971 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BIA HOI カタコト - 狸小路9丁目</title>
-    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #000000;
-            --main-yellow: #f8d800;
-            --main-red: #f83800;
-            --main-blue: #0058f8;
-            --text-white: #ffffff;
-            --gray: #555555;
-            --font-pixel: 'DotGothic16', sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BIA HOI カタコト - 狸小路9丁目</title>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #000000;
+      --main-yellow: #f8d800;
+      --main-red: #f83800;
+      --main-blue: #0058f8;
+      --text-white: #ffffff;
+      --gray: #555555;
+      --font-pixel: 'DotGothic16', sans-serif;
+    }
+    * { box-sizing: border-box; }
 
-        /* 全体のリセットと基本設定 */
-        * {
-            box-sizing: border-box; /* すべての要素のはみ出し計算を防止 */
-        }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-white);
+      font-family: var(--font-pixel);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0;
+      overflow: hidden;
+      text-transform: uppercase;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-white);
-            font-family: var(--font-pixel);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            min-height: 100dvh; 
-            margin: 0;
-            overflow: hidden; /* スクロール防止 */
-            text-transform: uppercase;
-            -webkit-tap-highlight-color: transparent; 
-        }
+    #game-screen {
+      width: 100%;
+      max-width: 600px;
+      height: 100vh;
+      height: 100dvh;
+      text-align: center;
+      border: 4px solid var(--main-blue);
+      padding: 20px;
+      position: relative;
+      background: linear-gradient(to bottom, #000 0%, #111 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding-bottom: 20px;
+    }
 
-        #game-screen {
-            width: 100%;
-            max-width: 600px;
-            height: 100vh; 
-            height: 100dvh; 
-            text-align: center;
-            border: 4px solid var(--main-blue);
-            padding: 20px;
-            position: relative;
-            background: linear-gradient(to bottom, #000 0%, #111 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            padding-bottom: 20px; 
-        }
+    #start-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 1.0);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      touch-action: none;
+    }
 
-        /* --- スタート画面 --- */
-        #start-overlay {
-            position: absolute; 
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 1.0); z-index: 200;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            cursor: pointer; touch-action: none; 
-        }
-        .press-start {
-            font-family: 'Press Start 2P', cursive; color: var(--main-yellow); font-size: 1.2rem; margin-top: 20px; animation: blink 0.8s step-end infinite;
-        }
-        .press-start.active {
-            color: var(--text-white); animation: blink-fast 0.08s step-end infinite; text-shadow: 2px 2px 0px var(--main-red);
-        }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        @keyframes blink-fast { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    .press-start {
+      font-family: 'Press Start 2P', cursive;
+      color: var(--main-yellow);
+      font-size: 1.2rem;
+      margin-top: 20px;
+      animation: blink 0.8s step-end infinite;
+    }
+    .press-start.active {
+      color: var(--text-white);
+      animation: blink-fast 0.08s step-end infinite;
+      text-shadow: 2px 2px 0px var(--main-red);
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    @keyframes blink-fast { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-        h1 {
-            color: var(--main-red); font-size: 2.2rem; margin-bottom: 0; margin-top: 40px; text-shadow: 4px 4px 0px var(--main-yellow); line-height: 1.2;
-        }
-        .subtitle { color: var(--main-yellow); font-size: 0.9rem; margin-bottom: 30px; letter-spacing: 2px; }
+    h1 {
+      color: var(--main-red);
+      font-size: 2.2rem;
+      margin-bottom: 0;
+      margin-top: 40px;
+      text-shadow: 4px 4px 0px var(--main-yellow);
+      line-height: 1.2;
+    }
+    .subtitle {
+      color: var(--main-yellow);
+      font-size: 0.9rem;
+      margin-bottom: 30px;
+      letter-spacing: 2px;
+    }
 
-        .menu-list { list-style: none; padding: 0; margin: 0 auto 30px; width: fit-content; }
-        .menu-item { font-size: 1.5rem; padding: 15px 20px; cursor: pointer; transition: all 0.1s; position: relative; }
-        @media (hover: hover) {
-            .menu-item:hover { color: var(--main-yellow); transform: scale(1.1); }
-            .menu-item:hover::before { content: '▶'; position: absolute; left: -15px; color: var(--main-red); }
-        }
+    .menu-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 auto 30px;
+      width: fit-content;
+    }
+    .menu-item {
+      font-size: 1.5rem;
+      padding: 15px 20px;
+      cursor: pointer;
+      transition: all 0.1s;
+      position: relative;
+    }
+    @media (hover: hover) {
+      .menu-item:hover { color: var(--main-yellow); transform: scale(1.1); }
+      .menu-item:hover::before { content: '▶'; position: absolute; left: -15px; color: var(--main-red); }
+    }
 
-        .info-panel {
-            font-size: 0.9rem; border-top: 2px dashed var(--main-blue); padding-top: 20px; margin-top: auto; padding-bottom: 20px; position: absolute; bottom: 20px; left: 0; width: 100%;
-        }
+    .info-panel {
+      font-size: 0.9rem;
+      border-top: 2px dashed var(--main-blue);
+      padding-top: 20px;
+      margin-top: auto;
+      padding-bottom: 20px;
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+    }
 
-        /* --- モーダル設定 --- */
-        #modal {
-            display: none;
-            position: absolute; 
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-color);
-            border: 4px solid var(--main-yellow);
-            padding: 15px; padding-top: 40px;
-            z-index: 100;
-            flex-direction: column;
-        }
-        
-        #modal-scroll-area {
-             flex-grow: 1; 
-             overflow-y: auto;
-             -webkit-overflow-scrolling: touch;
-             margin-bottom: 10px;
-        }
+    #modal {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg-color);
+      border: 4px solid var(--main-yellow);
+      padding: 15px; padding-top: 40px;
+      z-index: 100;
+      flex-direction: column;
+    }
 
-        /* チャットモード時はモーダル全体のスクロールを止める */
-        #modal.chat-mode #modal-scroll-area {
-            overflow: hidden; 
-            padding: 0;
-            display: flex; /* これ重要 */
-        }
-        #modal.chat-mode #modal-content {
-            width: 100%;
-            height: 100%;
-        }
+    #modal-scroll-area {
+      flex-grow: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-bottom: 10px;
+    }
 
-        #modal::-webkit-scrollbar { width: 10px; }
-        #modal::-webkit-scrollbar-track { background: #000; }
-        #modal::-webkit-scrollbar-thumb { background: var(--main-yellow); border: 2px solid #000; }
+    #modal.chat-mode #modal-scroll-area {
+      overflow: hidden;
+      padding: 0;
+      display: flex;
+    }
+    #modal.chat-mode #modal-content { width: 100%; height: 100%; }
 
-        #modal h3 {
-            text-align: center; border-bottom: 2px solid var(--main-red); padding-bottom: 10px; margin-top: 0; margin-bottom: 20px;
-            color: var(--main-yellow); position: sticky; top: 0; background: var(--bg-color); z-index: 1; font-size: 1.5rem;
-        }
+    #modal h3 {
+      text-align: center;
+      border-bottom: 2px solid var(--main-red);
+      padding-bottom: 10px;
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: var(--main-yellow);
+      position: sticky;
+      top: 0;
+      background: var(--bg-color);
+      z-index: 1;
+      font-size: 1.5rem;
+    }
 
-        .header-back {
-            position: absolute; left: 15px; top: 15px; font-size: 1rem; color: #888; cursor: pointer; border: 1px solid #555; padding: 5px 10px; background: #000;
-        }
+    .header-back {
+      position: absolute;
+      left: 15px; top: 15px;
+      font-size: 1rem;
+      color: #888;
+      cursor: pointer;
+      border: 1px solid #555;
+      padding: 5px 10px;
+      background: #000;
+    }
 
-        .category-title, .sub-menu-item, .menu-list-item, .back-btn { text-align: left; }
-        .category-title { color: var(--main-blue); margin: 15px 0 5px; border-bottom: 1px dashed var(--gray); font-size: 0.9rem; }
-        .sub-menu-item { padding: 15px 5px; border-bottom: 1px dotted #333; display: flex; justify-content: space-between; align-items: center; font-size: 1rem; }
-        .sub-menu-item:active { background-color: #222; }
-        .menu-list-container { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-        .menu-list-item { display: flex; align-items: center; border: 1px solid var(--gray); background: #111; padding: 5px; position: relative; }
-        .menu-img-container { width: 120px; height: 120px; background-color: #000; border: 1px dashed var(--gray); display: flex; justify-content: center; align-items: center; flex-shrink: 0; margin-right: 15px; overflow: hidden; }
-        .menu-img-container img { width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
-        .menu-text-container { flex-grow: 1; }
-        .menu-name { font-size: 1rem; display: block; margin-bottom: 10px; line-height: 1.4; }
-        .price { color: var(--main-yellow); font-size: 1.1rem; }
-        .back-btn { color: #888; margin-top: 20px; padding: 15px; text-align: center; border: 1px dashed #555; cursor: pointer; }
-        .close-btn { margin-top: auto; text-align: center; border: 1px solid var(--main-red); padding: 15px; background: var(--main-red); color: white; cursor: pointer; flex-shrink: 0; }
+    .category-title, .sub-menu-item, .menu-list-item, .back-btn { text-align: left; }
+    .category-title {
+      color: var(--main-blue);
+      margin: 15px 0 5px;
+      border-bottom: 1px dashed var(--gray);
+      font-size: 0.9rem;
+    }
+    .sub-menu-item {
+      padding: 15px 5px;
+      border-bottom: 1px dotted #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1rem;
+    }
+    .sub-menu-item:active { background-color: #222; }
 
-        .staff-container { display: flex; justify-content: space-around; margin-top: 30px; text-align: center; align-items: flex-end; }
-        .staff-card { cursor: pointer; transition: transform 0.1s; }
-        .staff-card:active { transform: scale(0.95); }
-        .staff-card img { width: 80px; height: auto; image-rendering: pixelated; border: 2px solid var(--text-white); }
-        .staff-card.tentyo img { width: 100px; border-color: var(--main-yellow); }
+    .menu-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .menu-list-item {
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--gray);
+      background: #111;
+      padding: 5px;
+      position: relative;
+    }
+    .menu-img-container {
+      width: 120px; height: 120px;
+      background-color: #000;
+      border: 1px dashed var(--gray);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+      margin-right: 15px;
+      overflow: hidden;
+    }
+    .menu-img-container img {
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .menu-text-container { flex-grow: 1; }
+    .menu-name {
+      font-size: 1rem;
+      display: block;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .price { color: var(--main-yellow); font-size: 1.1rem; }
 
-        .sold-out-label { font-family: 'Press Start 2P', cursive; color: var(--main-red); font-size: 0.8rem; border: 2px solid var(--main-red); padding: 2px 4px; background: #000; transform: rotate(-5deg); display: inline-block; letter-spacing: -1px; white-space: nowrap; }
-        .item-sold-out { position: relative; }
+    .close-btn {
+      margin-top: auto;
+      text-align: center;
+      border: 1px solid var(--main-red);
+      padding: 15px;
+      background: var(--main-red);
+      color: white;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
 
-        #loading-overlay {
-            display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 300; color: var(--main-yellow); justify-content: center; align-items: center; flex-direction: column; font-family: 'Press Start 2P', cursive;
-        }
+    .staff-container {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 30px;
+      text-align: center;
+      align-items: flex-end;
+    }
+    .staff-card { cursor: pointer; transition: transform 0.1s; }
+    .staff-card:active { transform: scale(0.95); }
+    .staff-card img {
+      width: 80px;
+      height: auto;
+      image-rendering: pixelated;
+      border: 2px solid var(--text-white);
+    }
+    .staff-card.tentyo img { width: 100px; border-color: var(--main-yellow); }
 
-        /* --- Q&A(チャット)関連レイアウト調整（鉄壁版） --- */
-        #qa-split-container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            overflow: hidden; 
-        }
-        
-        #qa-tentyo-fixed {
-            width: 100px;
-            background: #111;
-            border-right: 2px solid var(--main-blue);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0; /* これ以上縮まない */
-            padding: 5px;
-        }
-        #tentyo-img {
-            width: 100%;
-            height: auto;
-            border: 3px solid var(--main-yellow);
-            background: #000;
-            image-rendering: pixelated;
-        }
+    .sold-out-label {
+      font-family: 'Press Start 2P', cursive;
+      color: var(--main-red);
+      font-size: 0.8rem;
+      border: 2px solid var(--main-red);
+      padding: 2px 4px;
+      background: #000;
+      transform: rotate(-5deg);
+      display: inline-block;
+      letter-spacing: -1px;
+      white-space: nowrap;
+    }
+    .item-sold-out { position: relative; }
 
-        /* 会話ログエリア */
-        #qa-log-scroll {
-            flex-grow: 1; /* 残りの幅を埋める */
-            min-width: 0; /* 【重要】これがないとFlexboxの子要素がはみ出る */
-            overflow-y: auto;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            background: #000;
-            -webkit-overflow-scrolling: touch;
-        }
+    #loading-overlay {
+      display: none;
+      position: absolute;
+      top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 300;
+      color: var(--main-yellow);
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      font-family: 'Press Start 2P', cursive;
+    }
 
-        /* 店長の回答枠（修正：はみ出し完全防止） */
-        .qa-bubble-ai {
-            position: relative; 
-            background: #000; 
-            border: 3px solid var(--main-yellow); 
-            padding: 15px; 
-            color: var(--text-white); 
-            border-radius: 10px; 
-            text-align: left; 
-            line-height: 1.5; 
-            min-height: 40px;
-            margin-right: 5px;
-            max-width: 90%; /* 幅制限 */
-            
-            /* 折り返し設定（最重要） */
-            overflow-wrap: anywhere; /* どんな長い単語も強制的に折り返す */
-            word-break: break-word; /* 古いブラウザ向け */
-            white-space: pre-wrap;  /* 改行を維持 */
-        }
-        .qa-bubble-ai::before { 
-            content: ''; position: absolute; top: 15px; left: -16px; border-style: solid; border-width: 10px 18px 10px 0; border-color: transparent var(--main-yellow) transparent transparent;
-        }
-        
-        /* ユーザーの質問枠 */
-        .qa-bubble-user {
-             background: #111; border: 2px solid var(--main-blue); padding: 10px 15px; color: #0f0; border-radius: 15px 15px 0 15px; text-align: right; align-self: flex-end; 
-             max-width: 90%;
-             overflow-wrap: anywhere; /* 折り返し */
-             word-break: break-word;
-        }
+    #qa-split-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
 
-        /* 入力エリア（スマホ対応） */
-        #chat-input-area-fixed {
-            display: flex; 
-            gap: 5px; 
-            padding: 10px; 
-            background: #000; 
-            border-top: 3px solid var(--main-blue); 
-            position: sticky; 
-            bottom: 0; 
-            flex-shrink: 0;
-            width: 100%;
-        }
-        #chat-input {
-            flex-grow: 1; 
-            background: #222; 
-            border: 2px solid var(--main-blue); 
-            color: white; 
-            padding: 10px; 
-            font-family: var(--font-pixel); 
-            font-size: 1rem;
-            min-width: 0; /* はみ出し防止 */
-        }
-        #chat-send-btn {
-            background: var(--main-blue); 
-            color: white; 
-            border: none; 
-            padding: 0 15px; 
-            cursor: pointer; 
-            font-family: var(--font-pixel); 
-            font-size: 1rem; 
-            border: 2px solid #fff;
-            flex-shrink: 0;
-        }
-        #chat-send-btn:active { background: #fff; color: var(--main-blue); }
+    #qa-tentyo-fixed {
+      width: 100px;
+      background: #111;
+      border-right: 2px solid var(--main-blue);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 5px;
+    }
+    #tentyo-img {
+      width: 100%;
+      height: auto;
+      border: 3px solid var(--main-yellow);
+      background: #000;
+      image-rendering: pixelated;
+    }
 
-        .typing-cursor::after { content: '▋'; color: var(--main-yellow); animation: blink 1s infinite; }
+    #qa-log-scroll {
+      flex-grow: 1;
+      min-width: 0;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background: #000;
+      -webkit-overflow-scrolling: touch;
+    }
 
-        /* --- スマホ専用調整（画面幅が狭いとき） --- */
-        @media (max-width: 400px) {
-            #qa-tentyo-fixed {
-                width: 85px; /* 店長エリアを少し狭くして会話エリアを確保 */
-                padding: 2px;
-            }
-            .qa-bubble-ai, .qa-bubble-user {
-                font-size: 0.9rem; /* 文字を少し小さく */
-                padding: 10px;
-            }
-        }
+    .qa-bubble-ai {
+      position: relative;
+      background: #000;
+      border: 3px solid var(--main-yellow);
+      padding: 15px;
+      color: var(--text-white);
+      border-radius: 10px;
+      text-align: left;
+      line-height: 1.5;
+      min-height: 40px;
+      margin-right: 5px;
+      max-width: 90%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .qa-bubble-ai::before {
+      content: '';
+      position: absolute;
+      top: 15px; left: -16px;
+      border-style: solid;
+      border-width: 10px 18px 10px 0;
+      border-color: transparent var(--main-yellow) transparent transparent;
+    }
 
-    </style>
+    .qa-bubble-user {
+      background: #111;
+      border: 2px solid var(--main-blue);
+      padding: 10px 15px;
+      color: #0f0;
+      border-radius: 15px 15px 0 15px;
+      text-align: right;
+      align-self: flex-end;
+      max-width: 90%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    #chat-input-area-fixed {
+      display: flex;
+      gap: 5px;
+      padding: 10px;
+      background: #000;
+      border-top: 3px solid var(--main-blue);
+      position: sticky;
+      bottom: 0;
+      flex-shrink: 0;
+      width: 100%;
+    }
+    #chat-input {
+      flex-grow: 1;
+      background: #222;
+      border: 2px solid var(--main-blue);
+      color: white;
+      padding: 10px;
+      font-family: var(--font-pixel);
+      font-size: 1rem;
+      min-width: 0;
+    }
+    #chat-send-btn {
+      background: var(--main-blue);
+      color: white;
+      border: none;
+      padding: 0 15px;
+      cursor: pointer;
+      font-family: var(--font-pixel);
+      font-size: 1rem;
+      border: 2px solid #fff;
+      flex-shrink: 0;
+    }
+    #chat-send-btn:active { background: #fff; color: var(--main-blue); }
+    .typing-cursor::after { content: '▋'; color: var(--main-yellow); animation: blink 1s infinite; }
+
+    @media (max-width: 400px) {
+      #qa-tentyo-fixed { width: 85px; padding: 2px; }
+      .qa-bubble-ai, .qa-bubble-user { font-size: 0.9rem; padding: 10px; }
+    }
+  </style>
 </head>
-<body>
 
-<div id="game-screen">
+<body>
+  <div id="game-screen">
     <div id="loading-overlay">
-        <div style="margin-bottom:20px;">NOW LOADING...</div>
-        <div style="font-size:0.7rem; color:#888;">ACCESSING DATABASE</div>
+      <div style="margin-bottom:20px;">NOW LOADING...</div>
+      <div style="font-size:0.7rem; color:#888;">ACCESSING DATABASE</div>
     </div>
 
     <div id="start-overlay" onclick="triggerStartSequence()">
-        <h1>BIA HOI<br>KATAKOTO</h1>
-        <div class="press-start" id="start-text">PUSH START BUTTON</div>
-        <p style="margin-top: 20px; font-size: 0.7rem; color: #888;">
-            TAP SCREEN TO START<br>
-            <span style="font-size:0.5rem; color:#333;">(KONAMI CODE TO RELOAD)</span>
-        </p>
+      <h1>BIA HOI<br>KATAKOTO</h1>
+      <div class="press-start" id="start-text">PUSH START BUTTON</div>
+      <p style="margin-top: 20px; font-size: 0.7rem; color: #888;">
+        TAP SCREEN TO START<br>
+        <span style="font-size:0.5rem; color:#333;">(KONAMI CODE TO RELOAD)</span>
+      </p>
     </div>
 
     <h1>BIA HOI カタコト</h1>
     <p class="subtitle" id="subtitle">タヌキコウジ９チョウメ</p>
 
     <ul class="menu-list">
-        <li class="menu-item" onclick="showContent('menu')">MENU</li>
-        <li class="menu-item" onclick="showContent('sns')">SNS</li>
-        <li class="menu-item" onclick="showContent('staff')">STAFF</li>
-        <li class="menu-item" onclick="toggleLanguage()" id="lang-btn" style="color: var(--main-blue);">ENGLISH</li>
+      <li class="menu-item" onclick="showContent('menu')">MENU</li>
+      <li class="menu-item" onclick="showContent('sns')">SNS</li>
+      <li class="menu-item" onclick="showContent('staff')">STAFF</li>
+      <li class="menu-item" onclick="toggleLanguage()" id="lang-btn" style="color: var(--main-blue);">ENGLISH</li>
     </ul>
 
     <div class="info-panel">
-        OPEN 18:00 -- 01:00<br>
-        <span style="color: var(--main-red);" id="holiday-info">不定休</span>
+      OPEN 18:00 -- 01:00<br>
+      <span style="color: var(--main-red);" id="holiday-info">不定休</span>
     </div>
 
     <div id="modal">
-        <h3 id="modal-title">TITLE</h3>
-        <span class="header-back" id="modal-back-btn" onclick="closeModal()">← BACK</span>
-        
-        <div id="modal-scroll-area">
-            <div id="modal-content"></div>
-        </div>
+      <h3 id="modal-title">TITLE</h3>
+      <span class="header-back" id="modal-back-btn" onclick="closeModal()">← BACK</span>
 
-        <div id="chat-input-area-fixed" style="display: none;">
-            <input type="text" id="chat-input" placeholder="店長に質問...">
-            <button id="chat-send-btn" onclick="sendChat()">送信</button>
-        </div>
+      <div id="modal-scroll-area">
+        <div id="modal-content"></div>
+      </div>
 
-        <div class="close-btn" id="normal-close-btn" onclick="closeModal()">[ CLOSE ]</div>
+      <div id="chat-input-area-fixed" style="display: none;">
+        <input type="text" id="chat-input" placeholder="店長に質問...">
+        <button id="chat-send-btn" onclick="sendChat()">送信</button>
+      </div>
+
+      <div class="close-btn" id="normal-close-btn" onclick="closeModal()">[ CLOSE ]</div>
     </div>
-</div>
+  </div>
 
 <script>
-    // ★★★ 重要：新しいデプロイで発行されたURLに書き換えてください ★★★
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCiRzRJ_ZvHgpVIme-Zjmfea7qpqtkMBBP4PKrSiQ9Mqf8GsSAB2CZDCsPOPssvfNz/exec';
+  // ---------------------------
+  // 設定（ここだけ最初に触ればOK）
+  // ---------------------------
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwSq5s0moxIe5WGrzPm-pDvYAliJja-0PdyK4vb9fPaRx34DY3CpMt9jRtEqrzLkrA6/exec;
 
-    let audioCtx;
-    let currentLang = 'ja';
-    let isGameStarted = false;
-    let menuData = {};
+  // 1) リポジトリにトークンを書きたくない場合：空のまま（初回に入力→localStorage保存）
+  // 2) どうしても固定したい場合：ここにトークン文字列を入れる（ただしGitHubに公開されるので「秘密」にはなりません）
+  const GAS_TOKEN_HARDCODED = '';
 
-    const IMG_STAFF_ICON = 'tentyo.png';
-    const IMG_QA_STATIC  = 'taiki.png';
-    const IMG_QA_TALK    = 'tentyo.gif';
+  // 画像（同じフォルダに置く）
+  const IMG_STAFF_ICON = 'tentyo.png';
+  const IMG_QA_STATIC  = 'taiki.png';
+  const IMG_QA_TALK    = 'tentyo.gif';
 
-    async function fetchMenuData() {
-        const loading = document.getElementById('loading-overlay');
-        loading.style.display = 'flex';
-        try {
-            const response = await fetch(GOOGLE_SCRIPT_URL);
-            if (!response.ok) throw new Error('Network response');
-            menuData = await response.json();
-            console.log("Menu Loaded");
-        } catch (e) {
-            console.error("Load Failed", e); alert("通信エラー：メニューを読み込めませんでした。");
-        } finally {
-            loading.style.display = 'none';
-        }
+  // ---------------------------
+  // 状態
+  // ---------------------------
+  let audioCtx;
+  let currentLang = 'ja';
+  let isGameStarted = false;
+  let menuData = {};
+
+  // ---------------------------
+  // Token helper
+  // ---------------------------
+  function getGasToken() {
+    const hard = String(GAS_TOKEN_HARDCODED || '').trim();
+    if (hard) return hard;
+
+    let t = String(localStorage.getItem('gas_access_token') || '').trim();
+    if (!t) {
+      t = String(prompt('ACCESS TOKEN を入力してください') || '').trim();
+      if (t) localStorage.setItem('gas_access_token', t);
     }
-    window.addEventListener('load', fetchMenuData);
+    return t;
+  }
 
-    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
-    let keySequence = [];
-    document.addEventListener('keydown', (e) => {
-        keySequence.push(e.key); if (keySequence.length > konamiCode.length) keySequence.shift();
-        if (keySequence.toString() === konamiCode.toString()) { keySequence = []; playStartSound(); alert("SYSTEM RELOAD..."); fetchMenuData(); }
+  // ---------------------------
+  // Security helpers
+  // ---------------------------
+  function escapeHtml(value) {
+    const str = String(value ?? '');
+    return str.replace(/[&<>"'`]/g, (m) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+      '`': '&#x60;'
+    }[m]));
+  }
+
+  function safeUrl(url) {
+    const s = String(url ?? '').trim();
+    if (!s) return '';
+    try {
+      const u = new URL(s, location.href);
+      if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+      return '';
+    } catch {
+      return '';
+    }
+  }
+
+  function openExternalLink(url) {
+    const w = window.open(url, '_blank', 'noopener,noreferrer');
+    if (w) w.opener = null;
+  }
+
+  // ---------------------------
+  // Data fetch
+  // ---------------------------
+  async function fetchMenuData() {
+    const loading = document.getElementById('loading-overlay');
+    loading.style.display = 'flex';
+
+    try {
+      const token = getGasToken();
+      if (!token) throw new Error('NO_TOKEN');
+
+      const response = await fetch(`${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(token)}`, { cache: 'no-store' });
+      const data = await response.json();
+
+      if (data?.error) throw new Error(String(data.error));
+      menuData = data;
+
+      console.log("Menu Loaded");
+    } catch (e) {
+      console.error("Load Failed", e);
+      alert("通信エラー：メニューを読み込めませんでした。");
+    } finally {
+      loading.style.display = 'none';
+    }
+  }
+  window.addEventListener('load', () => {
+    updateUIText();
+    fetchMenuData();
+  });
+
+  // ---------------------------
+  // Konami
+  // ---------------------------
+  const konamiCode = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  let keySequence = [];
+  document.addEventListener('keydown', (e) => {
+    keySequence.push(e.key);
+    if (keySequence.length > konamiCode.length) keySequence.shift();
+    if (keySequence.toString() === konamiCode.toString()) {
+      keySequence = [];
+      playStartSound();
+      alert("SYSTEM RELOAD...");
+      fetchMenuData();
+    }
+  });
+
+  // ---------------------------
+  // Start sequence + sounds
+  // ---------------------------
+  function triggerStartSequence() {
+    if (isGameStarted) return;
+    isGameStarted = true;
+
+    const overlay = document.getElementById('start-overlay');
+    document.getElementById('start-text').classList.add('active');
+
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    playStartJingle();
+    setTimeout(() => { overlay.style.display = 'none'; }, 2000);
+  }
+
+  function playStartSound() {
+    if(!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(440, audioCtx.currentTime);
+    o.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+    g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + 0.3);
+  }
+
+  function playStartJingle() {
+    if(!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const n = [{f:659.25,t:0,d:0.1},{f:783.99,t:0.1,d:0.1},{f:880,t:0.2,d:0.4}];
+    n.forEach(e=>{
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='square'; o.frequency.setValueAtTime(e.f, t+e.t);
+      g.gain.setValueAtTime(0.15, t+e.t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+e.t+e.d);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t+e.t); o.stop(t+e.t+e.d);
     });
+  }
 
-    function triggerStartSequence() {
-        if (isGameStarted) return; isGameStarted = true;
-        const overlay = document.getElementById('start-overlay'); document.getElementById('start-text').classList.add('active');
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        playStartJingle(); setTimeout(() => { overlay.style.display = 'none'; }, 2000);
+  function playClick() {
+    if(!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='square';
+    o.frequency.setValueAtTime(440, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime+0.1);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.15);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+0.15);
+  }
+
+  function playHover() {
+    if(!audioCtx || window.matchMedia('(hover: none)').matches) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='square';
+    o.frequency.setValueAtTime(880, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.05);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+0.05);
+  }
+
+  function playTypingSound() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.03);
+  }
+
+  // ---------------------------
+  // Language
+  // ---------------------------
+  function toggleLanguage() { playClick(); currentLang = currentLang === 'ja' ? 'en' : 'ja'; updateUIText(); }
+  function updateUIText() {
+    document.getElementById('subtitle').innerText =
+      currentLang === 'ja' ? 'タヌキコウジ９チョウメ' : 'TANUKIKOJI 9-CHOME';
+    document.getElementById('holiday-info').innerText =
+      currentLang === 'ja' ? '不定休' : 'Irregular Holidays';
+    document.getElementById('lang-btn').innerText =
+      currentLang === 'ja' ? 'ENGLISH' : '日本語';
+  }
+
+  // ---------------------------
+  // Modal / UI build
+  // ---------------------------
+  const modal = document.getElementById('modal');
+  const modalTitle = document.getElementById('modal-title');
+  const modalContent = document.getElementById('modal-content');
+  const modalBackBtn = document.getElementById('modal-back-btn');
+  const chatInputArea = document.getElementById('chat-input-area-fixed');
+  const normalCloseBtn = document.getElementById('normal-close-btn');
+
+  function createMenuHtml(item, hasImg = false) {
+    const name = escapeHtml((currentLang === 'ja') ? item.ja : item.en);
+    const price = escapeHtml(item.price);
+    const soldOutClass = item.soldOut ? 'item-sold-out' : '';
+
+    let priceHtml = item.soldOut
+      ? `<span class="sold-out-label">SOLD OUT</span>`
+      : (item.price ? `<span class="price">${price}</span>` : '');
+
+    if (hasImg) {
+      const img = safeUrl(item.img);
+      const imgTag = img
+        ? `<img src="${img}" alt="img">`
+        : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
+      return `<div class="menu-list-item ${soldOutClass}">
+        <div class="menu-img-container">${imgTag}</div>
+        <div class="menu-text-container"><span class="menu-name">${name}</span>${priceHtml}</div>
+      </div>`;
+    } else {
+      return `<div class="sub-menu-item ${soldOutClass}" style="position:relative;">${name}${priceHtml}</div>`;
     }
-    function playStartSound() { if(!audioCtx)return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(440,audioCtx.currentTime);o.frequency.linearRampToValueAtTime(880,audioCtx.currentTime+0.1);g.gain.setValueAtTime(0.1,audioCtx.currentTime);g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.3);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.3); }
-    function playStartJingle() { if(!audioCtx)return; const t=audioCtx.currentTime,n=[{f:659.25,t:0,d:0.1},{f:783.99,t:0.1,d:0.1},{f:880,t:0.2,d:0.4}];n.forEach(e=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(e.f,t+e.t);g.gain.setValueAtTime(0.15,t+e.t);g.gain.exponentialRampToValueAtTime(0.001,t+e.t+e.d);o.connect(g);g.connect(audioCtx.destination);o.start(t+e.t);o.stop(t+e.t+e.d)}); }
-    function playClick() { if(!audioCtx)return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(440,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(880,audioCtx.currentTime+0.1);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.15); }
-    function playHover() { if(!audioCtx||window.matchMedia('(hover: none)').matches)return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(880,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.05);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.05); }
-    
-    function playTypingSound() {
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.type = 'square'; osc.frequency.setValueAtTime(1200, audioCtx.currentTime); 
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
-        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.03);
-    }
+  }
 
-    function toggleLanguage() { playClick(); currentLang = currentLang === 'ja' ? 'en' : 'ja'; updateUIText(); }
-    function updateUIText() {
-        document.getElementById('subtitle').innerText = currentLang === 'ja' ? 'タヌキコウジ９チョウメ' : 'TANUKIKOJI 9-CHOME';
-        document.getElementById('holiday-info').innerText = currentLang === 'ja' ? '不定休' : 'Irregular Holidays';
-        document.getElementById('lang-btn').innerText = currentLang === 'ja' ? 'ENGLISH' : '日本語';
-    }
+  function showContent(type) {
+    playClick();
+    modal.style.display = 'flex';
+    document.getElementById('modal-scroll-area').scrollTop = 0;
+    modal.classList.remove('chat-mode');
 
-    const modal = document.getElementById('modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalContent = document.getElementById('modal-content');
-    const modalBackBtn = document.getElementById('modal-back-btn');
-    const chatInputArea = document.getElementById('chat-input-area-fixed');
-    const normalCloseBtn = document.getElementById('normal-close-btn');
-
-    function createMenuHtml(item, hasImg = false) {
-        const name = (currentLang === 'ja') ? item.ja : item.en;
-        let priceHtml = item.soldOut ? `<span class="sold-out-label">SOLD OUT</span>` : (item.price ? `<span class="price">${item.price}</span>` : '');
-        const soldOutClass = item.soldOut ? 'item-sold-out' : '';
-        if (hasImg) {
-            const imgTag = item.img ? `<img src="${item.img}" alt="img">` : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
-            return `<div class="menu-list-item ${soldOutClass}"><div class="menu-img-container">${imgTag}</div><div class="menu-text-container"><span class="menu-name">${name}</span>${priceHtml}</div></div>`;
-        } else {
-            return `<div class="sub-menu-item ${soldOutClass}" style="position:relative;">${name}${priceHtml}</div>`;
-        }
-    }
-
-    function showContent(type) {
-        playClick();
-        modal.style.display = 'flex';
-        document.getElementById('modal-scroll-area').scrollTop = 0;
-        modal.classList.remove('chat-mode');
-
-        if (type === 'chat') {
-            modal.style.top = '0'; modal.style.bottom = '0'; 
-            chatInputArea.style.display = 'flex'; 
-            normalCloseBtn.style.display = 'none'; 
-            modalBackBtn.innerText = '← BACK TO STAFF';
-            modalBackBtn.onclick = () => showContent('staff');
-            modal.classList.add('chat-mode');
-        } else {
-            modal.style.top = ''; modal.style.bottom = ''; 
-            chatInputArea.style.display = 'none';
-            normalCloseBtn.style.display = 'block';
-            modalBackBtn.innerText = '← BACK';
-            modalBackBtn.onclick = closeModal;
-        }
-
-        const txt = { ja: { menu:'MENU', vietnamese:'ベトナムリョウリ', drinks:'ドリンク', zensai:'ゼンサイ', ippin:'イッピンリョウリ', main:'メイン', beer:'ビール（樽生）', alcohol:'アルコール', soft:'ソフトドリンク', cat_400:'各種 400エン', cat_other:'その他', cat_rec:'おすすめ' }, en: { menu:'MENU', vietnamese:'VIETNAMESE FOOD', drinks:'DRINKS', zensai:'APPETIZERS', ippin:'A LA CARTE', main:'MAIN DISH', beer:'DRAFT BEER', alcohol:'ALCOHOL', soft:'SOFT DRINKS', cat_400:'¥400 EACH', cat_other:'OTHERS', cat_rec:'RECOMMENDED' } };
-        const t = (currentLang === 'ja') ? txt.ja : txt.en;
-        
-        let title = '', content = '';
-        let backTarget = '';
-
-        if (type === 'menu') { title = t.menu; content = `<div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>`; }
-        else if (type === 'sns') { title = 'SNS'; content = `<div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;"><div style="cursor:pointer;" onclick="window.open('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links', '_blank'); playClick();"><img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook"></div><div style="cursor:pointer;" onclick="window.open('https://www.instagram.com/2_9_katakoto_biahoi/', '_blank'); playClick();"><img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram"></div></div>`; backTarget = 'menu'; } 
-        else if (type === 'chat') {
-            title = 'Q & A';
-            content = `
-                <div id="qa-split-container">
-                    <div id="qa-tentyo-fixed">
-                        <img src="${IMG_QA_STATIC}" id="tentyo-img" alt="店長">
-                        <div style="margin-top:10px; font-size:0.8rem; color:var(--main-yellow);">店長</div>
-                    </div>
-                    <div id="qa-log-scroll"></div>
-                </div>
-            `;
-            setTimeout(() => { addAiMessage("ｲﾗｯｼｬｲﾏｾー　何かご用件は？"); }, 500);
-        }
-        else if (type === 'vietnamese') { title = t.vietnamese; content = `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`; backTarget = 'menu'; } 
-        else if (type === 'zensai') { title = t.zensai; let h4='', hO='', hR='<div class="menu-list-container">'; if(menuData.zensai400) menuData.zensai400.forEach(i => h4 += createMenuHtml(i)); if(menuData.zensaiOther) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i)); if(menuData.zensaiRec) menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true)); hR+='</div>'; content = `<div class="category-title">${t.cat_400}</div>${h4}<div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>${hO}<div class="category-title">${t.cat_rec}</div>${hR}`; backTarget = 'vietnamese'; } 
-        else if (type === 'ippin') { title = t.ippin; let h='<div class="menu-list-container">'; if(menuData.ippin) menuData.ippin.forEach(i => h+=createMenuHtml(i,true)); h+='</div>'; content = h; backTarget = 'vietnamese'; } 
-        else if (type === 'main') { title = t.main; let h='<div class="menu-list-container">'; if(menuData.main) menuData.main.forEach(i => h+=createMenuHtml(i,true)); h+='</div>'; content = h; backTarget = 'vietnamese'; } 
-        else if (type === 'drinks') { title = t.drinks; content = `<div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>`; backTarget = 'menu'; } 
-        else if (type === 'beer') { title = t.beer; let h=''; if(menuData.beer) menuData.beer.forEach(i => h+=createMenuHtml(i)); const cb = (menuData.craftBeer && menuData.craftBeer[0]) ? menuData.craftBeer[0] : {ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut:false}; let cbHtml = createMenuHtml(cb); if (!cb.soldOut) cbHtml = cbHtml.replace('div class="sub-menu-item', 'div class="sub-menu-item" onclick="showContent(\'craft_beer_confirm\');" style="cursor:pointer;"'); content = `${h}${cbHtml}`; backTarget = 'drinks'; } 
-        else if (type === 'craft_beer_confirm') { title = 'LINK'; const m = currentLang==='ja'?'インスタのページへとびます':'JUMP TO INSTAGRAM PAGE'; content = `<div style="text-align:center; margin-top:30px; cursor:pointer;" onclick="window.open('https://www.instagram.com/stories/highlights/18132862126467018/', '_blank'); playClick();"><img src="insta.png" style="width:80px; height:80px; image-rendering:pixelated; margin-bottom:10px;"><br><span style="font-size:0.9rem; border-bottom:1px solid var(--main-yellow);">${m}</span></div>`; backTarget = 'beer'; } 
-        else if (type === 'alcohol') { title = t.alcohol; let h=''; if(menuData.alcohol) menuData.alcohol.forEach(i => h+=createMenuHtml(i)); content = h; backTarget = 'drinks'; } 
-        else if (type === 'softdrinks') { title = t.soft; let h=''; if(menuData.soft) menuData.soft.forEach(i => h+=createMenuHtml(i)); content = h; backTarget = 'drinks'; } 
-        else if (type === 'staff') {
-            title = 'STAFF';
-            const n = (currentLang === 'ja') ? { erin: 'イーリン', ichi: 'いっちー', tentyo: '店長' } : { erin: 'E-RIN', ichi: 'ITSUKI', tentyo: 'MANAGER' };
-            content = `
-                <div class="staff-container">
-                    <div class="staff-card"><img src="erin.png" alt="${n.erin}"><br>${n.erin}</div>
-                    <div class="staff-card tentyo" onclick="showContent('chat')">
-                        <img src="${IMG_STAFF_ICON}" alt="${n.tentyo}"><br>
-                        <span style="color:var(--main-yellow);">${n.tentyo}</span><br>
-                        <span style="font-size:0.7rem; color:#888;">(TAP TO CHAT)</span>
-                    </div>
-                    <div class="staff-card"><img src="ichi.png" alt="${n.ichi}"><br>${n.ichi}</div>
-                </div>`;
-            backTarget = 'menu';
-        }
-        modalTitle.innerText = title;
-        modalContent.innerHTML = content;
-        if (backTarget && type !== 'chat') {
-             modalBackBtn.innerText = currentLang === 'ja' ? '← 戻る' : '← BACK';
-             modalBackBtn.onclick = () => showContent(backTarget);
-        }
+    if (type === 'chat') {
+      modal.style.top = '0'; modal.style.bottom = '0';
+      chatInputArea.style.display = 'flex';
+      normalCloseBtn.style.display = 'none';
+      modalBackBtn.innerText = '← BACK TO STAFF';
+      modalBackBtn.onclick = () => showContent('staff');
+      modal.classList.add('chat-mode');
+    } else {
+      modal.style.top = ''; modal.style.bottom = '';
+      chatInputArea.style.display = 'none';
+      normalCloseBtn.style.display = 'block';
+      modalBackBtn.innerText = '← BACK';
+      modalBackBtn.onclick = closeModal;
     }
 
-    function closeModal() { playClick(); modal.style.display = 'none'; modal.classList.remove('chat-mode'); }
-    document.querySelectorAll('.menu-item').forEach(item => { item.addEventListener('mouseenter', playHover); });
+    const txt = {
+      ja: {
+        menu:'MENU', vietnamese:'ベトナムリョウリ', drinks:'ドリンク',
+        zensai:'ゼンサイ', ippin:'イッピンリョウリ', main:'メイン',
+        beer:'ビール（樽生）', alcohol:'アルコール', soft:'ソフトドリンク',
+        cat_400:'各種 400エン', cat_other:'その他', cat_rec:'おすすめ'
+      },
+      en: {
+        menu:'MENU', vietnamese:'VIETNAMESE FOOD', drinks:'DRINKS',
+        zensai:'APPETIZERS', ippin:'A LA CARTE', main:'MAIN DISH',
+        beer:'DRAFT BEER', alcohol:'ALCOHOL', soft:'SOFT DRINKS',
+        cat_400:'¥400 EACH', cat_other:'OTHERS', cat_rec:'RECOMMENDED'
+      }
+    };
+    const t = (currentLang === 'ja') ? txt.ja : txt.en;
 
-    function setTentyoAnimating(isAnimating) {
-        const img = document.getElementById('tentyo-img');
-        if (img) { img.src = isAnimating ? IMG_QA_TALK : IMG_QA_STATIC; }
+    let title = '', content = '';
+    let backTarget = '';
+
+    if (type === 'menu') {
+      title = t.menu;
+      content =
+        `<div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>`;
+    }
+    else if (type === 'sns') {
+      title = 'SNS';
+      content =
+        `<div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;">
+          <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links')">
+            <img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook">
+          </div>
+          <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.instagram.com/2_9_katakoto_biahoi/')">
+            <img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram">
+          </div>
+        </div>`;
+      backTarget = 'menu';
+    }
+    else if (type === 'chat') {
+      title = 'Q & A';
+      content =
+        `<div id="qa-split-container">
+          <div id="qa-tentyo-fixed">
+            <img src="${IMG_QA_STATIC}" id="tentyo-img" alt="店長">
+            <div style="margin-top:10px; font-size:0.8rem; color:var(--main-yellow);">店長</div>
+          </div>
+          <div id="qa-log-scroll"></div>
+        </div>`;
+      setTimeout(() => { addAiMessage("ｲﾗｯｼｬｲﾏｾー　何かご用件は？"); }, 500);
+    }
+    else if (type === 'vietnamese') {
+      title = t.vietnamese;
+      content =
+        `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`;
+      backTarget = 'menu';
+    }
+    else if (type === 'zensai') {
+      title = t.zensai;
+      let h4 = '', hO = '', hR = '<div class="menu-list-container">';
+      if (menuData.zensai400) menuData.zensai400.forEach(i => h4 += createMenuHtml(i));
+      if (menuData.zensaiOther) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i));
+      if (menuData.zensaiRec) menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true));
+      hR += '</div>';
+      content =
+        `<div class="category-title">${t.cat_400}</div>${h4}
+         <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
+         ${hO}
+         <div class="category-title">${t.cat_rec}</div>${hR}`;
+      backTarget = 'vietnamese';
+    }
+    else if (type === 'ippin') {
+      title = t.ippin;
+      let h = '<div class="menu-list-container">';
+      if (menuData.ippin) menuData.ippin.forEach(i => h += createMenuHtml(i, true));
+      h += '</div>';
+      content = h;
+      backTarget = 'vietnamese';
+    }
+    else if (type === 'main') {
+      title = t.main;
+      let h = '<div class="menu-list-container">';
+      if (menuData.main) menuData.main.forEach(i => h += createMenuHtml(i, true));
+      h += '</div>';
+      content = h;
+      backTarget = 'vietnamese';
+    }
+    else if (type === 'drinks') {
+      title = t.drinks;
+      content =
+        `<div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>`;
+      backTarget = 'menu';
+    }
+    else if (type === 'beer') {
+      title = t.beer;
+      let h = '';
+      if (menuData.beer) menuData.beer.forEach(i => h += createMenuHtml(i));
+
+      const cb = (menuData.craftBeer && menuData.craftBeer[0])
+        ? menuData.craftBeer[0]
+        : { ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut:false };
+
+      let cbHtml = createMenuHtml(cb);
+      if (!cb.soldOut) {
+        cbHtml = cbHtml.replace(
+          'div class="sub-menu-item',
+          'div class="sub-menu-item" onclick="showContent(\\'craft_beer_confirm\\');" style="cursor:pointer;"'
+        );
+      }
+      content = `${h}${cbHtml}`;
+      backTarget = 'drinks';
+    }
+    else if (type === 'craft_beer_confirm') {
+      title = 'LINK';
+      const m = (currentLang==='ja') ? 'インスタのページへとびます' : 'JUMP TO INSTAGRAM PAGE';
+      content =
+        `<div style="text-align:center; margin-top:30px; cursor:pointer;"
+              onclick="playClick(); openExternalLink('https://www.instagram.com/stories/highlights/18132862126467018/')">
+          <img src="insta.png" style="width:80px; height:80px; image-rendering:pixelated; margin-bottom:10px;"><br>
+          <span style="font-size:0.9rem; border-bottom:1px solid var(--main-yellow);">${m}</span>
+        </div>`;
+      backTarget = 'beer';
+    }
+    else if (type === 'alcohol') {
+      title = t.alcohol;
+      let h = '';
+      if (menuData.alcohol) menuData.alcohol.forEach(i => h += createMenuHtml(i));
+      content = h;
+      backTarget = 'drinks';
+    }
+    else if (type === 'softdrinks') {
+      title = t.soft;
+      let h = '';
+      if (menuData.soft) menuData.soft.forEach(i => h += createMenuHtml(i));
+      content = h;
+      backTarget = 'drinks';
+    }
+    else if (type === 'staff') {
+      title = 'STAFF';
+      const n = (currentLang === 'ja')
+        ? { erin: 'イーリン', ichi: 'いっちー', tentyo: '店長' }
+        : { erin: 'E-RIN', ichi: 'ITSUKI', tentyo: 'MANAGER' };
+
+      content =
+        `<div class="staff-container">
+          <div class="staff-card"><img src="erin.png" alt="${escapeHtml(n.erin)}"><br>${escapeHtml(n.erin)}</div>
+          <div class="staff-card tentyo" onclick="showContent('chat')">
+            <img src="${IMG_STAFF_ICON}" alt="${escapeHtml(n.tentyo)}"><br>
+            <span style="color:var(--main-yellow);">${escapeHtml(n.tentyo)}</span><br>
+            <span style="font-size:0.7rem; color:#888;">(TAP TO CHAT)</span>
+          </div>
+          <div class="staff-card"><img src="ichi.png" alt="${escapeHtml(n.ichi)}"><br>${escapeHtml(n.ichi)}</div>
+        </div>`;
+      backTarget = 'menu';
     }
 
-    async function typeWriter(element, text) {
-        element.innerHTML = ''; element.classList.add('typing-cursor');
-        setTentyoAnimating(true);
-        for (let i = 0; i < text.length; i++) {
-            element.innerHTML += text.charAt(i);
-            playTypingSound();
-            const scrollArea = document.getElementById('qa-log-scroll');
-            if(scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
-            await new Promise(resolve => setTimeout(resolve, 50));
-        }
-        element.classList.remove('typing-cursor'); setTentyoAnimating(false);
+    modalTitle.innerText = title;
+    modalContent.innerHTML = content;
+
+    if (backTarget && type !== 'chat') {
+      modalBackBtn.innerText = (currentLang === 'ja') ? '← 戻る' : '← BACK';
+      modalBackBtn.onclick = () => showContent(backTarget);
+    }
+  }
+
+  function closeModal() {
+    playClick();
+    modal.style.display = 'none';
+    modal.classList.remove('chat-mode');
+  }
+
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.addEventListener('mouseenter', playHover);
+  });
+
+  function setTentyoAnimating(isAnimating) {
+    const img = document.getElementById('tentyo-img');
+    if (img) img.src = isAnimating ? IMG_QA_TALK : IMG_QA_STATIC;
+  }
+
+  // ---------------------------
+  // Chat UI (XSS safe)
+  // ---------------------------
+  async function typeWriter(element, text) {
+    element.textContent = '';
+    element.classList.add('typing-cursor');
+    setTentyoAnimating(true);
+
+    const s = String(text ?? '');
+    for (let i = 0; i < s.length; i++) {
+      element.textContent += s.charAt(i);
+      playTypingSound();
+      const scrollArea = document.getElementById('qa-log-scroll');
+      if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
 
-    async function addAiMessage(text) {
-        const logArea = document.getElementById('qa-log-scroll'); if (!logArea) return;
-        const msgDiv = document.createElement('div'); msgDiv.className = 'qa-bubble-ai';
-        logArea.appendChild(msgDiv); await typeWriter(msgDiv, text);
+    element.classList.remove('typing-cursor');
+    setTentyoAnimating(false);
+  }
+
+  async function addAiMessage(text) {
+    const logArea = document.getElementById('qa-log-scroll');
+    if (!logArea) return;
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'qa-bubble-ai';
+    logArea.appendChild(msgDiv);
+    await typeWriter(msgDiv, text);
+  }
+
+  function addUserMessage(text) {
+    const logArea = document.getElementById('qa-log-scroll');
+    if (!logArea) return;
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'qa-bubble-user';
+    msgDiv.innerText = String(text ?? '');
+    logArea.appendChild(msgDiv);
+    logArea.scrollTop = logArea.scrollHeight;
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value;
+    if (!msg) return;
+
+    playClick();
+    input.value = '';
+    addUserMessage(msg);
+
+    try {
+      const token = getGasToken();
+      if (!token) throw new Error('NO_TOKEN');
+
+      const response = await fetch(
+        `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(token)}&ask=${encodeURIComponent(msg)}`,
+        { cache: 'no-store' }
+      );
+
+      const data = await response.json();
+      if (data?.error) throw new Error(String(data.error));
+
+      await addAiMessage(data?.reply ?? "…返答が空でした");
+    } catch (e) {
+      console.error(e);
+      await addAiMessage("エラー... ツウシン... デキナイ...");
     }
+  }
 
-    function addUserMessage(text) {
-        const logArea = document.getElementById('qa-log-scroll'); if (!logArea) return;
-        const msgDiv = document.createElement('div'); msgDiv.className = 'qa-bubble-user';
-        msgDiv.innerText = text; logArea.appendChild(msgDiv); logArea.scrollTop = logArea.scrollHeight;
+  document.getElementById('chat-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendChat();
     }
-
-    async function sendChat() {
-        const input = document.getElementById('chat-input');
-        const msg = input.value;
-        if (!msg) return;
-        playClick();
-        input.value = ''; // 即クリア
-        addUserMessage(msg);
-
-        try {
-            const response = await fetch(`${GOOGLE_SCRIPT_URL}?ask=${encodeURIComponent(msg)}`);
-            const data = await response.json();
-            await addAiMessage(data.reply);
-        } catch (e) {
-             await addAiMessage("エラー... ツウシン... デキナイ...");
-        }
-    }
-    
-    document.getElementById('chat-input').addEventListener('keypress', (e)=>{
-        if(e.key === 'Enter') {
-            e.preventDefault();
-            sendChat();
-        }
-    });
-
+  });
 </script>
 
 </body>

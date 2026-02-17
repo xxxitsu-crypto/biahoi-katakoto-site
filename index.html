@@ -332,44 +332,54 @@
     }
 
     #qa-log-scroll {
-      flex: 1;
-      min-width: 0;
-      min-height: 0;
-      overflow-y: auto;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      background: #000;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 90px; /* ✅ 入力欄に隠れない */
-    }
+  flex-grow: 1;
+  min-width: 0;
+  min-height: 0;             /* 追加 */
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;   /* 追加 */
+  gap: 15px;
+  background: #000;
+  -webkit-overflow-scrolling: touch;
+}
+
 
     /* ✅ 吹き出し：はみ出し対策 */
-    .qa-bubble-ai {
-      position: relative;
-      background: #000;
-      border: 3px solid var(--main-yellow);
-      padding: 15px;
-      color: var(--text-white);
-      border-radius: 10px;
-      text-align: left;
-      line-height: 1.5;
-      min-height: 40px;
-      margin-right: 5px;
-      max-width: calc(100% - 24px);
-      overflow-wrap: anywhere;
-      word-break: break-word;
-      white-space: pre-wrap;
-    }
-    .qa-bubble-ai::before {
-      content: '';
-      position: absolute;
-      top: 15px; left: -16px;
-      border-style: solid;
-      border-width: 10px 18px 10px 0;
-      border-color: transparent var(--main-yellow) transparent transparent;
-    }
+    .qa-bubble-ai{
+  position: relative;
+  background: #000;
+  border: 3px solid var(--main-yellow);
+  padding: 15px;
+  color: var(--text-white);
+  border-radius: 10px;
+  text-align: left;
+  line-height: 1.5;
+
+  /* ★ここが重要：高さ固定を完全に殺す */
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+
+  /* ★これも重要：ブロックとして伸びる */
+  display: block;
+  width: fit-content;
+  max-width: min(90%, 520px);
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.qa-bubble-ai::before{
+  content: '';
+  position: absolute;
+  top: 15px; left: -16px;
+  border-style: solid;
+  border-width: 10px 18px 10px 0;
+  border-color: transparent var(--main-yellow) transparent transparent;
+}
+
 
     .qa-bubble-user {
       background: #111;

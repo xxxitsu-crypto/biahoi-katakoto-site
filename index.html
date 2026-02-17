@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BIA HOI カタコト - 狸小路9丁目</title>
-  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg-color: #000000;
@@ -86,7 +85,6 @@
       text-shadow: 4px 4px 0px var(--main-yellow);
       line-height: 1.2;
     }
-
     .subtitle {
       color: var(--main-yellow);
       font-size: 0.9rem;
@@ -134,6 +132,7 @@
       padding: 15px; padding-top: 40px;
       z-index: 100;
       flex-direction: column;
+      overflow: hidden;
     }
 
     #modal-scroll-area {
@@ -141,18 +140,28 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       margin-bottom: 10px;
+      min-height: 0;
     }
 
+    /* ✅ Chat mode レイアウト修正（ここが重要） */
+    #modal.chat-mode {
+      padding-bottom: 0;
+    }
     #modal.chat-mode #modal-scroll-area {
       overflow: hidden;
       padding: 0;
       display: flex;
+      flex: 1;
+      min-height: 0;
+      margin-bottom: 0;
     }
-    #modal.chat-mode #modal-content { width: 100%; height: 100%; }
-
-    #modal::-webkit-scrollbar { width: 10px; }
-    #modal::-webkit-scrollbar-track { background: #000; }
-    #modal::-webkit-scrollbar-thumb { background: var(--main-yellow); border: 2px solid #000; }
+    #modal.chat-mode #modal-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
 
     #modal h3 {
       text-align: center;
@@ -180,7 +189,7 @@
       user-select: none;
     }
 
-    .category-title, .sub-menu-item, .menu-list-item { text-align: left; }
+    .category-title, .sub-menu-item, .menu-list-item, .back-btn { text-align: left; }
     .category-title {
       color: var(--main-blue);
       margin: 15px 0 5px;
@@ -279,7 +288,6 @@
       letter-spacing: -1px;
       white-space: nowrap;
     }
-    .item-sold-out { position: relative; opacity: 0.85; }
 
     #loading-overlay {
       display: none;
@@ -294,16 +302,18 @@
       font-family: 'Press Start 2P', cursive;
     }
 
-    /* Chat UI */
+    /* ✅ Q&A layout */
     #qa-split-container {
       display: flex;
       width: 100%;
       height: 100%;
       overflow: hidden;
+      flex: 1;
+      min-height: 0;
     }
 
     #qa-tentyo-fixed {
-      width: 100px;
+      width: 120px;
       background: #111;
       border-right: 2px solid var(--main-blue);
       display: flex;
@@ -311,7 +321,7 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      padding: 5px;
+      padding: 8px;
     }
     #tentyo-img {
       width: 100%;
@@ -322,8 +332,9 @@
     }
 
     #qa-log-scroll {
-      flex-grow: 1;
+      flex: 1;
       min-width: 0;
+      min-height: 0;
       overflow-y: auto;
       padding: 10px;
       display: flex;
@@ -331,8 +342,10 @@
       gap: 15px;
       background: #000;
       -webkit-overflow-scrolling: touch;
+      padding-bottom: 90px; /* ✅ 入力欄に隠れない */
     }
 
+    /* ✅ 吹き出し：はみ出し対策 */
     .qa-bubble-ai {
       position: relative;
       background: #000;
@@ -344,7 +357,7 @@
       line-height: 1.5;
       min-height: 40px;
       margin-right: 5px;
-      max-width: 90%;
+      max-width: calc(100% - 24px);
       overflow-wrap: anywhere;
       word-break: break-word;
       white-space: pre-wrap;
@@ -373,7 +386,7 @@
     }
 
     #chat-input-area-fixed {
-      display: flex;
+      display: none;
       gap: 5px;
       padding: 10px;
       background: #000;
@@ -382,6 +395,7 @@
       bottom: 0;
       flex-shrink: 0;
       width: 100%;
+      z-index: 5;
     }
     #chat-input {
       flex-grow: 1;
@@ -414,7 +428,7 @@
     }
 
     @media (max-width: 400px) {
-      #qa-tentyo-fixed { width: 85px; padding: 2px; }
+      #qa-tentyo-fixed { width: 95px; padding: 4px; }
       .qa-bubble-ai, .qa-bubble-user { font-size: 0.9rem; padding: 10px; }
     }
   </style>
@@ -422,7 +436,7 @@
 
 <body>
   <div id="game-screen">
-    <div id="loading-overlay">
+    <div id="loading-overlay" style="display:none;">
       <div style="margin-bottom:20px;">NOW LOADING...</div>
       <div style="font-size:0.7rem; color:#888;">ACCESSING DATABASE</div>
     </div>
@@ -453,25 +467,25 @@
 
     <div id="modal">
       <h3 id="modal-title">TITLE</h3>
-      <span class="header-back" id="modal-back-btn">← BACK</span>
+      <span class="header-back" id="modal-back-btn" onclick="closeModal()">← BACK</span>
 
       <div id="modal-scroll-area">
         <div id="modal-content"></div>
       </div>
 
-      <div id="chat-input-area-fixed" style="display: none;">
+      <div id="chat-input-area-fixed">
         <input type="text" id="chat-input" placeholder="店長に質問...">
         <button id="chat-send-btn" onclick="sendChat()">送信</button>
       </div>
 
-      <div class="close-btn" id="normal-close-btn">[ CLOSE ]</div>
+      <div class="close-btn" id="normal-close-btn" onclick="closeModal()">[ CLOSE ]</div>
     </div>
   </div>
 
 <script>
   // ★★★ ここだけ自分の値にする ★★★
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwSq5s0moxIe5WGrzPm-pDvYAliJja-0PdyK4vb9fPaRx34DY3CpMt9jRtEqrzLkrA6/exec';
-  const GAS_TOKEN = 'KATAKOTO_2026_itsuki'; // GASのスクリプトプロパティ ACCESS_TOKEN と同じ（※HTMLに書くと見えます）
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6cxw4qFrV2WzKYAzF-xEPXXWP3aKZeeJOozFQ90f1SHb_MlPX0q1NVtp6qq0YAHop/exec';
+  const GAS_TOKEN = 'KATAKOTO_2026_itsuki';
 
   let audioCtx;
   let currentLang = 'ja';
@@ -514,24 +528,10 @@
     if (w) w.opener = null;
   }
 
-  // ---------------------------
-  // Modal refs（ここが重要：DOMが出来てから取得）
-  // ---------------------------
-  let modal, modalTitle, modalContent, modalBackBtn, chatInputArea, normalCloseBtn, modalScrollArea;
-
-  function ensureModalRefs() {
-    if (modal) return;
-    modal = document.getElementById('modal');
-    modalTitle = document.getElementById('modal-title');
-    modalContent = document.getElementById('modal-content');
-    modalBackBtn = document.getElementById('modal-back-btn');
-    chatInputArea = document.getElementById('chat-input-area-fixed');
-    normalCloseBtn = document.getElementById('normal-close-btn');
-    modalScrollArea = document.getElementById('modal-scroll-area');
-
-    // close/back の動作を確実に
-    if (normalCloseBtn) normalCloseBtn.onclick = closeModal;
-    if (modalBackBtn) modalBackBtn.onclick = closeModal;
+  function scrollChatToBottom() {
+    const log = document.getElementById('qa-log-scroll');
+    if (!log) return;
+    log.scrollTop = log.scrollHeight;
   }
 
   // ---------------------------
@@ -551,7 +551,6 @@
 
       menuData = data || {};
       console.log("Menu Loaded", menuData);
-
     } catch (e) {
       console.error("Load Failed", e);
       alert("通信エラー：メニューを読み込めませんでした。\n" + String(e.message || e));
@@ -563,11 +562,6 @@
   window.addEventListener('load', () => {
     updateUIText();
     fetchMenuData();
-
-    // hover音（PCだけ）
-    document.querySelectorAll('.menu-item').forEach(item => {
-      item.addEventListener('mouseenter', playHover);
-    });
   });
 
   // ---------------------------
@@ -594,14 +588,13 @@
     isGameStarted = true;
 
     const overlay = document.getElementById('start-overlay');
-    const startText = document.getElementById('start-text');
-    if (startText) startText.classList.add('active');
+    document.getElementById('start-text').classList.add('active');
 
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
 
     playStartJingle();
-    setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, 2000);
+    setTimeout(() => { overlay.style.display = 'none'; }, 800);
   }
 
   function playStartSound() {
@@ -683,8 +676,15 @@
   }
 
   // ---------------------------
-  // UI helpers
+  // Modal / UI build
   // ---------------------------
+  const modal = document.getElementById('modal');
+  const modalTitle = document.getElementById('modal-title');
+  const modalContent = document.getElementById('modal-content');
+  const modalBackBtn = document.getElementById('modal-back-btn');
+  const chatInputArea = document.getElementById('chat-input-area-fixed');
+  const normalCloseBtn = document.getElementById('normal-close-btn');
+
   function createMenuHtml(item, hasImg = false) {
     const name = escapeHtml((currentLang === 'ja') ? item.ja : item.en);
     const price = escapeHtml(item.price);
@@ -703,32 +703,27 @@
         <div class="menu-img-container">${imgTag}</div>
         <div class="menu-text-container"><span class="menu-name">${name}</span>${priceHtml}</div>
       </div>`;
+    } else {
+      return `<div class="sub-menu-item ${soldOutClass}" style="position:relative;">${name}${priceHtml}</div>`;
     }
-
-    return `<div class="sub-menu-item ${soldOutClass}" style="position:relative;">${name}${priceHtml}</div>`;
   }
 
-  // ---------------------------
-  // Modal / main navigation
-  // ---------------------------
   function showContent(type) {
-    ensureModalRefs();
     playClick();
-
     modal.style.display = 'flex';
-    if (modalScrollArea) modalScrollArea.scrollTop = 0;
+    document.getElementById('modal-scroll-area').scrollTop = 0;
     modal.classList.remove('chat-mode');
 
     if (type === 'chat') {
+      modal.classList.add('chat-mode');
       chatInputArea.style.display = 'flex';
       normalCloseBtn.style.display = 'none';
       modalBackBtn.innerText = '← BACK TO STAFF';
       modalBackBtn.onclick = () => showContent('staff');
-      modal.classList.add('chat-mode');
     } else {
       chatInputArea.style.display = 'none';
       normalCloseBtn.style.display = 'block';
-      modalBackBtn.innerText = (currentLang === 'ja') ? '← 戻る' : '← BACK';
+      modalBackBtn.innerText = '← BACK';
       modalBackBtn.onclick = closeModal;
     }
 
@@ -748,8 +743,7 @@
     };
     const t = (currentLang === 'ja') ? txt.ja : txt.en;
 
-    let title = '';
-    let content = '';
+    let title = '', content = '';
     let backTarget = '';
 
     if (type === 'menu') {
@@ -770,103 +764,6 @@
           </div>
         </div>`;
       backTarget = 'menu';
-    }
-    else if (type === 'vietnamese') {
-      title = t.vietnamese;
-      content =
-        `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`;
-      backTarget = 'menu';
-    }
-    else if (type === 'drinks') {
-      title = t.drinks;
-      content =
-        `<div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>`;
-      backTarget = 'menu';
-    }
-    else if (type === 'zensai') {
-      title = t.zensai;
-
-      let h4 = '';
-      let hO = '';
-      let hR = '<div class="menu-list-container">';
-
-      if (Array.isArray(menuData.zensai400))  menuData.zensai400.forEach(i => h4 += createMenuHtml(i));
-      if (Array.isArray(menuData.zensaiOther)) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i));
-      if (Array.isArray(menuData.zensaiRec))  menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true));
-      hR += '</div>';
-
-      content =
-        `<div class="category-title">${t.cat_400}</div>${h4}
-         <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
-         ${hO}
-         <div class="category-title">${t.cat_rec}</div>${hR}`;
-      backTarget = 'vietnamese';
-    }
-    else if (type === 'ippin') {
-      title = t.ippin;
-      let h = '<div class="menu-list-container">';
-      if (Array.isArray(menuData.ippin)) menuData.ippin.forEach(i => h += createMenuHtml(i, true));
-      h += '</div>';
-      content = h;
-      backTarget = 'vietnamese';
-    }
-    else if (type === 'main') {
-      title = t.main;
-      let h = '<div class="menu-list-container">';
-      if (Array.isArray(menuData.main)) menuData.main.forEach(i => h += createMenuHtml(i, true));
-      h += '</div>';
-      content = h;
-      backTarget = 'vietnamese';
-    }
-    else if (type === 'beer') {
-      title = t.beer;
-
-      let h = '';
-      if (Array.isArray(menuData.beer)) menuData.beer.forEach(i => h += createMenuHtml(i));
-
-      const cb = (Array.isArray(menuData.craftBeer) && menuData.craftBeer[0])
-        ? menuData.craftBeer[0]
-        : { ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut:false };
-
-      let cbHtml = createMenuHtml(cb);
-      if (!cb.soldOut) {
-        cbHtml = cbHtml.replace(
-          'div class="sub-menu-item',
-          'div class="sub-menu-item" onclick="showContent(\'craft_beer_confirm\');" style="cursor:pointer;"'
-        );
-      }
-
-      content = `${h}${cbHtml}`;
-      backTarget = 'drinks';
-    }
-    else if (type === 'craft_beer_confirm') {
-      title = 'LINK';
-      const m = (currentLang==='ja') ? 'インスタのページへとびます' : 'JUMP TO INSTAGRAM PAGE';
-      content =
-        `<div style="text-align:center; margin-top:30px; cursor:pointer;"
-              onclick="playClick(); openExternalLink('https://www.instagram.com/stories/highlights/18132862126467018/')">
-          <img src="insta.png" style="width:80px; height:80px; image-rendering:pixelated; margin-bottom:10px;"><br>
-          <span style="font-size:0.9rem; border-bottom:1px solid var(--main-yellow);">${m}</span>
-        </div>`;
-      backTarget = 'beer';
-    }
-    else if (type === 'alcohol') {
-      title = t.alcohol;
-      let h = '';
-      if (Array.isArray(menuData.alcohol)) menuData.alcohol.forEach(i => h += createMenuHtml(i));
-      content = h;
-      backTarget = 'drinks';
-    }
-    else if (type === 'softdrinks') {
-      title = t.soft;
-      let h = '';
-      if (Array.isArray(menuData.soft)) menuData.soft.forEach(i => h += createMenuHtml(i));
-      content = h;
-      backTarget = 'drinks';
     }
     else if (type === 'staff') {
       title = 'STAFF';
@@ -896,7 +793,73 @@
           </div>
           <div id="qa-log-scroll"></div>
         </div>`;
-      setTimeout(() => { addAiMessage("ｲﾗｯｼｬｲﾏｾー　何かご用件は？"); }, 300);
+    }
+    else if (type === 'vietnamese') {
+      title = t.vietnamese;
+      content =
+        `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`;
+      backTarget = 'menu';
+    }
+    else if (type === 'zensai') {
+      title = t.zensai;
+      let h4 = '', hO = '', hR = '<div class="menu-list-container">';
+      if (menuData.zensai400) menuData.zensai400.forEach(i => h4 += createMenuHtml(i));
+      if (menuData.zensaiOther) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i));
+      if (menuData.zensaiRec) menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true));
+      hR += '</div>';
+      content =
+        `<div class="category-title">${t.cat_400}</div>${h4}
+         <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
+         ${hO}
+         <div class="category-title">${t.cat_rec}</div>${hR}`;
+      backTarget = 'vietnamese';
+    }
+    else if (type === 'ippin') {
+      title = t.ippin;
+      let h = '<div class="menu-list-container">';
+      if (menuData.ippin) menuData.ippin.forEach(i => h += createMenuHtml(i, true));
+      h += '</div>';
+      content = h;
+      backTarget = 'vietnamese';
+    }
+    else if (type === 'main') {
+      title = t.main;
+      let h = '<div class="menu-list-container">';
+      if (menuData.main) menuData.main.forEach(i => h += createMenuHtml(i, true));
+      h += '</div>';
+      content = h;
+      backTarget = 'vietnamese';
+    }
+    else if (type === 'drinks') {
+      title = t.drinks;
+      content =
+        `<div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>`;
+      backTarget = 'menu';
+    }
+    else if (type === 'beer') {
+      title = t.beer;
+      let h = '';
+      if (menuData.beer) menuData.beer.forEach(i => h += createMenuHtml(i));
+      content = h;
+      backTarget = 'drinks';
+    }
+    else if (type === 'alcohol') {
+      title = t.alcohol;
+      let h = '';
+      if (menuData.alcohol) menuData.alcohol.forEach(i => h += createMenuHtml(i));
+      content = h;
+      backTarget = 'drinks';
+    }
+    else if (type === 'softdrinks') {
+      title = t.soft;
+      let h = '';
+      if (menuData.soft) menuData.soft.forEach(i => h += createMenuHtml(i));
+      content = h;
+      backTarget = 'drinks';
     }
 
     modalTitle.innerText = title;
@@ -906,14 +869,33 @@
       modalBackBtn.innerText = (currentLang === 'ja') ? '← 戻る' : '← BACK';
       modalBackBtn.onclick = () => showContent(backTarget);
     }
+
+    // ✅ Chat 初期メッセージは「DOMを描画した後」に入れる（ここが一番安全）
+    if (type === 'chat') {
+      setTimeout(async () => {
+        scrollChatToBottom();
+        // 初回だけ挨拶（履歴が空の時だけ）
+        const log = document.getElementById('qa-log-scroll');
+        if (log && log.children.length === 0) {
+          await addAiMessage("ｲﾗｯｼｬｲﾏｾー　何かご用件は？");
+        } else {
+          scrollChatToBottom();
+        }
+        const input = document.getElementById('chat-input');
+        if (input) input.focus();
+      }, 50);
+    }
   }
 
   function closeModal() {
-    ensureModalRefs();
     playClick();
     modal.style.display = 'none';
     modal.classList.remove('chat-mode');
   }
+
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.addEventListener('mouseenter', playHover);
+  });
 
   function setTentyoAnimating(isAnimating) {
     const img = document.getElementById('tentyo-img');
@@ -921,7 +903,7 @@
   }
 
   // ---------------------------
-  // Chat UI (XSS safe)
+  // Chat UI
   // ---------------------------
   async function typeWriter(element, text) {
     element.textContent = '';
@@ -932,13 +914,13 @@
     for (let i = 0; i < s.length; i++) {
       element.textContent += s.charAt(i);
       playTypingSound();
-      const scrollArea = document.getElementById('qa-log-scroll');
-      if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
-      await new Promise(resolve => setTimeout(resolve, 35));
+      scrollChatToBottom();
+      await new Promise(resolve => setTimeout(resolve, 25));
     }
 
     element.classList.remove('typing-cursor');
     setTentyoAnimating(false);
+    scrollChatToBottom();
   }
 
   async function addAiMessage(text) {
@@ -947,7 +929,27 @@
     const msgDiv = document.createElement('div');
     msgDiv.className = 'qa-bubble-ai';
     logArea.appendChild(msgDiv);
+    scrollChatToBottom();
     await typeWriter(msgDiv, text);
+  }
+
+  function addAiPlaceholder() {
+    const logArea = document.getElementById('qa-log-scroll');
+    if (!logArea) return null;
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'qa-bubble-ai typing-cursor';
+    msgDiv.textContent = '...';
+    logArea.appendChild(msgDiv);
+    scrollChatToBottom();
+    return msgDiv;
+  }
+
+  async function replacePlaceholderWithAnswer(placeholderEl, text) {
+    if (!placeholderEl) {
+      await addAiMessage(text);
+      return;
+    }
+    await typeWriter(placeholderEl, text);
   }
 
   function addUserMessage(text) {
@@ -955,19 +957,22 @@
     if (!logArea) return;
     const msgDiv = document.createElement('div');
     msgDiv.className = 'qa-bubble-user';
-    msgDiv.innerText = String(text ?? '');
+    msgDiv.textContent = String(text ?? '');
     logArea.appendChild(msgDiv);
-    logArea.scrollTop = logArea.scrollHeight;
+    scrollChatToBottom();
   }
 
   async function sendChat() {
     const input = document.getElementById('chat-input');
-    const msg = input?.value ?? '';
+    const msg = (input?.value || '').trim();
     if (!msg) return;
 
     playClick();
     input.value = '';
     addUserMessage(msg);
+
+    // ✅ 待ち中の「...」を先に出す
+    const placeholder = addAiPlaceholder();
 
     try {
       const url = `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(GAS_TOKEN)}&ask=${encodeURIComponent(msg)}&_=${Date.now()}`;
@@ -975,10 +980,13 @@
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const data = await response.json();
-      await addAiMessage(data?.reply ?? "…返答が空でした");
+      const reply = data?.reply ?? "…返答が空でした";
+
+      await replacePlaceholderWithAnswer(placeholder, reply);
+
     } catch (e) {
       console.error(e);
-      await addAiMessage("エラー... ツウシン... デキナイ...");
+      await replacePlaceholderWithAnswer(placeholder, "エラー... ツウシン... デキナイ...");
     }
   }
 

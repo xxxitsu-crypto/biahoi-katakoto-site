@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BIA HOI カタコト - 狸小路9丁目</title>
   <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+
   <style>
     :root {
       --bg-color: #000000;
@@ -15,6 +16,7 @@
       --gray: #555555;
       --font-pixel: 'DotGothic16', sans-serif;
     }
+
     * { box-sizing: border-box; }
 
     body {
@@ -84,6 +86,7 @@
       text-shadow: 4px 4px 0px var(--main-yellow);
       line-height: 1.2;
     }
+
     .subtitle {
       color: var(--main-yellow);
       font-size: 0.9rem;
@@ -103,6 +106,7 @@
       cursor: pointer;
       transition: all 0.1s;
       position: relative;
+      user-select: none;
     }
     @media (hover: hover) {
       .menu-item:hover { color: var(--main-yellow); transform: scale(1.1); }
@@ -146,6 +150,10 @@
     }
     #modal.chat-mode #modal-content { width: 100%; height: 100%; }
 
+    #modal::-webkit-scrollbar { width: 10px; }
+    #modal::-webkit-scrollbar-track { background: #000; }
+    #modal::-webkit-scrollbar-thumb { background: var(--main-yellow); border: 2px solid #000; }
+
     #modal h3 {
       text-align: center;
       border-bottom: 2px solid var(--main-red);
@@ -169,9 +177,10 @@
       border: 1px solid #555;
       padding: 5px 10px;
       background: #000;
+      user-select: none;
     }
 
-    .category-title, .sub-menu-item, .menu-list-item, .back-btn { text-align: left; }
+    .category-title, .sub-menu-item, .menu-list-item { text-align: left; }
     .category-title {
       color: var(--main-blue);
       margin: 15px 0 5px;
@@ -238,6 +247,7 @@
       color: white;
       cursor: pointer;
       flex-shrink: 0;
+      user-select: none;
     }
 
     .staff-container {
@@ -247,7 +257,7 @@
       text-align: center;
       align-items: flex-end;
     }
-    .staff-card { cursor: pointer; transition: transform 0.1s; }
+    .staff-card { cursor: pointer; transition: transform 0.1s; user-select: none; }
     .staff-card:active { transform: scale(0.95); }
     .staff-card img {
       width: 80px;
@@ -269,7 +279,7 @@
       letter-spacing: -1px;
       white-space: nowrap;
     }
-    .item-sold-out { position: relative; }
+    .item-sold-out { position: relative; opacity: 0.85; }
 
     #loading-overlay {
       display: none;
@@ -284,6 +294,7 @@
       font-family: 'Press Start 2P', cursive;
     }
 
+    /* Chat UI */
     #qa-split-container {
       display: flex;
       width: 100%;
@@ -358,6 +369,7 @@
       max-width: 90%;
       overflow-wrap: anywhere;
       word-break: break-word;
+      white-space: pre-wrap;
     }
 
     #chat-input-area-fixed {
@@ -391,9 +403,15 @@
       font-size: 1rem;
       border: 2px solid #fff;
       flex-shrink: 0;
+      user-select: none;
     }
     #chat-send-btn:active { background: #fff; color: var(--main-blue); }
-    .typing-cursor::after { content: '▋'; color: var(--main-yellow); animation: blink 1s infinite; }
+
+    .typing-cursor::after {
+      content: '▋';
+      color: var(--main-yellow);
+      animation: blink 1s infinite;
+    }
 
     @media (max-width: 400px) {
       #qa-tentyo-fixed { width: 85px; padding: 2px; }
@@ -435,7 +453,7 @@
 
     <div id="modal">
       <h3 id="modal-title">TITLE</h3>
-      <span class="header-back" id="modal-back-btn" onclick="closeModal()">← BACK</span>
+      <span class="header-back" id="modal-back-btn">← BACK</span>
 
       <div id="modal-scroll-area">
         <div id="modal-content"></div>
@@ -446,14 +464,14 @@
         <button id="chat-send-btn" onclick="sendChat()">送信</button>
       </div>
 
-      <div class="close-btn" id="normal-close-btn" onclick="closeModal()">[ CLOSE ]</div>
+      <div class="close-btn" id="normal-close-btn">[ CLOSE ]</div>
     </div>
   </div>
 
 <script>
   // ★★★ ここだけ自分の値にする ★★★
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6cxw4qFrV2WzKYAzF-xEPXXWP3aKZeeJOozFQ90f1SHb_MlPX0q1NVtp6qq0YAHop/exec';
-  const GAS_TOKEN = 'KATAKOTO_2026_itsuki'; // GASのスクリプトプロパティ ACCESS_TOKEN と同じ
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwSq5s0moxIe5WGrzPm-pDvYAliJja-0PdyK4vb9fPaRx34DY3CpMt9jRtEqrzLkrA6/exec';
+  const GAS_TOKEN = 'KATAKOTO_2026_itsuki'; // GASのスクリプトプロパティ ACCESS_TOKEN と同じ（※HTMLに書くと見えます）
 
   let audioCtx;
   let currentLang = 'ja';
@@ -497,6 +515,26 @@
   }
 
   // ---------------------------
+  // Modal refs（ここが重要：DOMが出来てから取得）
+  // ---------------------------
+  let modal, modalTitle, modalContent, modalBackBtn, chatInputArea, normalCloseBtn, modalScrollArea;
+
+  function ensureModalRefs() {
+    if (modal) return;
+    modal = document.getElementById('modal');
+    modalTitle = document.getElementById('modal-title');
+    modalContent = document.getElementById('modal-content');
+    modalBackBtn = document.getElementById('modal-back-btn');
+    chatInputArea = document.getElementById('chat-input-area-fixed');
+    normalCloseBtn = document.getElementById('normal-close-btn');
+    modalScrollArea = document.getElementById('modal-scroll-area');
+
+    // close/back の動作を確実に
+    if (normalCloseBtn) normalCloseBtn.onclick = closeModal;
+    if (modalBackBtn) modalBackBtn.onclick = closeModal;
+  }
+
+  // ---------------------------
   // Data fetch
   // ---------------------------
   async function fetchMenuData() {
@@ -506,14 +544,10 @@
     try {
       const url = `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(GAS_TOKEN)}&_=${Date.now()}`;
       const response = await fetch(url, { cache: 'no-store' });
-
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const data = await response.json();
-
-      if (data?.ok === false && data?.error) {
-        throw new Error(data.error);
-      }
+      if (data?.ok === false && data?.error) throw new Error(data.error);
 
       menuData = data || {};
       console.log("Menu Loaded", menuData);
@@ -529,6 +563,11 @@
   window.addEventListener('load', () => {
     updateUIText();
     fetchMenuData();
+
+    // hover音（PCだけ）
+    document.querySelectorAll('.menu-item').forEach(item => {
+      item.addEventListener('mouseenter', playHover);
+    });
   });
 
   // ---------------------------
@@ -555,13 +594,14 @@
     isGameStarted = true;
 
     const overlay = document.getElementById('start-overlay');
-    document.getElementById('start-text').classList.add('active');
+    const startText = document.getElementById('start-text');
+    if (startText) startText.classList.add('active');
 
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
 
     playStartJingle();
-    setTimeout(() => { overlay.style.display = 'none'; }, 2000);
+    setTimeout(() => { if (overlay) overlay.style.display = 'none'; }, 2000);
   }
 
   function playStartSound() {
@@ -643,12 +683,311 @@
   }
 
   // ---------------------------
-  // Modal / UI build（あなたの showContent 以下は、今のHTMLのままでOK）
-  // ここから下は「あなたの既存コード」を残して大丈夫です。
-  // ※ただし、GAS_TOKEN を script外に書かないこと。
+  // UI helpers
   // ---------------------------
+  function createMenuHtml(item, hasImg = false) {
+    const name = escapeHtml((currentLang === 'ja') ? item.ja : item.en);
+    const price = escapeHtml(item.price);
+    const soldOutClass = item.soldOut ? 'item-sold-out' : '';
 
-  // ↓↓↓↓↓ ここ以降、あなたの既存の showContent / closeModal / chat UI 等をそのまま置いてOK ↓↓↓↓↓
+    let priceHtml = item.soldOut
+      ? `<span class="sold-out-label">SOLD OUT</span>`
+      : (item.price ? `<span class="price">${price}</span>` : '');
+
+    if (hasImg) {
+      const img = safeUrl(item.img);
+      const imgTag = img
+        ? `<img src="${img}" alt="img">`
+        : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
+      return `<div class="menu-list-item ${soldOutClass}">
+        <div class="menu-img-container">${imgTag}</div>
+        <div class="menu-text-container"><span class="menu-name">${name}</span>${priceHtml}</div>
+      </div>`;
+    }
+
+    return `<div class="sub-menu-item ${soldOutClass}" style="position:relative;">${name}${priceHtml}</div>`;
+  }
+
+  // ---------------------------
+  // Modal / main navigation
+  // ---------------------------
+  function showContent(type) {
+    ensureModalRefs();
+    playClick();
+
+    modal.style.display = 'flex';
+    if (modalScrollArea) modalScrollArea.scrollTop = 0;
+    modal.classList.remove('chat-mode');
+
+    if (type === 'chat') {
+      chatInputArea.style.display = 'flex';
+      normalCloseBtn.style.display = 'none';
+      modalBackBtn.innerText = '← BACK TO STAFF';
+      modalBackBtn.onclick = () => showContent('staff');
+      modal.classList.add('chat-mode');
+    } else {
+      chatInputArea.style.display = 'none';
+      normalCloseBtn.style.display = 'block';
+      modalBackBtn.innerText = (currentLang === 'ja') ? '← 戻る' : '← BACK';
+      modalBackBtn.onclick = closeModal;
+    }
+
+    const txt = {
+      ja: {
+        menu:'MENU', vietnamese:'ベトナムリョウリ', drinks:'ドリンク',
+        zensai:'ゼンサイ', ippin:'イッピンリョウリ', main:'メイン',
+        beer:'ビール（樽生）', alcohol:'アルコール', soft:'ソフトドリンク',
+        cat_400:'各種 400エン', cat_other:'その他', cat_rec:'おすすめ'
+      },
+      en: {
+        menu:'MENU', vietnamese:'VIETNAMESE FOOD', drinks:'DRINKS',
+        zensai:'APPETIZERS', ippin:'A LA CARTE', main:'MAIN DISH',
+        beer:'DRAFT BEER', alcohol:'ALCOHOL', soft:'SOFT DRINKS',
+        cat_400:'¥400 EACH', cat_other:'OTHERS', cat_rec:'RECOMMENDED'
+      }
+    };
+    const t = (currentLang === 'ja') ? txt.ja : txt.en;
+
+    let title = '';
+    let content = '';
+    let backTarget = '';
+
+    if (type === 'menu') {
+      title = t.menu;
+      content =
+        `<div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>`;
+    }
+    else if (type === 'sns') {
+      title = 'SNS';
+      content =
+        `<div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;">
+          <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links')">
+            <img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook">
+          </div>
+          <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.instagram.com/2_9_katakoto_biahoi/')">
+            <img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram">
+          </div>
+        </div>`;
+      backTarget = 'menu';
+    }
+    else if (type === 'vietnamese') {
+      title = t.vietnamese;
+      content =
+        `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`;
+      backTarget = 'menu';
+    }
+    else if (type === 'drinks') {
+      title = t.drinks;
+      content =
+        `<div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
+         <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>`;
+      backTarget = 'menu';
+    }
+    else if (type === 'zensai') {
+      title = t.zensai;
+
+      let h4 = '';
+      let hO = '';
+      let hR = '<div class="menu-list-container">';
+
+      if (Array.isArray(menuData.zensai400))  menuData.zensai400.forEach(i => h4 += createMenuHtml(i));
+      if (Array.isArray(menuData.zensaiOther)) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i));
+      if (Array.isArray(menuData.zensaiRec))  menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true));
+      hR += '</div>';
+
+      content =
+        `<div class="category-title">${t.cat_400}</div>${h4}
+         <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
+         ${hO}
+         <div class="category-title">${t.cat_rec}</div>${hR}`;
+      backTarget = 'vietnamese';
+    }
+    else if (type === 'ippin') {
+      title = t.ippin;
+      let h = '<div class="menu-list-container">';
+      if (Array.isArray(menuData.ippin)) menuData.ippin.forEach(i => h += createMenuHtml(i, true));
+      h += '</div>';
+      content = h;
+      backTarget = 'vietnamese';
+    }
+    else if (type === 'main') {
+      title = t.main;
+      let h = '<div class="menu-list-container">';
+      if (Array.isArray(menuData.main)) menuData.main.forEach(i => h += createMenuHtml(i, true));
+      h += '</div>';
+      content = h;
+      backTarget = 'vietnamese';
+    }
+    else if (type === 'beer') {
+      title = t.beer;
+
+      let h = '';
+      if (Array.isArray(menuData.beer)) menuData.beer.forEach(i => h += createMenuHtml(i));
+
+      const cb = (Array.isArray(menuData.craftBeer) && menuData.craftBeer[0])
+        ? menuData.craftBeer[0]
+        : { ja:'クラフトビール', en:'Craft Beer', price:'1400', soldOut:false };
+
+      let cbHtml = createMenuHtml(cb);
+      if (!cb.soldOut) {
+        cbHtml = cbHtml.replace(
+          'div class="sub-menu-item',
+          'div class="sub-menu-item" onclick="showContent(\'craft_beer_confirm\');" style="cursor:pointer;"'
+        );
+      }
+
+      content = `${h}${cbHtml}`;
+      backTarget = 'drinks';
+    }
+    else if (type === 'craft_beer_confirm') {
+      title = 'LINK';
+      const m = (currentLang==='ja') ? 'インスタのページへとびます' : 'JUMP TO INSTAGRAM PAGE';
+      content =
+        `<div style="text-align:center; margin-top:30px; cursor:pointer;"
+              onclick="playClick(); openExternalLink('https://www.instagram.com/stories/highlights/18132862126467018/')">
+          <img src="insta.png" style="width:80px; height:80px; image-rendering:pixelated; margin-bottom:10px;"><br>
+          <span style="font-size:0.9rem; border-bottom:1px solid var(--main-yellow);">${m}</span>
+        </div>`;
+      backTarget = 'beer';
+    }
+    else if (type === 'alcohol') {
+      title = t.alcohol;
+      let h = '';
+      if (Array.isArray(menuData.alcohol)) menuData.alcohol.forEach(i => h += createMenuHtml(i));
+      content = h;
+      backTarget = 'drinks';
+    }
+    else if (type === 'softdrinks') {
+      title = t.soft;
+      let h = '';
+      if (Array.isArray(menuData.soft)) menuData.soft.forEach(i => h += createMenuHtml(i));
+      content = h;
+      backTarget = 'drinks';
+    }
+    else if (type === 'staff') {
+      title = 'STAFF';
+      const n = (currentLang === 'ja')
+        ? { erin: 'イーリン', ichi: 'いっちー', tentyo: '店長' }
+        : { erin: 'E-RIN', ichi: 'ITSUKI', tentyo: 'MANAGER' };
+
+      content =
+        `<div class="staff-container">
+          <div class="staff-card"><img src="erin.png" alt="${escapeHtml(n.erin)}"><br>${escapeHtml(n.erin)}</div>
+          <div class="staff-card tentyo" onclick="showContent('chat')">
+            <img src="${IMG_STAFF_ICON}" alt="${escapeHtml(n.tentyo)}"><br>
+            <span style="color:var(--main-yellow);">${escapeHtml(n.tentyo)}</span><br>
+            <span style="font-size:0.7rem; color:#888;">(TAP TO CHAT)</span>
+          </div>
+          <div class="staff-card"><img src="ichi.png" alt="${escapeHtml(n.ichi)}"><br>${escapeHtml(n.ichi)}</div>
+        </div>`;
+      backTarget = 'menu';
+    }
+    else if (type === 'chat') {
+      title = 'Q & A';
+      content =
+        `<div id="qa-split-container">
+          <div id="qa-tentyo-fixed">
+            <img src="${IMG_QA_STATIC}" id="tentyo-img" alt="店長">
+            <div style="margin-top:10px; font-size:0.8rem; color:var(--main-yellow);">店長</div>
+          </div>
+          <div id="qa-log-scroll"></div>
+        </div>`;
+      setTimeout(() => { addAiMessage("ｲﾗｯｼｬｲﾏｾー　何かご用件は？"); }, 300);
+    }
+
+    modalTitle.innerText = title;
+    modalContent.innerHTML = content;
+
+    if (backTarget && type !== 'chat') {
+      modalBackBtn.innerText = (currentLang === 'ja') ? '← 戻る' : '← BACK';
+      modalBackBtn.onclick = () => showContent(backTarget);
+    }
+  }
+
+  function closeModal() {
+    ensureModalRefs();
+    playClick();
+    modal.style.display = 'none';
+    modal.classList.remove('chat-mode');
+  }
+
+  function setTentyoAnimating(isAnimating) {
+    const img = document.getElementById('tentyo-img');
+    if (img) img.src = isAnimating ? IMG_QA_TALK : IMG_QA_STATIC;
+  }
+
+  // ---------------------------
+  // Chat UI (XSS safe)
+  // ---------------------------
+  async function typeWriter(element, text) {
+    element.textContent = '';
+    element.classList.add('typing-cursor');
+    setTentyoAnimating(true);
+
+    const s = String(text ?? '');
+    for (let i = 0; i < s.length; i++) {
+      element.textContent += s.charAt(i);
+      playTypingSound();
+      const scrollArea = document.getElementById('qa-log-scroll');
+      if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
+      await new Promise(resolve => setTimeout(resolve, 35));
+    }
+
+    element.classList.remove('typing-cursor');
+    setTentyoAnimating(false);
+  }
+
+  async function addAiMessage(text) {
+    const logArea = document.getElementById('qa-log-scroll');
+    if (!logArea) return;
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'qa-bubble-ai';
+    logArea.appendChild(msgDiv);
+    await typeWriter(msgDiv, text);
+  }
+
+  function addUserMessage(text) {
+    const logArea = document.getElementById('qa-log-scroll');
+    if (!logArea) return;
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'qa-bubble-user';
+    msgDiv.innerText = String(text ?? '');
+    logArea.appendChild(msgDiv);
+    logArea.scrollTop = logArea.scrollHeight;
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chat-input');
+    const msg = input?.value ?? '';
+    if (!msg) return;
+
+    playClick();
+    input.value = '';
+    addUserMessage(msg);
+
+    try {
+      const url = `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(GAS_TOKEN)}&ask=${encodeURIComponent(msg)}&_=${Date.now()}`;
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      await addAiMessage(data?.reply ?? "…返答が空でした");
+    } catch (e) {
+      console.error(e);
+      await addAiMessage("エラー... ツウシン... デキナイ...");
+    }
+  }
+
+  document.getElementById('chat-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendChat();
+    }
+  });
 </script>
 
 </body>

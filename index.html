@@ -101,7 +101,6 @@
              margin-bottom: 10px;
         }
 
-        /* チャットモード時はモーダル全体のスクロールを止める */
         #modal.chat-mode #modal-scroll-area {
             overflow: hidden; 
             padding: 0;
@@ -152,25 +151,24 @@
             display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 300; color: var(--main-yellow); justify-content: center; align-items: center; flex-direction: column; font-family: 'Press Start 2P', cursive;
         }
 
-        /* --- Q&A(チャット)関連レイアウト --- */
+        /* --- Q&A(チャット)関連レイアウト調整 --- */
         #qa-split-container {
             display: flex;
             width: 100%;
             height: 100%;
-            overflow: hidden; /* コンテナ自体はスクロールしない */
+            overflow: hidden; 
         }
         
-        /* 左側：店長固定エリア */
         #qa-tentyo-fixed {
-            width: 120px;
+            width: 100px; /* 少し狭くしてスマホ対応 */
             background: #111;
             border-right: 2px solid var(--main-blue);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center; /* 上下中央配置 */
+            justify-content: center;
             flex-shrink: 0;
-            padding: 10px;
+            padding: 5px;
             box-sizing: border-box;
         }
         #tentyo-img {
@@ -181,11 +179,10 @@
             image-rendering: pixelated;
         }
 
-        /* 右側：ログスクロールエリア */
         #qa-log-scroll {
             flex-grow: 1;
-            overflow-y: auto; /* ここだけスクロール */
-            padding: 15px;
+            overflow-y: auto;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             gap: 15px;
@@ -193,27 +190,64 @@
             -webkit-overflow-scrolling: touch;
         }
 
-        /* 店長の回答枠（フキダシ） */
+        /* 店長の回答枠（修正：はみ出し防止） */
         .qa-bubble-ai {
-            position: relative; background: #000; border: 3px solid var(--main-yellow); padding: 15px; color: var(--text-white); border-radius: 10px; text-align: left; line-height: 1.5; min-height: 60px;
+            position: relative; 
+            background: #000; 
+            border: 3px solid var(--main-yellow); 
+            padding: 15px; 
+            color: var(--text-white); 
+            border-radius: 10px; 
+            text-align: left; 
+            line-height: 1.5; 
+            min-height: 40px;
             margin-right: 5px;
+            max-width: 85%; /* 最大幅を指定 */
+            word-break: break-all; /* 長い英単語も折り返す */
+            white-space: pre-wrap; /* 改行を維持 */
         }
         .qa-bubble-ai::before { 
             content: ''; position: absolute; top: 15px; left: -16px; border-style: solid; border-width: 10px 18px 10px 0; border-color: transparent var(--main-yellow) transparent transparent;
         }
+        
         /* ユーザーの質問枠 */
         .qa-bubble-user {
-             background: #111; border: 2px solid var(--main-blue); padding: 10px 15px; color: #0f0; border-radius: 15px 15px 0 15px; text-align: right; align-self: flex-end; max-width: 85%;
+             background: #111; border: 2px solid var(--main-blue); padding: 10px 15px; color: #0f0; border-radius: 15px 15px 0 15px; text-align: right; align-self: flex-end; max-width: 85%; word-break: break-all;
         }
 
+        /* 入力エリア（修正：スマホ対応） */
         #chat-input-area-fixed {
-            display: flex; gap: 10px; padding: 15px; background: #000; border-top: 3px solid var(--main-blue); position: sticky; bottom: 0; flex-shrink: 0;
+            display: flex; 
+            gap: 5px; 
+            padding: 10px; 
+            background: #000; 
+            border-top: 3px solid var(--main-blue); 
+            position: sticky; 
+            bottom: 0; 
+            flex-shrink: 0;
+            width: 100%; /* 横幅いっぱい */
+            box-sizing: border-box; /* パディングを含める */
         }
         #chat-input {
-            flex-grow: 1; background: #222; border: 2px solid var(--main-blue); color: white; padding: 10px; font-family: var(--font-pixel); font-size: 1.1rem;
+            flex-grow: 1; 
+            background: #222; 
+            border: 2px solid var(--main-blue); 
+            color: white; 
+            padding: 10px; 
+            font-family: var(--font-pixel); 
+            font-size: 1rem;
+            min-width: 0; /* Flexboxのはみ出し防止 */
         }
         #chat-send-btn {
-            background: var(--main-blue); color: white; border: none; padding: 0 20px; cursor: pointer; font-family: var(--font-pixel); font-size: 1.1rem; border: 2px solid #fff;
+            background: var(--main-blue); 
+            color: white; 
+            border: none; 
+            padding: 0 15px; 
+            cursor: pointer; 
+            font-family: var(--font-pixel); 
+            font-size: 1rem; 
+            border: 2px solid #fff;
+            flex-shrink: 0; /* ボタンが潰れないように */
         }
         #chat-send-btn:active { background: #fff; color: var(--main-blue); }
 
@@ -279,10 +313,9 @@
     let isGameStarted = false;
     let menuData = {};
 
-    // --- ここで画像を3種類定義します ---
-    const IMG_STAFF_ICON = 'tentyo.png'; // STAFF画面のアイコン
-    const IMG_QA_STATIC  = 'taiki.png';   // Q&Aの待機（静止画）←ここを変更しました！
-    const IMG_QA_TALK    = 'tentyo.gif';  // Q&Aの会話（GIF）
+    const IMG_STAFF_ICON = 'tentyo.png';
+    const IMG_QA_STATIC  = 'taiki.png';
+    const IMG_QA_TALK    = 'tentyo.gif';
 
     async function fetchMenuData() {
         const loading = document.getElementById('loading-overlay');
@@ -357,8 +390,6 @@
         playClick();
         modal.style.display = 'flex';
         document.getElementById('modal-scroll-area').scrollTop = 0;
-        
-        // モードリセット
         modal.classList.remove('chat-mode');
 
         if (type === 'chat') {
@@ -367,8 +398,6 @@
             normalCloseBtn.style.display = 'none'; 
             modalBackBtn.innerText = '← BACK TO STAFF';
             modalBackBtn.onclick = () => showContent('staff');
-            
-            // チャットモード用CSS適用
             modal.classList.add('chat-mode');
         } else {
             modal.style.top = ''; modal.style.bottom = ''; 
@@ -386,8 +415,6 @@
 
         if (type === 'menu') { title = t.menu; content = `<div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>`; }
         else if (type === 'sns') { title = 'SNS'; content = `<div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;"><div style="cursor:pointer;" onclick="window.open('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links', '_blank'); playClick();"><img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook"></div><div style="cursor:pointer;" onclick="window.open('https://www.instagram.com/2_9_katakoto_biahoi/', '_blank'); playClick();"><img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram"></div></div>`; backTarget = 'menu'; } 
-        
-        // --- Q&A画面（左右分割版） ---
         else if (type === 'chat') {
             title = 'Q & A';
             content = `
@@ -396,13 +423,11 @@
                         <img src="${IMG_QA_STATIC}" id="tentyo-img" alt="店長">
                         <div style="margin-top:10px; font-size:0.8rem; color:var(--main-yellow);">店長</div>
                     </div>
-                    <div id="qa-log-scroll">
-                        </div>
+                    <div id="qa-log-scroll"></div>
                 </div>
             `;
             setTimeout(() => { addAiMessage("ｲﾗｯｼｬｲﾏｾー　何かご用件は？"); }, 500);
         }
-        
         else if (type === 'vietnamese') { title = t.vietnamese; content = `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div><div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`; backTarget = 'menu'; } 
         else if (type === 'zensai') { title = t.zensai; let h4='', hO='', hR='<div class="menu-list-container">'; if(menuData.zensai400) menuData.zensai400.forEach(i => h4 += createMenuHtml(i)); if(menuData.zensaiOther) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i)); if(menuData.zensaiRec) menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true)); hR+='</div>'; content = `<div class="category-title">${t.cat_400}</div>${h4}<div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>${hO}<div class="category-title">${t.cat_rec}</div>${hR}`; backTarget = 'vietnamese'; } 
         else if (type === 'ippin') { title = t.ippin; let h='<div class="menu-list-container">'; if(menuData.ippin) menuData.ippin.forEach(i => h+=createMenuHtml(i,true)); h+='</div>'; content = h; backTarget = 'vietnamese'; } 
@@ -412,7 +437,6 @@
         else if (type === 'craft_beer_confirm') { title = 'LINK'; const m = currentLang==='ja'?'インスタのページへとびます':'JUMP TO INSTAGRAM PAGE'; content = `<div style="text-align:center; margin-top:30px; cursor:pointer;" onclick="window.open('https://www.instagram.com/stories/highlights/18132862126467018/', '_blank'); playClick();"><img src="insta.png" style="width:80px; height:80px; image-rendering:pixelated; margin-bottom:10px;"><br><span style="font-size:0.9rem; border-bottom:1px solid var(--main-yellow);">${m}</span></div>`; backTarget = 'beer'; } 
         else if (type === 'alcohol') { title = t.alcohol; let h=''; if(menuData.alcohol) menuData.alcohol.forEach(i => h+=createMenuHtml(i)); content = h; backTarget = 'drinks'; } 
         else if (type === 'softdrinks') { title = t.soft; let h=''; if(menuData.soft) menuData.soft.forEach(i => h+=createMenuHtml(i)); content = h; backTarget = 'drinks'; } 
-        
         else if (type === 'staff') {
             title = 'STAFF';
             const n = (currentLang === 'ja') ? { erin: 'イーリン', ichi: 'いっちー', tentyo: '店長' } : { erin: 'E-RIN', ichi: 'ITSUKI', tentyo: 'MANAGER' };
@@ -428,7 +452,6 @@
                 </div>`;
             backTarget = 'menu';
         }
-
         modalTitle.innerText = title;
         modalContent.innerHTML = content;
         if (backTarget && type !== 'chat') {
@@ -440,20 +463,14 @@
     function closeModal() { playClick(); modal.style.display = 'none'; modal.classList.remove('chat-mode'); }
     document.querySelectorAll('.menu-item').forEach(item => { item.addEventListener('mouseenter', playHover); });
 
-    // --- 画像切り替え関数 ---
     function setTentyoAnimating(isAnimating) {
         const img = document.getElementById('tentyo-img');
-        if (img) {
-            // trueならGIF（喋る）、falseなら静止画(taiki.png)に切り替え
-            img.src = isAnimating ? IMG_QA_TALK : IMG_QA_STATIC;
-        }
+        if (img) { img.src = isAnimating ? IMG_QA_TALK : IMG_QA_STATIC; }
     }
 
     async function typeWriter(element, text) {
-        element.innerHTML = '';
-        element.classList.add('typing-cursor');
-        setTentyoAnimating(true); // タイピング開始（GIF）
-
+        element.innerHTML = ''; element.classList.add('typing-cursor');
+        setTentyoAnimating(true);
         for (let i = 0; i < text.length; i++) {
             element.innerHTML += text.charAt(i);
             playTypingSound();
@@ -461,29 +478,19 @@
             if(scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
             await new Promise(resolve => setTimeout(resolve, 50));
         }
-
-        element.classList.remove('typing-cursor');
-        setTentyoAnimating(false); // 終了（taiki.png）
+        element.classList.remove('typing-cursor'); setTentyoAnimating(false);
     }
 
     async function addAiMessage(text) {
-        const logArea = document.getElementById('qa-log-scroll');
-        if (!logArea) return;
-
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'qa-bubble-ai';
-        logArea.appendChild(msgDiv);
-        await typeWriter(msgDiv, text);
+        const logArea = document.getElementById('qa-log-scroll'); if (!logArea) return;
+        const msgDiv = document.createElement('div'); msgDiv.className = 'qa-bubble-ai';
+        logArea.appendChild(msgDiv); await typeWriter(msgDiv, text);
     }
 
     function addUserMessage(text) {
-        const logArea = document.getElementById('qa-log-scroll');
-        if (!logArea) return;
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'qa-bubble-user';
-        msgDiv.innerText = text;
-        logArea.appendChild(msgDiv);
-        logArea.scrollTop = logArea.scrollHeight;
+        const logArea = document.getElementById('qa-log-scroll'); if (!logArea) return;
+        const msgDiv = document.createElement('div'); msgDiv.className = 'qa-bubble-user';
+        msgDiv.innerText = text; logArea.appendChild(msgDiv); logArea.scrollTop = logArea.scrollHeight;
     }
 
     async function sendChat() {
@@ -491,8 +498,11 @@
         const msg = input.value;
         if (!msg) return;
         playClick();
-        addUserMessage(msg);
+        
+        // ★修正ポイント：送信したら即座に入力欄をクリアする
         input.value = '';
+        
+        addUserMessage(msg);
 
         try {
             const response = await fetch(`${GOOGLE_SCRIPT_URL}?ask=${encodeURIComponent(msg)}`);
@@ -502,8 +512,13 @@
              await addAiMessage("エラー... ツウシン... デキナイ...");
         }
     }
-    document.getElementById('chat-input-area-fixed').addEventListener('keydown', (e)=>{
-        if(e.key === 'Enter') sendChat();
+
+    // ★修正ポイント：Enterキーで即座に送信＆クリア
+    document.getElementById('chat-input').addEventListener('keypress', (e)=>{
+        if(e.key === 'Enter') {
+            e.preventDefault(); // 改行コードが入るのを防ぐ
+            sendChat();
+        }
     });
 
 </script>

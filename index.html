@@ -451,71 +451,204 @@
   </div>
 
 <script>
-  // ここだけ自分の値にする
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwSq5s0moxIe5WGrzPm-pDvYAliJja-0PdyK4vb9fPaRx34DY3CpMt9jRtEqrzLkrA6/exec';
-  const GAS_TOKEN = 'KATAKOTO09_tanukikouji';
+  // ★★★ ここだけ自分の値にする ★★★
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6cxw4qFrV2WzKYAzF-xEPXXWP3aKZeeJOozFQ90f1SHb_MlPX0q1NVtp6qq0YAHop/exec';
+  const GAS_TOKEN = 'KATAKOTO_2026_itsuki'; // GASのスクリプトプロパティ ACCESS_TOKEN と同じ
 
   let audioCtx;
   let currentLang = 'ja';
   let isGameStarted = false;
   let menuData = {};
 
-  // START押したら必ず画面が消える（まずここを確実に）
-  function triggerStartSequence() {
-    if (isGameStarted) return;
-    isGameStarted = true;
+  const IMG_STAFF_ICON = 'tentyo.png';
+  const IMG_QA_STATIC  = 'taiki.png';
+  const IMG_QA_TALK    = 'tentyo.gif';
 
-    const overlay = document.getElementById('start-overlay');
-    const startText = document.getElementById('start-text');
-    if (startText) startText.classList.add('active');
-
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    } catch (e) {}
-
-    setTimeout(() => {
-      if (overlay) overlay.style.display = 'none';
-    }, 2000);
+  // ---------------------------
+  // Security helpers
+  // ---------------------------
+  function escapeHtml(value) {
+    const str = String(value ?? '');
+    return str.replace(/[&<>"'`]/g, (m) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+      '`': '&#x60;'
+    }[m]));
   }
 
-  // 外部リンク（タブ乗っ取り対策）
+  function safeUrl(url) {
+    const s = String(url ?? '').trim();
+    if (!s) return '';
+    try {
+      const u = new URL(s, location.href);
+      if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+      return '';
+    } catch {
+      return '';
+    }
+  }
+
   function openExternalLink(url) {
     const w = window.open(url, '_blank', 'noopener,noreferrer');
     if (w) w.opener = null;
   }
 
-  // メニュー取得（失敗してもSTARTは動く）
+  // ---------------------------
+  // Data fetch
+  // ---------------------------
   async function fetchMenuData() {
     const loading = document.getElementById('loading-overlay');
-    if (loading) loading.style.display = 'flex';
+    loading.style.display = 'flex';
 
     try {
-      const res = await fetch(
-        `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(GAS_TOKEN)}`,
-        { cache: 'no-store' }
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      menuData = await res.json();
-      console.log('Menu Loaded', menuData);
+      const url = `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(GAS_TOKEN)}&_=${Date.now()}`;
+      const response = await fetch(url, { cache: 'no-store' });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+
+      if (data?.ok === false && data?.error) {
+        throw new Error(data.error);
+      }
+
+      menuData = data || {};
+      console.log("Menu Loaded", menuData);
+
     } catch (e) {
-      console.error('Load Failed', e);
-      alert('通信エラー：メニューを読み込めませんでした。');
+      console.error("Load Failed", e);
+      alert("通信エラー：メニューを読み込めませんでした。\n" + String(e.message || e));
     } finally {
-      if (loading) loading.style.display = 'none';
+      loading.style.display = 'none';
     }
   }
 
-  // ページ読み込み時にメニュー取得
   window.addEventListener('load', () => {
+    updateUIText();
     fetchMenuData();
   });
 
-  // もしHTML側に onclick="triggerStartSequence()" が付いてなくても動くように保険
-  window.addEventListener('DOMContentLoaded', () => {
-    const overlay = document.getElementById('start-overlay');
-    if (overlay) overlay.addEventListener('click', triggerStartSequence);
+  // ---------------------------
+  // Konami
+  // ---------------------------
+  const konamiCode = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  let keySequence = [];
+  document.addEventListener('keydown', (e) => {
+    keySequence.push(e.key);
+    if (keySequence.length > konamiCode.length) keySequence.shift();
+    if (keySequence.toString() === konamiCode.toString()) {
+      keySequence = [];
+      playStartSound();
+      alert("SYSTEM RELOAD...");
+      fetchMenuData();
+    }
   });
+
+  // ---------------------------
+  // Start sequence + sounds
+  // ---------------------------
+  function triggerStartSequence() {
+    if (isGameStarted) return;
+    isGameStarted = true;
+
+    const overlay = document.getElementById('start-overlay');
+    document.getElementById('start-text').classList.add('active');
+
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    playStartJingle();
+    setTimeout(() => { overlay.style.display = 'none'; }, 2000);
+  }
+
+  function playStartSound() {
+    if(!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(440, audioCtx.currentTime);
+    o.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+    g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + 0.3);
+  }
+
+  function playStartJingle() {
+    if(!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const n = [{f:659.25,t:0,d:0.1},{f:783.99,t:0.1,d:0.1},{f:880,t:0.2,d:0.4}];
+    n.forEach(e=>{
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='square'; o.frequency.setValueAtTime(e.f, t+e.t);
+      g.gain.setValueAtTime(0.15, t+e.t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+e.t+e.d);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t+e.t); o.stop(t+e.t+e.d);
+    });
+  }
+
+  function playClick() {
+    if(!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='square';
+    o.frequency.setValueAtTime(440, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime+0.1);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.15);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+0.15);
+  }
+
+  function playHover() {
+    if(!audioCtx || window.matchMedia('(hover: none)').matches) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='square';
+    o.frequency.setValueAtTime(880, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.05);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+0.05);
+  }
+
+  function playTypingSound() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.03);
+  }
+
+  // ---------------------------
+  // Language
+  // ---------------------------
+  function toggleLanguage() {
+    playClick();
+    currentLang = currentLang === 'ja' ? 'en' : 'ja';
+    updateUIText();
+  }
+
+  function updateUIText() {
+    const subtitle = document.getElementById('subtitle');
+    const holiday = document.getElementById('holiday-info');
+    const langBtn = document.getElementById('lang-btn');
+
+    if (subtitle) subtitle.innerText = currentLang === 'ja' ? 'タヌキコウジ９チョウメ' : 'TANUKIKOJI 9-CHOME';
+    if (holiday)  holiday.innerText  = currentLang === 'ja' ? '不定休' : 'Irregular Holidays';
+    if (langBtn)  langBtn.innerText  = currentLang === 'ja' ? 'ENGLISH' : '日本語';
+  }
+
+  // ---------------------------
+  // Modal / UI build（あなたの showContent 以下は、今のHTMLのままでOK）
+  // ここから下は「あなたの既存コード」を残して大丈夫です。
+  // ※ただし、GAS_TOKEN を script外に書かないこと。
+  // ---------------------------
+
+  // ↓↓↓↓↓ ここ以降、あなたの既存の showContent / closeModal / chat UI 等をそのまま置いてOK ↓↓↓↓↓
 </script>
 
 </body>

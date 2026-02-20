@@ -508,8 +508,8 @@
 
   <script>
     // ★★★ ここだけ自分の値にする ★★★
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6cxw4qFrV2WzKYAzF-xEPXXWP3aKZeeJOozFQ90f1SHb_MlPX0q1NVtp6qq0YAHop/exec';
-    const GAS_TOKEN = 'KATAKOTO_2026_itsuki';
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxYEu_3IakgG7hp9X5tgRqYKZZsfrlwhDVivVPwtzoEbJvnbpiIDS7EBe-LlO3J2zgL/exec';
+    const MENU_TOKEN = 'Katakoto09_itsuki_cockoo';
 
     let audioCtx;
     let currentLang = 'ja';
@@ -550,7 +550,7 @@
       loading.style.display = 'flex';
 
       try {
-        const url = `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(GAS_TOKEN)}&_=${Date.now()}`;
+        const url = `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(MENU_TOKEN)}&_=${Date.now()}`;
         const response = await fetch(url, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -717,7 +717,7 @@
       if (hasImg) {
         const img = safeUrl(item.img);
         const imgTag = img
-          ? `<img src="${img}" alt="img">`
+          ? `<img src="${img}" alt="${name}">`
           : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
         return `<div class="menu-list-item ${soldOutClass}">
         <div class="menu-img-container">${imgTag}</div>
@@ -786,13 +786,13 @@
 
         content =
           `<div class="staff-container">
-          <div class="staff-card">
-            <img src="erin.png" alt="${escapeHtml(n.erin)}"><br>${escapeHtml(n.erin)}
-          </div>
-          <div class="staff-card">
-            <img src="ichi.png" alt="${escapeHtml(n.ichi)}"><br>${escapeHtml(n.ichi)}
-          </div>
-        </div>`;
+            <div class="staff-card">
+              <img src="erin.png" alt="${escapeHtml(n.erin)}"><br>${escapeHtml(n.erin)}
+            </div>
+            <div class="staff-card">
+              <img src="ichi.png" alt="${escapeHtml(n.ichi)}"><br>${escapeHtml(n.ichi)}
+            </div>
+          </div>`;
         backTarget = 'menu';
       }
       else if (type === 'vietnamese') {

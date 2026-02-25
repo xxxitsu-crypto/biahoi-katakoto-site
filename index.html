@@ -2,910 +2,1315 @@
 <html lang="ja">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BIA HOI カタコト - 狸小路9丁目</title>
-  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap"
-    rel="stylesheet" />
-  <style>
-    :root {
-      --bg-color: #000000;
-      --main-yellow: #f8d800;
-      --main-red: #f83800;
-      --main-blue: #0058f8;
-      --text-white: #ffffff;
-      --gray: #555555;
-      --font-pixel: 'DotGothic16', sans-serif;
-      --font-press: 'Press Start 2P', cursive;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>BIA HOI カタコト - 狸小路9丁目</title>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --bg-color: #000000;
+            --main-yellow: #f8d800;
+            --main-red: #f83800;
+            --main-blue: #0058f8;
+            --text-white: #ffffff;
+            --gray: #555555;
+            --font-pixel: 'DotGothic16', sans-serif;
+            --font-press: 'Press Start 2P', cursive;
+        }
 
-    * {
-      box-sizing: border-box;
-    }
+        * {
+            box-sizing: border-box;
+        }
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-white);
-      font-family: var(--font-pixel);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      min-height: 100dvh;
-      margin: 0;
-      overflow: hidden;
-      text-transform: uppercase;
-      -webkit-tap-highlight-color: transparent;
-    }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-white);
+            font-family: var(--font-pixel);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+            margin: 0;
+            overflow: hidden;
+            text-transform: uppercase;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    #game-screen {
-      width: 100%;
-      max-width: 600px;
-      height: 100vh;
-      height: 100dvh;
-      text-align: center;
-      border: 4px solid var(--main-blue);
-      padding: 20px;
-      position: relative;
-      background: linear-gradient(to bottom, #000 0%, #111 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      padding-bottom: 20px;
-      overflow: hidden;
-    }
+        #game-screen {
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            height: 100dvh;
+            text-align: center;
+            border: 4px solid var(--main-blue);
+            padding: 20px;
+            position: relative;
+            background: linear-gradient(to bottom, #000 0%, #111 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-bottom: 20px;
+            overflow: hidden;
+        }
 
-    #start-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 1.0);
-      z-index: 200;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      touch-action: none;
-    }
+        #start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 1.0);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            touch-action: none;
+        }
 
-    .press-start {
-      font-family: var(--font-press);
-      color: var(--main-yellow);
-      font-size: 1.2rem;
-      margin-top: 20px;
-      animation: blink 0.8s step-end infinite;
-    }
+        .press-start {
+            font-family: var(--font-press);
+            color: var(--main-yellow);
+            font-size: 1.2rem;
+            margin-top: 20px;
+            animation: blink 0.8s step-end infinite;
+        }
 
-    .press-start.active {
-      color: var(--text-white);
-      animation: blink-fast 0.08s step-end infinite;
-      text-shadow: 2px 2px 0px var(--main-red);
-    }
+        .press-start.active {
+            color: var(--text-white);
+            animation: blink-fast 0.08s step-end infinite;
+            text-shadow: 2px 2px 0px var(--main-red);
+        }
 
-    @keyframes blink {
+        @keyframes blink {
 
-      0%,
-      100% {
-        opacity: 1;
-      }
+            0%,
+            100% {
+                opacity: 1;
+            }
 
-      50% {
-        opacity: 0;
-      }
-    }
+            50% {
+                opacity: 0;
+            }
+        }
 
-    @keyframes blink-fast {
+        @keyframes blink-fast {
 
-      0%,
-      100% {
-        opacity: 1;
-      }
+            0%,
+            100% {
+                opacity: 1;
+            }
 
-      50% {
-        opacity: 0;
-      }
-    }
+            50% {
+                opacity: 0;
+            }
+        }
 
-    h1 {
-      color: var(--main-red);
-      font-size: 2.2rem;
-      margin-bottom: 0;
-      margin-top: 40px;
-      text-shadow: 4px 4px 0px var(--main-yellow);
-      line-height: 1.2;
-    }
+        h1 {
+            color: var(--main-red);
+            font-size: 2.2rem;
+            margin-bottom: 0;
+            margin-top: 40px;
+            text-shadow: 4px 4px 0px var(--main-yellow);
+            line-height: 1.2;
+        }
 
-    .subtitle {
-      color: var(--main-yellow);
-      font-size: 0.9rem;
-      margin-bottom: 30px;
-      letter-spacing: 2px;
-    }
+        .subtitle {
+            color: var(--main-yellow);
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
 
-    .menu-list {
-      list-style: none;
-      padding: 0;
-      margin: 0 auto 30px;
-      width: fit-content;
-    }
+        .menu-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 auto 30px;
+            width: fit-content;
+        }
 
-    .menu-item {
-      font-size: 1.5rem;
-      padding: 15px 20px;
-      cursor: pointer;
-      transition: all 0.1s;
-      position: relative;
-      user-select: none;
-    }
+        .menu-item {
+            font-size: 1.5rem;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.1s;
+            position: relative;
+            user-select: none;
+        }
 
-    @media (hover: hover) {
-      .menu-item:hover {
-        color: var(--main-yellow);
-        transform: scale(1.1);
-      }
+        @media (hover: hover) {
+            .menu-item:hover {
+                color: var(--main-yellow);
+                transform: scale(1.1);
+            }
 
-      .menu-item:hover::before {
-        content: '▶';
-        position: absolute;
-        left: -15px;
-        color: var(--main-red);
-      }
-    }
+            .menu-item:hover::before {
+                content: '▶';
+                position: absolute;
+                left: -15px;
+                color: var(--main-red);
+            }
+        }
 
-    .info-panel {
-      font-size: 0.9rem;
-      border-top: 2px dashed var(--main-blue);
-      padding-top: 20px;
-      margin-top: auto;
-      padding-bottom: 20px;
-      position: absolute;
-      bottom: 20px;
-      left: 0;
-      width: 100%;
-    }
+        .info-panel {
+            font-size: 0.9rem;
+            border-top: 2px dashed var(--main-blue);
+            padding-top: 20px;
+            margin-top: auto;
+            padding-bottom: 20px;
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+        }
 
-    /* =========================
+        /* =========================
        MODAL
        ========================= */
-    #modal {
-      display: none;
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      background: var(--bg-color);
-      border: 4px solid var(--main-yellow);
-      padding: 12px;
-      z-index: 100;
-      flex-direction: column;
-      overflow: hidden;
-    }
+        #modal {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            background: var(--bg-color);
+            border: 4px solid var(--main-yellow);
+            padding: 12px;
+            z-index: 100;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-    .modal-header {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      background: var(--bg-color);
-      padding-top: 2px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--main-red);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 44px;
-    }
+        .modal-header {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--bg-color);
+            padding-top: 2px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--main-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+        }
 
-    /* ✅ ←戻：太めに見えるレトロ（疑似太字＝縁取り＆影） */
-    .header-back {
-      position: absolute;
-      left: 12px;
-      top: 10px;
-      font-family: var(--font-press);
-      font-size: 0.95rem;
-      /* 少し大きめ */
-      color: var(--main-yellow);
-      cursor: pointer;
-      border: 3px solid var(--main-yellow);
-      /* 太枠 */
-      padding: 7px 10px;
-      background: #000;
-      user-select: none;
-      line-height: 1;
-      letter-spacing: 0.5px;
-      /* 疑似太字（フォント自体が細いので） */
-      text-shadow:
-        1px 0 0 #000,
-        -1px 0 0 #000,
-        0 1px 0 #000,
-        0 -1px 0 #000,
-        2px 2px 0 var(--main-red);
-    }
+        .header-back {
+            position: absolute;
+            left: 12px;
+            top: 10px;
+            font-family: var(--font-press);
+            font-size: 0.95rem;
+            color: var(--main-yellow);
+            cursor: pointer;
+            border: 3px solid var(--main-yellow);
+            padding: 7px 10px;
+            background: #000;
+            user-select: none;
+            line-height: 1;
+            letter-spacing: 0.5px;
+            text-shadow:
+                1px 0 0 #000,
+                -1px 0 0 #000,
+                0 1px 0 #000,
+                0 -1px 0 #000,
+                2px 2px 0 var(--main-red);
+        }
 
-    .header-back:active {
-      background: var(--main-yellow);
-      color: #000;
-      text-shadow: none;
-    }
+        .header-back:active {
+            background: var(--main-yellow);
+            color: #000;
+            text-shadow: none;
+        }
 
-    #modal-title {
-      margin: 0;
-      padding: 0;
-      color: var(--main-yellow);
-      font-size: 1.5rem;
-      line-height: 1.2;
-    }
+        #modal-title {
+            margin: 0;
+            padding: 0;
+            color: var(--main-yellow);
+            font-size: 1.5rem;
+            line-height: 1.2;
+        }
 
-    #modal-scroll-area {
-      flex-grow: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      margin-top: 10px;
-      min-height: 0;
-      padding-bottom: 10px;
-    }
+        #modal-scroll-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 10px;
+            min-height: 0;
+            padding-bottom: 10px;
+        }
 
-    .category-title,
-    .sub-menu-item,
-    .menu-list-item {
-      text-align: left;
-    }
+        #modal.chat-mode #modal-scroll-area {
+            overflow: hidden;
+            padding: 0;
+            display: flex;
+            margin-top: 10px;
+        }
 
-    .category-title {
-      color: var(--main-blue);
-      margin: 15px 0 5px;
-      border-bottom: 1px dashed var(--gray);
-      font-size: 0.9rem;
-    }
+        #modal.chat-mode #modal-content {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+        }
 
-    .sub-menu-item {
-      padding: 15px 5px;
-      border-bottom: 1px dotted #333;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 1rem;
-      user-select: none;
-    }
+        .category-title,
+        .sub-menu-item,
+        .menu-list-item {
+            text-align: left;
+        }
 
-    .sub-menu-item:active {
-      background-color: #222;
-    }
+        .category-title {
+            color: var(--main-blue);
+            margin: 15px 0 5px;
+            border-bottom: 1px dashed var(--gray);
+            font-size: 0.9rem;
+        }
 
-    .menu-list-container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 10px;
-    }
+        .sub-menu-item {
+            padding: 15px 5px;
+            border-bottom: 1px dotted #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1rem;
+            user-select: none;
+        }
 
-    .menu-list-item {
-      display: flex;
-      align-items: center;
-      border: 1px solid var(--gray);
-      background: #111;
-      padding: 5px;
-      position: relative;
-    }
+        .sub-menu-item:active {
+            background-color: #222;
+        }
 
-    .menu-img-container {
-      width: 120px;
-      height: 120px;
-      background-color: #000;
-      border: 1px dashed var(--gray);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-shrink: 0;
-      margin-right: 15px;
-      overflow: hidden;
-    }
+        .menu-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
 
-    .menu-img-container img {
-      width: auto;
-      height: auto;
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
+        .menu-list-item {
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--gray);
+            background: #111;
+            padding: 5px;
+            position: relative;
+        }
 
-    .menu-text-container {
-      flex-grow: 1;
-    }
+        .menu-img-container {
+            width: 120px;
+            height: 120px;
+            background-color: #000;
+            border: 1px dashed var(--gray);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            margin-right: 15px;
+            overflow: hidden;
+        }
 
-    .menu-name {
-      font-size: 1rem;
-      display: block;
-      margin-bottom: 10px;
-      line-height: 1.4;
-    }
+        .menu-img-container img {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
 
-    .price {
-      color: var(--main-yellow);
-      font-size: 1.1rem;
-    }
+        .menu-text-container {
+            flex-grow: 1;
+        }
 
-    /* ✅ [ CLOSE ]：レトロフォント */
-    .close-btn {
-      margin-top: auto;
-      text-align: center;
-      border: 2px solid var(--main-red);
-      padding: 15px;
-      background: var(--main-red);
-      color: white;
-      cursor: pointer;
-      flex-shrink: 0;
-      user-select: none;
-      font-family: var(--font-press);
-      font-size: 0.9rem;
-      letter-spacing: 1px;
-      text-shadow:
-        1px 0 0 #000,
-        -1px 0 0 #000,
-        0 1px 0 #000,
-        0 -1px 0 #000;
-    }
+        .menu-name {
+            font-size: 1rem;
+            display: block;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
 
-    .close-btn:active {
-      background: #fff;
-      color: var(--main-red);
-      text-shadow: none;
-    }
+        .price {
+            color: var(--main-yellow);
+            font-size: 1.1rem;
+        }
 
-    .staff-container {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 30px;
-      text-align: center;
-      align-items: flex-end;
-      gap: 20px;
-    }
+        .sold-out-label {
+            font-family: var(--font-press);
+            color: var(--main-red);
+            font-size: 0.8rem;
+            border: 2px solid var(--main-red);
+            padding: 2px 4px;
+            background: #000;
+            transform: rotate(-5deg);
+            display: inline-block;
+            letter-spacing: -1px;
+            white-space: nowrap;
+        }
 
-    .staff-card {
-      cursor: default;
-      transition: transform 0.1s;
-      user-select: none;
-    }
+        .close-btn {
+            margin-top: auto;
+            text-align: center;
+            border: 2px solid var(--main-red);
+            padding: 15px;
+            background: var(--main-red);
+            color: white;
+            cursor: pointer;
+            flex-shrink: 0;
+            user-select: none;
+            font-family: var(--font-press);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-shadow:
+                1px 0 0 #000,
+                -1px 0 0 #000,
+                0 1px 0 #000,
+                0 -1px 0 #000;
+        }
 
-    .staff-card:active {
-      transform: scale(0.95);
-    }
+        .close-btn:active {
+            background: #fff;
+            color: var(--main-red);
+            text-shadow: none;
+        }
 
-    .staff-card img {
-      width: 90px;
-      height: auto;
-      image-rendering: pixelated;
-      border: 2px solid var(--text-white);
-    }
+        .staff-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            text-align: center;
+            align-items: flex-end;
+            gap: 20px;
+        }
 
-    .sold-out-label {
-      font-family: var(--font-press);
-      color: var(--main-red);
-      font-size: 0.8rem;
-      border: 2px solid var(--main-red);
-      padding: 2px 4px;
-      background: #000;
-      transform: rotate(-5deg);
-      display: inline-block;
-      letter-spacing: -1px;
-      white-space: nowrap;
-    }
+        .staff-card {
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+        }
 
-    #loading-overlay {
-      display: none;
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 300;
-      color: var(--main-yellow);
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      font-family: var(--font-press);
-    }
+        .staff-card:active {
+            transform: scale(0.95);
+        }
 
-    .insta-center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 30px 10px;
-      gap: 16px;
-    }
+        .staff-card img {
+            width: 90px;
+            height: auto;
+            image-rendering: pixelated;
+            border: 2px solid var(--text-white);
+        }
 
-    .insta-center img {
-      width: 110px;
-      height: 110px;
-      image-rendering: pixelated;
-      cursor: pointer;
-      border: 2px solid var(--main-yellow);
-      background: #000;
-    }
+        .staff-card.tentyo img {
+            border-color: var(--main-yellow);
+        }
 
-    .insta-center img:active {
-      background: var(--main-yellow);
-    }
+        #loading-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 300;
+            color: var(--main-yellow);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            font-family: var(--font-press);
+            text-align: center;
+            padding: 20px;
+        }
 
-    .insta-center .hint {
-      font-size: 0.9rem;
-      color: var(--main-yellow);
-      border-bottom: 1px solid var(--main-yellow);
-      padding-bottom: 2px;
-      user-select: none;
-    }
+        .retry-btn {
+            margin-top: 20px;
+            border: 2px solid var(--main-red);
+            padding: 10px 20px;
+            color: var(--main-red);
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
 
-    @media (max-width: 400px) {
-      .header-back {
-        font-size: 0.8rem;
-        padding: 7px 9px;
-      }
+        .insta-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 10px;
+            gap: 16px;
+        }
 
-      #modal-title {
-        font-size: 1.25rem;
-      }
+        .insta-center img {
+            width: 110px;
+            height: 110px;
+            image-rendering: pixelated;
+            cursor: pointer;
+            border: 2px solid var(--main-yellow);
+            background: #000;
+        }
 
-      .staff-card img {
-        width: 80px;
-      }
+        .insta-center img:active {
+            background: var(--main-yellow);
+        }
 
-      .close-btn {
-        font-size: 0.8rem;
-      }
-    }
-  </style>
+        .insta-center .hint {
+            font-size: 0.9rem;
+            color: var(--main-yellow);
+            border-bottom: 1px solid var(--main-yellow);
+            padding-bottom: 2px;
+            user-select: none;
+        }
+
+        /* =========================
+       Q&A (chat)
+       ========================= */
+        #qa-split-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        #qa-tentyo-fixed {
+            width: 100px;
+            background: #111;
+            border-right: 2px solid var(--main-blue);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            padding: 5px;
+        }
+
+        #tentyo-img {
+            width: 100%;
+            height: auto;
+            border: 3px solid var(--main-yellow);
+            background: #000;
+            image-rendering: pixelated;
+        }
+
+        #qa-log-scroll {
+            flex-grow: 1;
+            min-width: 0;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #000;
+            -webkit-overflow-scrolling: touch;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .qa-bubble-ai {
+            position: relative;
+            background: #000;
+            border: 3px solid var(--main-yellow);
+            padding: 15px;
+            color: var(--text-white);
+            border-radius: 10px;
+            text-align: left;
+            margin-right: 5px;
+            line-height: 1.4;
+            max-width: 90%;
+            word-break: break-word;
+            line-break: anywhere;
+
+            display: inline-block;
+            width: fit-content;
+            max-width: calc(100% - 24px);
+            height: auto !important;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-all;
+        }
+
+        .qa-bubble-ai::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: -16px;
+            border-style: solid;
+            border-width: 10px 18px 10px 0;
+            border-color: transparent var(--main-yellow) transparent transparent;
+        }
+
+        .qa-bubble-user {
+            background: #111;
+            border: 2px solid var(--main-blue);
+            padding: 10px 15px;
+            color: #0f0;
+            border-radius: 15px 15px 0 15px;
+            text-align: right;
+            align-self: flex-end;
+            max-width: 90%;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            white-space: pre-wrap;
+            line-break: anywhere;
+        }
+
+        #chat-input-area-fixed {
+            display: none;
+            gap: 6px;
+            padding: 10px;
+            background: #000;
+            border-top: 3px solid var(--main-blue);
+            position: sticky;
+            bottom: 0;
+            flex-shrink: 0;
+            width: 100%;
+        }
+
+        #chat-input {
+            flex-grow: 1;
+            background: #222;
+            border: 2px solid var(--main-blue);
+            color: white;
+            padding: 10px;
+            font-family: var(--font-pixel);
+            font-size: 1rem;
+            min-width: 0;
+        }
+
+        #chat-send-btn {
+            background: var(--main-blue);
+            color: white;
+            border: none;
+            padding: 0 15px;
+            cursor: pointer;
+            font-family: var(--font-pixel);
+            font-size: 1rem;
+            border: 2px solid #fff;
+            flex-shrink: 0;
+        }
+
+        #chat-send-btn:active {
+            background: #fff;
+            color: var(--main-blue);
+        }
+
+        .typing-cursor::after {
+            content: '▋';
+            color: var(--main-yellow);
+            animation: blink 1s infinite;
+        }
+
+        @media (max-width: 400px) {
+            .header-back {
+                font-size: 0.8rem;
+                padding: 7px 9px;
+            }
+
+            #modal-title {
+                font-size: 1.25rem;
+            }
+
+            .staff-card img {
+                width: 80px;
+            }
+
+            .close-btn {
+                font-size: 0.8rem;
+            }
+
+            #qa-tentyo-fixed {
+                width: 85px;
+                padding: 2px;
+            }
+
+            .qa-bubble-ai,
+            .qa-bubble-user {
+                font-size: 0.9rem;
+                padding: 10px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-  <div id="game-screen">
-    <div id="loading-overlay">
-      <div style="margin-bottom:20px;">NOW LOADING...</div>
-      <div style="font-size:0.7rem; color:#888;">ACCESSING DATABASE</div>
+    <div id="game-screen">
+        <div id="loading-overlay">
+            <div id="loading-text" style="margin-bottom:20px;">NOW LOADING...</div>
+            <div id="loading-sub" style="font-size:0.7rem; color:#888;">ACCESSING DATABASE</div>
+            <div id="loading-retry" class="retry-btn" style="display:none;" onclick="location.reload()">RELOAD SYSTEM
+            </div>
+        </div>
+
+        <div id="start-overlay" onclick="triggerStartSequence()">
+            <h1>BIA HOI<br>KATAKOTO</h1>
+            <div class="press-start" id="start-text">PUSH START BUTTON</div>
+            <p style="margin-top: 20px; font-size: 0.7rem; color: #888;">
+                2015 BIA HOI KATAKOTO<br>
+
+            </p>
+        </div>
+
+        <h1>BIA HOI カタコト</h1>
+        <p class="subtitle" id="subtitle">タヌキコウジ９チョウメ</p>
+
+        <ul class="menu-list">
+            <li class="menu-item" onclick="showContent('menu')">MENU</li>
+            <li class="menu-item" onclick="showContent('sns')">SNS</li>
+            <li class="menu-item" onclick="showContent('staff')">STAFF</li>
+            <li class="menu-item" onclick="toggleLanguage()" id="lang-btn" style="color: var(--main-blue);">ENGLISH</li>
+        </ul>
+
+        <div class="info-panel" id="info-panel">
+            OPEN 18:00 -- 01:00<br>
+            <span style="color: var(--main-red);" id="holiday-info">不定休</span>
+        </div>
+
+        <div id="modal">
+            <div class="modal-header">
+                <span class="header-back" id="modal-back-btn" onclick="closeModal()">←戻</span>
+                <h3 id="modal-title">TITLE</h3>
+            </div>
+
+            <div id="modal-scroll-area">
+                <div id="modal-content"></div>
+            </div>
+
+            <div id="chat-input-area-fixed">
+                <input type="text" id="chat-input" placeholder="テンチョウ ニ シツモン...">
+                <button id="chat-send-btn" onclick="sendChat()">ソウシン</button>
+            </div>
+
+            <div class="close-btn" id="normal-close-btn" onclick="closeModal()">[ CLOSE ]</div>
+        </div>
     </div>
 
-    <div id="start-overlay" onclick="triggerStartSequence()">
-      <h1>BIA HOI<br>KATAKOTO</h1>
-      <div class="press-start" id="start-text">PUSH START BUTTON</div>
-      <p style="margin-top: 20px; font-size: 0.7rem; color: #888;">
-        TAP SCREEN TO START<br>
-        <span style="font-size:0.5rem; color:#333;">(KONAMI CODE TO RELOAD)</span>
-      </p>
-    </div>
+    <script>
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWc-0i9QZe3AR5D7Je_tw-BSeKYzC6sP6rPNPKAQWqwTX2ji9emDba3WJliTBlscL_/exec';
 
-    <h1>BIA HOI カタコト</h1>
-    <p class="subtitle" id="subtitle">タヌキコウジ９チョウメ</p>
+        // メニュー取得用（doGet）
+        const MENU_TOKEN = 'Katakoto09_itsuki_cockoo';
 
-    <ul class="menu-list">
-      <li class="menu-item" onclick="showContent('menu')">MENU</li>
-      <li class="menu-item" onclick="showContent('sns')">SNS</li>
-      <li class="menu-item" onclick="showContent('staff')">STAFF</li>
-      <li class="menu-item" onclick="toggleLanguage()" id="lang-btn" style="color: var(--main-blue);">ENGLISH</li>
-    </ul>
+        // Q&A用（doPost）
+        const CHAT_TOKEN = 'Katakoto_Chat_Azarashi';
 
-    <div class="info-panel" id="info-panel">
-      OPEN 18:00 -- 01:00<br>
-      <span style="color: var(--main-red);" id="holiday-info">不定休</span>
-    </div>
+        function getClientId() {
+            const KEY = 'katakoto_client_id';
+            try {
+                const existing = localStorage.getItem(KEY);
+                if (existing && existing.length >= 8) return existing;
 
-    <div id="modal">
-      <div class="modal-header">
-        <span class="header-back" id="modal-back-btn" onclick="closeModal()">←戻</span>
-        <h3 id="modal-title">TITLE</h3>
-      </div>
+                const id = (crypto?.randomUUID)
+                    ? crypto.randomUUID()
+                    : ('cid_' + Math.random().toString(36).slice(2) + Date.now().toString(36));
 
-      <div id="modal-scroll-area">
-        <div id="modal-content"></div>
-      </div>
-
-      <div class="close-btn" id="normal-close-btn" onclick="closeModal()">[ CLOSE ]</div>
-    </div>
-  </div>
-
-  <script>
-    // ★★★ ここだけ自分の値にする ★★★
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxYEu_3IakgG7hp9X5tgRqYKZZsfrlwhDVivVPwtzoEbJvnbpiIDS7EBe-LlO3J2zgL/exec';
-    const MENU_TOKEN = 'Katakoto09_itsuki_cockoo';
-
-    let audioCtx;
-    let currentLang = 'ja';
-    let isGameStarted = false;
-    let menuData = {};
-
-    function escapeHtml(value) {
-      const str = String(value ?? '');
-      return str.replace(/[&<>"'`]/g, (m) => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-        '`': '&#x60;'
-      }[m]));
-    }
-
-    function safeUrl(url) {
-      const s = String(url ?? '').trim();
-      if (!s) return '';
-      try {
-        const u = new URL(s, location.href);
-        if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
-        return '';
-      } catch {
-        return '';
-      }
-    }
-
-    function openExternalLink(url) {
-      const w = window.open(url, '_blank', 'noopener,noreferrer');
-      if (w) w.opener = null;
-    }
-
-    async function fetchMenuData() {
-      const loading = document.getElementById('loading-overlay');
-      loading.style.display = 'flex';
-
-      try {
-        const url = `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(MENU_TOKEN)}&_=${Date.now()}`;
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const data = await response.json();
-        if (data?.ok === false && data?.error) throw new Error(data.error);
-
-        menuData = data || {};
-        console.log("Menu Loaded", menuData);
-      } catch (e) {
-        console.error("Load Failed", e);
-        alert("通信エラー：メニューを読み込めませんでした。\n" + String(e.message || e));
-      } finally {
-        loading.style.display = 'none';
-      }
-    }
-
-    window.addEventListener('load', () => {
-      updateUIText();
-      fetchMenuData();
-    });
-
-    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
-    let keySequence = [];
-    document.addEventListener('keydown', (e) => {
-      keySequence.push(e.key);
-      if (keySequence.length > konamiCode.length) keySequence.shift();
-      if (keySequence.toString() === konamiCode.toString()) {
-        keySequence = [];
-        playStartSound();
-        alert("SYSTEM RELOAD...");
-        fetchMenuData();
-      }
-    });
-
-    function triggerStartSequence() {
-      if (isGameStarted) return;
-      isGameStarted = true;
-
-      const overlay = document.getElementById('start-overlay');
-      document.getElementById('start-text').classList.add('active');
-
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      playStartJingle();
-      setTimeout(() => { overlay.style.display = 'none'; }, 800);
-    }
-
-    function playStartSound() {
-      if (!audioCtx) return;
-      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.type = 'square';
-      o.frequency.setValueAtTime(440, audioCtx.currentTime);
-      o.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-      g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-      g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start(); o.stop(audioCtx.currentTime + 0.3);
-    }
-
-    function playStartJingle() {
-      if (!audioCtx) return;
-      const t = audioCtx.currentTime;
-      const n = [{ f: 659.25, t: 0, d: 0.1 }, { f: 783.99, t: 0.1, d: 0.1 }, { f: 880, t: 0.2, d: 0.4 }];
-      n.forEach(e => {
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.type = 'square'; o.frequency.setValueAtTime(e.f, t + e.t);
-        g.gain.setValueAtTime(0.15, t + e.t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + e.t + e.d);
-        o.connect(g); g.connect(audioCtx.destination);
-        o.start(t + e.t); o.stop(t + e.t + e.d);
-      });
-    }
-
-    function playClick() {
-      if (!audioCtx) return;
-      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.type = 'square';
-      o.frequency.setValueAtTime(440, audioCtx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start(); o.stop(audioCtx.currentTime + 0.15);
-    }
-
-    function playHover() {
-      if (!audioCtx || window.matchMedia('(hover: none)').matches) return;
-      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.type = 'square';
-      o.frequency.setValueAtTime(880, audioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start(); o.stop(audioCtx.currentTime + 0.05);
-    }
-
-    document.querySelectorAll('.menu-item').forEach(item => {
-      item.addEventListener('mouseenter', playHover);
-    });
-
-    function toggleLanguage() {
-      playClick();
-      currentLang = currentLang === 'ja' ? 'en' : 'ja';
-      updateUIText();
-    }
-
-    function updateUIText() {
-      const subtitle = document.getElementById('subtitle');
-      const holiday = document.getElementById('holiday-info');
-      const langBtn = document.getElementById('lang-btn');
-
-      if (subtitle) subtitle.innerText = currentLang === 'ja' ? 'タヌキコウジ９チョウメ' : 'TANUKIKOJI 9-CHOME';
-      if (holiday) holiday.innerText = currentLang === 'ja' ? '不定休' : 'Irregular Holidays';
-      if (langBtn) langBtn.innerText = currentLang === 'ja' ? 'ENGLISH' : '日本語';
-    }
-
-    /* ✅ モーダル上下：さらに広げる（指示どおり）
-       - 上：メインタイトル「BIA HOI カタコト」の“ギリギリ下”
-       - 下：不定休が隠れるくらい（前より少し深く）
-    */
-    function applyModalTopBottom() {
-      const game = document.getElementById('game-screen');
-      const modal = document.getElementById('modal');
-      const info = document.getElementById('info-panel');
-
-      // メインのh1（start-overlay内ではない方）
-      const mainTitle = document.querySelector('#game-screen > h1');
-
-      if (!game || !modal || !info || !mainTitle) return;
-
-      const gameRect = game.getBoundingClientRect();
-      const titleRect = mainTitle.getBoundingClientRect();
-      const infoRect = info.getBoundingClientRect();
-
-      // 上：タイトルの直下ギリギリ（+2pxだけ余白）
-      let topPx = Math.max(0, Math.round(titleRect.bottom - gameRect.top + 2));
-
-      // 下：不定休が隠れるくらい（info-panelの“下端”を少し越える＝bottomを小さく）
-      // gameRect.bottom - infoRect.bottom は「infoの下端」までの余白
-      // そこからさらに -12px して “少し深く” モーダルを下へ
-      let bottomPx = Math.max(0, Math.round((gameRect.bottom - infoRect.bottom) - 12));
-
-      // 変な値になった時の保険
-      topPx = Math.min(topPx, Math.round(gameRect.height * 0.65));
-      bottomPx = Math.min(bottomPx, Math.round(gameRect.height * 0.65));
-
-      modal.style.top = topPx + 'px';
-      modal.style.bottom = bottomPx + 'px';
-    }
-
-    const modal = document.getElementById('modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalContent = document.getElementById('modal-content');
-    const modalBackBtn = document.getElementById('modal-back-btn');
-
-    function createMenuHtml(item, hasImg = false) {
-      const name = escapeHtml((currentLang === 'ja') ? item.ja : item.en);
-      const price = escapeHtml(item.price);
-      const soldOutClass = item.soldOut ? 'item-sold-out' : '';
-
-      let priceHtml = item.soldOut
-        ? `<span class="sold-out-label">SOLD OUT</span>`
-        : (item.price ? `<span class="price">${price}</span>` : '');
-
-      if (hasImg) {
-        const img = safeUrl(item.img);
-        const imgTag = img
-          ? `<img src="${img}" alt="${name}">`
-          : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
-        return `<div class="menu-list-item ${soldOutClass}">
-        <div class="menu-img-container">${imgTag}</div>
-        <div class="menu-text-container"><span class="menu-name">${name}</span>${priceHtml}</div>
-      </div>`;
-      } else {
-        return `<div class="sub-menu-item ${soldOutClass}" style="position:relative;">${name}${priceHtml}</div>`;
-      }
-    }
-
-    function showContent(type) {
-      playClick();
-
-      applyModalTopBottom();
-      modal.style.display = 'flex';
-
-      const scrollArea = document.getElementById('modal-scroll-area');
-      if (scrollArea) scrollArea.scrollTop = 0;
-
-      const txt = {
-        ja: {
-          menu: 'MENU', vietnamese: 'ベトナムリョウリ', drinks: 'ドリンク',
-          zensai: 'ゼンサイ', ippin: 'イッピンリョウリ', main: 'メイン',
-          beer: 'ビール（樽生）', alcohol: 'アルコール', soft: 'ソフトドリンク',
-          cat_400: '各種 400エン', cat_other: 'その他', cat_rec: 'おすすめ',
-          staff: 'STAFF'
-        },
-        en: {
-          menu: 'MENU', vietnamese: 'VIETNAMESE FOOD', drinks: 'DRINKS',
-          zensai: 'APPETIZERS', ippin: 'A LA CARTE', main: 'MAIN DISH',
-          beer: 'DRAFT BEER', alcohol: 'ALCOHOL', soft: 'SOFT DRINKS',
-          cat_400: '¥400 EACH', cat_other: 'OTHERS', cat_rec: 'RECOMMENDED',
-          staff: 'STAFF'
+                localStorage.setItem(KEY, id);
+                return id;
+            } catch {
+                // localStorage無効環境のフォールバック
+                return 'cid_' + Math.random().toString(36).slice(2);
+            }
         }
-      };
-      const t = (currentLang === 'ja') ? txt.ja : txt.en;
 
-      let title = '', content = '';
-      let backTarget = '';
+        let audioCtx;
+        let currentLang = 'ja';
+        let isGameStarted = false;
+        let menuData = {};
 
-      if (type === 'menu') {
-        title = t.menu;
-        content =
-          `<div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>`;
-      }
-      else if (type === 'sns') {
-        title = 'SNS';
-        content =
-          `<div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;">
-          <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links')">
-            <img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook">
-          </div>
-          <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.instagram.com/2_9_katakoto_biahoi/')">
-            <img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram">
-          </div>
+        const IMG_STAFF_ICON = 'tentyo.png';
+        const IMG_QA_STATIC = 'taiki.png';
+        const IMG_QA_TALK = 'tentyo.gif';
+
+        function escapeHtml(value) {
+            const str = String(value ?? '');
+            return str.replace(/[&<>"'`]/g, (m) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '`': '&#x60;'
+            }[m]));
+        }
+
+        function safeUrl(url) {
+            const s = String(url ?? '').trim();
+            if (!s) return '';
+            try {
+                const u = new URL(s, location.href);
+                if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+                return '';
+            } catch { return ''; }
+        }
+
+        function openExternalLink(url) {
+            const w = window.open(url, '_blank', 'noopener,noreferrer');
+            if (w) w.opener = null;
+        }
+
+        // --- 【追加機能 1】タイムアウト付きFetch関数 ---
+        // 通信が指定時間（デフォルト8秒）以上かかったら強制終了させる
+        async function fetchWithTimeout(resource, options = {}) {
+            const { timeout = 8000, ...fetchOptions } = options;
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(resource, {
+                    ...fetchOptions,
+                    signal: controller.signal
+                });
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                throw error;
+            }
+        }
+
+        // --- 【修正】メニューデータ取得処理 ---
+        async function fetchMenuData() {
+            const loading = document.getElementById('loading-overlay');
+            const loadText = document.getElementById('loading-text');
+            const loadSub = document.getElementById('loading-sub');
+            const retryBtn = document.getElementById('loading-retry');
+
+            loading.style.display = 'flex';
+            retryBtn.style.display = 'none';
+            loadText.innerText = "NOW LOADING...";
+
+            try {
+                const url = `${GOOGLE_SCRIPT_URL}?token=${encodeURIComponent(MENU_TOKEN)}&_=${Date.now()}`;
+                // タイムアウト付きで呼び出し
+                const response = await fetchWithTimeout(url, { cache: 'no-store', timeout: 10000 });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                if (data?.ok === false && data?.error) throw new Error(data.error);
+
+                menuData = data || {};
+                console.log("Menu Loaded", menuData);
+
+                // 成功したら非表示
+                loading.style.display = 'none';
+
+            } catch (e) {
+                console.error("Load Failed", e);
+                // エラー時のUI更新（無限ロード防止）
+                loadText.innerText = "CONNECTION FAILED";
+                loadSub.innerText = "PLEASE CHECK NETWORK";
+                retryBtn.style.display = 'block'; // リロードボタンを表示
+            }
+        }
+
+        window.addEventListener('load', () => {
+            updateUIText();
+            fetchMenuData();
+        });
+
+        // --- 【追加機能 2】リサイズ監視イベント ---
+        // 画面回転やキーボード表示時のレイアウト崩れを自動修正
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            // 100msの遅延を入れて処理負荷を軽減
+            resizeTimer = setTimeout(() => {
+                const modal = document.getElementById('modal');
+                if (modal && modal.style.display === 'flex') {
+                    const isChat = modal.classList.contains('chat-mode');
+                    applyModalTopBottom(isChat);
+
+                    // チャットモードならスクロール位置も修正
+                    if (isChat) {
+                        const scrollArea = document.getElementById('qa-log-scroll');
+                        if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
+                    }
+                }
+            }, 100);
+        });
+
+        const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        let keySequence = [];
+        document.addEventListener('keydown', (e) => {
+            keySequence.push(e.key);
+            if (keySequence.length > konamiCode.length) keySequence.shift();
+            if (keySequence.toString() === konamiCode.toString()) {
+                keySequence = [];
+                playStartSound();
+                alert("SYSTEM RELOAD...");
+                location.reload(); // コナミコマンドでも完全リロード推奨
+            }
+        });
+
+        function triggerStartSequence() {
+            if (isGameStarted) return;
+            isGameStarted = true;
+
+            const overlay = document.getElementById('start-overlay');
+            document.getElementById('start-text').classList.add('active');
+
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            playStartJingle();
+            setTimeout(() => { overlay.style.display = 'none'; }, 800);
+        }
+
+        function playStartSound() {
+            if (!audioCtx) return;
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = 'square';
+            o.frequency.setValueAtTime(440, audioCtx.currentTime);
+            o.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+            g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function playStartJingle() {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            const n = [{ f: 659.25, t: 0, d: 0.1 }, { f: 783.99, t: 0.1, d: 0.1 }, { f: 880, t: 0.2, d: 0.4 }];
+            n.forEach(e => {
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                o.type = 'square'; o.frequency.setValueAtTime(e.f, t + e.t);
+                g.gain.setValueAtTime(0.15, t + e.t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + e.t + e.d);
+                o.connect(g); g.connect(audioCtx.destination);
+                o.start(t + e.t); o.stop(t + e.t + e.d);
+            });
+        }
+
+        function playClick() {
+            if (!audioCtx) return;
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = 'square';
+            o.frequency.setValueAtTime(440, audioCtx.currentTime);
+            o.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playHover() {
+            if (!audioCtx || window.matchMedia('(hover: none)').matches) return;
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = 'square';
+            o.frequency.setValueAtTime(880, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playTypingSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.03);
+        }
+
+        document.querySelectorAll('.menu-item').forEach(item => item.addEventListener('mouseenter', playHover));
+
+        function toggleLanguage() {
+            playClick();
+            currentLang = currentLang === 'ja' ? 'en' : 'ja';
+            updateUIText();
+        }
+
+        function updateUIText() {
+            const subtitle = document.getElementById('subtitle');
+            const holiday = document.getElementById('holiday-info');
+            const langBtn = document.getElementById('lang-btn');
+
+            if (subtitle) subtitle.innerText = currentLang === 'ja' ? 'タヌキコウジ９チョウメ' : 'TANUKIKOJI 9-CHOME';
+            if (holiday) holiday.innerText = currentLang === 'ja' ? '不定休' : 'Irregular Holidays';
+            if (langBtn) langBtn.innerText = currentLang === 'ja' ? 'ENGLISH' : '日本語';
+        }
+
+        function applyModalTopBottom(isChat) {
+            const game = document.getElementById('game-screen');
+            const modal = document.getElementById('modal');
+            const info = document.getElementById('info-panel');
+            const mainTitle = document.querySelector('#game-screen > h1');
+
+            if (!game || !modal) return;
+
+            if (isChat) {
+                modal.style.top = '0px';
+                modal.style.bottom = '0px';
+                return;
+            }
+
+            if (!info || !mainTitle) return;
+
+            const gameRect = game.getBoundingClientRect();
+            const titleRect = mainTitle.getBoundingClientRect();
+            const infoRect = info.getBoundingClientRect();
+
+            let topPx = Math.max(0, Math.round(titleRect.bottom - gameRect.top + 2));
+            let bottomPx = Math.max(0, Math.round((gameRect.bottom - infoRect.bottom) - 12));
+
+            topPx = Math.min(topPx, Math.round(gameRect.height * 0.65));
+            bottomPx = Math.min(bottomPx, Math.round(gameRect.height * 0.65));
+
+            modal.style.top = topPx + 'px';
+            modal.style.bottom = bottomPx + 'px';
+        }
+
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const modalBackBtn = document.getElementById('modal-back-btn');
+        const chatInputArea = document.getElementById('chat-input-area-fixed');
+        const normalCloseBtn = document.getElementById('normal-close-btn');
+
+        function createMenuHtml(item, hasImg = false) {
+            const name = escapeHtml((currentLang === 'ja') ? item.ja : item.en);
+            const price = escapeHtml(item.price);
+            const soldOutClass = item.soldOut ? 'item-sold-out' : '';
+
+            let priceHtml = item.soldOut
+                ? `<span class="sold-out-label">SOLD OUT</span>`
+                : (item.price ? `<span class="price">${price}</span>` : '');
+
+            if (hasImg) {
+                const img = safeUrl(item.img);
+                const alt = name; // name は escapeHtml 済み
+                const imgTag = img
+                    ? `<img src="${img}" alt="${alt}">`
+                    : `<span style="color:#555; font-size:0.7rem;">NO IMAGE</span>`;
+                return `<div class="menu-list-item ${soldOutClass}">
+          <div class="menu-img-container">${imgTag}</div>
+          <div class="menu-text-container"><span class="menu-name">${name}</span>${priceHtml}</div>
         </div>`;
-        backTarget = 'menu';
-      }
-      else if (type === 'staff') {
-        title = t.staff;
+            } else {
+                return `<div class="sub-menu-item ${soldOutClass}" style="position:relative;">${name}${priceHtml}</div>`;
+            }
+        }
 
-        const n = (currentLang === 'ja')
-          ? { erin: 'イーリン', ichi: 'いっちー' }
-          : { erin: 'E-RIN', ichi: 'ITSUKI' };
+        function showContent(type) {
+            playClick();
 
-        content =
-          `<div class="staff-container">
+            const isChat = (type === 'chat');
+            applyModalTopBottom(isChat);
+
+            modal.style.display = 'flex';
+            const scrollArea = document.getElementById('modal-scroll-area');
+            if (scrollArea) scrollArea.scrollTop = 0;
+
+            if (isChat) {
+                modal.classList.add('chat-mode');
+                chatInputArea.style.display = 'flex';
+                normalCloseBtn.style.display = 'none';
+                modalBackBtn.onclick = () => showContent('staff');
+            } else {
+                modal.classList.remove('chat-mode');
+                chatInputArea.style.display = 'none';
+                normalCloseBtn.style.display = 'block';
+            }
+
+            const txt = {
+                ja: {
+                    menu: 'MENU', vietnamese: 'ベトナムリョウリ', drinks: 'ドリンク',
+                    zensai: 'ゼンサイ', ippin: 'イッピンリョウリ', main: 'メイン',
+                    beer: 'ビール（樽生）', alcohol: 'アルコール', soft: 'ソフトドリンク',
+                    cat_400: '各種 400エン', cat_rec: 'おすすめ', staff: 'STAFF'
+                },
+                en: {
+                    menu: 'MENU', vietnamese: 'VIETNAMESE FOOD', drinks: 'DRINKS',
+                    zensai: 'APPETIZERS', ippin: 'A LA CARTE', main: 'MAIN DISH',
+                    beer: 'DRAFT BEER', alcohol: 'ALCOHOL', soft: 'SOFT DRINKS',
+                    cat_400: '¥400 EACH', cat_rec: 'RECOMMENDED', staff: 'STAFF'
+                }
+            };
+            const t = (currentLang === 'ja') ? txt.ja : txt.en;
+
+            let title = '', content = '';
+            let backTarget = '';
+
+            if (type === 'menu') {
+                title = t.menu;
+                content =
+                    `<div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div>
+           <div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>`;
+            } else if (type === 'sns') {
+                title = 'SNS';
+                content =
+                    `<div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;">
+            <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links')">
+              <img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook">
+            </div>
+            <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.instagram.com/2_9_katakoto_biahoi/')">
+              <img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram">
+            </div>
+          </div>`;
+                backTarget = 'menu';
+            } else if (type === 'staff') {
+                title = t.staff;
+                const n = (currentLang === 'ja')
+                    ? { erin: 'イーリン', ichi: 'いっちー', tentyo: '店長', qa: 'Q & A コーナー' }
+                    : { erin: 'E-RIN', ichi: 'ITSUKI', tentyo: 'MANAGER', qa: '& A' };
+
+                content =
+                    `<div class="staff-container">
             <div class="staff-card">
               <img src="erin.png" alt="${escapeHtml(n.erin)}"><br>${escapeHtml(n.erin)}
+            </div>
+            <div class="staff-card tentyo" onclick="showContent('chat')">
+              <img src="${IMG_STAFF_ICON}" alt="${escapeHtml(n.tentyo)}"><br>
+              <span style="color:var(--main-yellow); font-size:1rem; font-weight:bold;">${escapeHtml(n.tentyo)}</span><br>
+              <span style="color:var(--main-yellow); font-size:1rem; font-family:var(--font-pixel); font-weight:900; -webkit-text-stroke: 0.5px var(--main-yellow);">${escapeHtml(n.qa)}</span>
             </div>
             <div class="staff-card">
               <img src="ichi.png" alt="${escapeHtml(n.ichi)}"><br>${escapeHtml(n.ichi)}
             </div>
           </div>`;
-        backTarget = 'menu';
-      }
-      else if (type === 'vietnamese') {
-        title = t.vietnamese;
-        content =
-          `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`;
-        backTarget = 'menu';
-      }
-      else if (type === 'zensai') {
-        title = t.zensai;
-        let h4 = '', hO = '', hR = '<div class="menu-list-container">';
-        if (menuData.zensai400) menuData.zensai400.forEach(i => h4 += createMenuHtml(i));
-        if (menuData.zensaiOther) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i));
-        if (menuData.zensaiRec) menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true));
-        hR += '</div>';
-        content =
-          `<div class="category-title">${t.cat_400}</div>${h4}
-         <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
-         ${hO}
-         <div class="category-title">${t.cat_rec}</div>${hR}`;
-        backTarget = 'vietnamese';
-      }
-      else if (type === 'ippin') {
-        title = t.ippin;
-        let h = '<div class="menu-list-container">';
-        if (menuData.ippin) menuData.ippin.forEach(i => h += createMenuHtml(i, true));
-        h += '</div>';
-        content = h;
-        backTarget = 'vietnamese';
-      }
-      else if (type === 'main') {
-        title = t.main;
-        let h = '<div class="menu-list-container">';
-        if (menuData.main) menuData.main.forEach(i => h += createMenuHtml(i, true));
-        h += '</div>';
-        content = h;
-        backTarget = 'vietnamese';
-      }
-      else if (type === 'drinks') {
-        title = t.drinks;
-        content =
-          `<div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
-         <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>`;
-        backTarget = 'menu';
-      }
-      else if (type === 'beer') {
-        title = t.beer;
+                backTarget = 'menu';
+            } else if (type === 'chat') {
+                title = 'Q & A';
+                content =
+                    `<div id="qa-split-container">
+            <div id="qa-tentyo-fixed">
+              <img src="${IMG_QA_STATIC}" id="tentyo-img" alt="店長">
+              <div style="margin-top:10px; font-size:0.8rem; color:var(--main-yellow);">店長</div>
+            </div>
+            <div id="qa-log-scroll"></div>
+          </div>`;
+            } else if (type === 'vietnamese') {
+                title = t.vietnamese;
+                content =
+                    `<div class="sub-menu-item" onclick="showContent('zensai')">${t.zensai} <span>▶</span></div>
+           <div class="sub-menu-item" onclick="showContent('ippin')">${t.ippin} <span>▶</span></div>
+           <div class="sub-menu-item" onclick="showContent('main')">${t.main} <span>▶</span></div>`;
+                backTarget = 'menu';
+            } else if (type === 'zensai') {
+                title = t.zensai;
+                let h4 = '', hO = '', hR = '<div class="menu-list-container">';
+                if (menuData.zensai400) menuData.zensai400.forEach(i => h4 += createMenuHtml(i));
+                if (menuData.zensaiOther) menuData.zensaiOther.forEach(i => hO += createMenuHtml(i));
+                if (menuData.zensaiRec) menuData.zensaiRec.forEach(i => hR += createMenuHtml(i, true));
+                hR += '</div>';
+                content =
+                    `<div class="category-title">${t.cat_400}</div>${h4}
+           <div class="sub-menu-item" style="border-top:1px dashed #555; border-bottom:none; padding-bottom:0;"></div>
+           ${hO}
+           <div class="category-title">${t.cat_rec}</div>${hR}`;
+                backTarget = 'vietnamese';
+            } else if (type === 'ippin') {
+                title = t.ippin;
+                let h = '<div class="menu-list-container">';
+                if (menuData.ippin) menuData.ippin.forEach(i => h += createMenuHtml(i, true));
+                h += '</div>';
+                content = h;
+                backTarget = 'vietnamese';
+            } else if (type === 'main') {
+                title = t.main;
+                let h = '<div class="menu-list-container">';
+                if (menuData.main) menuData.main.forEach(i => h += createMenuHtml(i, true));
+                h += '</div>';
+                content = h;
+                backTarget = 'vietnamese';
+            } else if (type === 'drinks') {
+                title = t.drinks;
+                content =
+                    `<div class="sub-menu-item" onclick="showContent('beer')">${t.beer} <span>▶</span></div>
+           <div class="sub-menu-item" onclick="showContent('alcohol')">${t.alcohol} <span>▶</span></div>
+           <div class="sub-menu-item" onclick="showContent('softdrinks')">${t.soft} <span>▶</span></div>`;
+                backTarget = 'menu';
+            } else if (type === 'beer') {
+                title = t.beer;
 
-        let h = '';
-        if (menuData.beer) menuData.beer.forEach(i => h += createMenuHtml(i));
+                let h = '';
+                if (menuData.beer) menuData.beer.forEach(i => h += createMenuHtml(i));
 
-        const cb = (menuData.craftBeer && menuData.craftBeer[0])
-          ? menuData.craftBeer[0]
-          : { ja: 'クラフトビール', en: 'Craft Beer', price: '1400', soldOut: false };
+                const cb = (menuData.craftBeer && menuData.craftBeer[0])
+                    ? menuData.craftBeer[0]
+                    : { ja: 'クラフトビール', en: 'Craft Beer', price: '1400', soldOut: false };
 
-        const cbName = escapeHtml((currentLang === 'ja') ? cb.ja : cb.en);
-        const cbPrice = escapeHtml(cb.price || '');
-        const cbRight = cbPrice ? `<span class="price">${cbPrice}</span>` : `<span>▶</span>`;
+                const cbName = escapeHtml((currentLang === 'ja') ? cb.ja : cb.en);
+                const cbPrice = escapeHtml(cb.price || '');
+                const cbRight = cbPrice ? `<span class="price">${cbPrice}</span>` : `<span>▶</span>`;
 
-        const craftRow =
-          `<div class="sub-menu-item" onclick="showContent('craft_beer_link')" style="cursor:pointer;">
-          ${cbName} ${cbRight}
-        </div>`;
+                const craftRow =
+                    `<div class="sub-menu-item" onclick="showContent('craft_beer_link')" style="cursor:pointer;">
+            ${cbName} ${cbRight}
+          </div>`;
 
-        content = `${h}${craftRow}`;
-        backTarget = 'drinks';
-      }
-      else if (type === 'craft_beer_link') {
-        title = 'LINK';
-        const hint = (currentLang === 'ja') ? 'インスタ を みる' : 'OPEN INSTAGRAM';
-        content =
-          `<div class="insta-center">
-          <img src="insta.png" alt="Instagram" onclick="playClick(); openExternalLink('https://www.instagram.com/stories/highlights/18132862126467018/')" />
-          <div class="hint">${hint}</div>
-        </div>`;
-        backTarget = 'beer';
-      }
-      else if (type === 'alcohol') {
-        title = t.alcohol;
-        let h = '';
-        if (menuData.alcohol) menuData.alcohol.forEach(i => h += createMenuHtml(i));
-        content = h;
-        backTarget = 'drinks';
-      }
-      else if (type === 'softdrinks') {
-        title = t.soft;
-        let h = '';
-        if (menuData.soft) menuData.soft.forEach(i => h += createMenuHtml(i));
-        content = h;
-        backTarget = 'drinks';
-      }
+                content = `${h}${craftRow}`;
+                backTarget = 'drinks';
+            } else if (type === 'craft_beer_link') {
+                title = 'LINK';
+                const hint = (currentLang === 'ja') ? 'インスタ を みる' : 'OPEN INSTAGRAM';
+                content =
+                    `<div class="insta-center">
+            <img src="insta.png" alt="Instagram" onclick="playClick(); openExternalLink('https://www.instagram.com/stories/highlights/18132862126467018/')" />
+            <div class="hint">${hint}</div>
+          </div>`;
+                backTarget = 'beer';
+            } else if (type === 'alcohol') {
+                title = t.alcohol;
+                let h = '';
+                if (menuData.alcohol) menuData.alcohol.forEach(i => h += createMenuHtml(i));
+                content = h;
+                backTarget = 'drinks';
+            } else if (type === 'softdrinks') {
+                title = t.soft;
+                let h = '';
+                if (menuData.soft) menuData.soft.forEach(i => h += createMenuHtml(i));
+                content = h;
+                backTarget = 'drinks';
+            }
 
-      modalTitle.innerText = title;
-      modalContent.innerHTML = content;
+            modalTitle.innerText = title;
+            modalContent.innerHTML = content;
 
-      if (backTarget) {
-        modalBackBtn.onclick = () => showContent(backTarget);
-      } else {
-        modalBackBtn.onclick = closeModal;
-      }
+            if (type === 'chat') {
+                // back already -> staff
+            } else if (backTarget) {
+                modalBackBtn.onclick = () => showContent(backTarget);
+            } else {
+                modalBackBtn.onclick = closeModal;
+            }
 
-      setTimeout(applyModalTopBottom, 50);
-    }
+            if (type === 'chat') {
+                setTimeout(() => { addAiMessage("ｲﾗｯｼｬｲﾏｾー　ナニカ ゴヨウケン ハ？"); }, 300);
+                setTimeout(() => { applyModalTopBottom(true); }, 60);
+            } else {
+                setTimeout(() => { applyModalTopBottom(false); }, 60);
+            }
+        }
 
-    function closeModal() {
-      playClick();
-      modal.style.display = 'none';
-    }
-  </script>
+        function closeModal() {
+            playClick();
+            modal.style.display = 'none';
+            modal.classList.remove('chat-mode');
+            chatInputArea.style.display = 'none';
+            normalCloseBtn.style.display = 'block';
+        }
 
+        function setTentyoAnimating(isAnimating) {
+            const img = document.getElementById('tentyo-img');
+            if (img) img.src = isAnimating ? IMG_QA_TALK : IMG_QA_STATIC;
+        }
+
+        async function typeWriter(element, text) {
+            element.textContent = '';
+            element.classList.add('typing-cursor');
+            setTentyoAnimating(true);
+
+            const s = String(text ?? '');
+            for (let i = 0; i < s.length; i++) {
+                element.textContent += s.charAt(i);
+                playTypingSound();
+                const scrollArea = document.getElementById('qa-log-scroll');
+                if (scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
+                await new Promise(resolve => setTimeout(resolve, 35));
+            }
+
+            element.classList.remove('typing-cursor');
+            setTentyoAnimating(false);
+        }
+
+        async function addAiMessage(text) {
+            const logArea = document.getElementById('qa-log-scroll');
+            if (!logArea) return null;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'qa-bubble-ai';
+            logArea.appendChild(msgDiv);
+            await typeWriter(msgDiv, text);
+            return msgDiv;
+        }
+
+        function addUserMessage(text) {
+            const logArea = document.getElementById('qa-log-scroll');
+            if (!logArea) return;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'qa-bubble-user';
+            msgDiv.innerText = String(text ?? '');
+            logArea.appendChild(msgDiv);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        // --- 【修正】チャット送信処理 ---
+        async function sendChat() {
+            const input = document.getElementById('chat-input');
+            const msg = (input?.value || '').trim();
+            if (!msg) return;
+
+            playClick();
+            input.value = '';
+            addUserMessage(msg);
+
+            const logArea = document.getElementById('qa-log-scroll');
+            let pending = null;
+            if (logArea) {
+                pending = document.createElement('div');
+                pending.className = 'qa-bubble-ai';
+                pending.innerText = '・・・';
+                logArea.appendChild(pending);
+                logArea.scrollTop = logArea.scrollHeight;
+            }
+
+            try {
+                // タイムアウト付きFetchを使用（8秒）
+                const payload = {
+                    token: CHAT_TOKEN,
+                    clientId: getClientId(),
+                    message: msg
+                };
+
+                const response = await fetchWithTimeout(
+                    GOOGLE_SCRIPT_URL,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(payload),
+                        cache: 'no-store',
+                        timeout: 25000
+                    }
+                );
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const reply = String(data?.reply ?? "…");
+
+                if (pending) {
+                    pending.innerText = '';
+                    await typeWriter(pending, reply);
+                } else {
+                    await addAiMessage(reply);
+                }
+            } catch (e) {
+                console.error(e);
+                const errTxt = "エラー... ツウシン... デキナイ...";
+                if (pending) {
+                    pending.innerText = '';
+                    await typeWriter(pending, errTxt);
+                } else {
+                    await addAiMessage(errTxt);
+                }
+            }
+        }
+
+        document.getElementById('chat-input').addEventListener('keydown', (e) => {
+            // IMEでの漢字変換中（isComposing）の場合は処理を中断し、送信させない
+            if (e.isComposing || e.keyCode === 229) {
+                return;
+            }
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendChat();
+            }
+        });
+    </script>
 </body>
 
 </html>

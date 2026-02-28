@@ -534,6 +534,21 @@
             white-space: pre-wrap;
             overflow-wrap: anywhere;
             word-break: break-all;
+            align-self: flex-start;
+            flex: 0 0 auto;
+        }
+
+        .qa-bubble-ai.qa-bubble-menu {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+
+            text-align: center;
+            padding: 12px 14px;
+
+            width: fit-content;
+            max-width: 90%;
         }
 
         .qa-bubble-ai::before {
@@ -1182,11 +1197,27 @@
             }
 
             if (type === 'chat') {
-                setTimeout(() => { addAiMessage("ｲﾗｯｼｬｲﾏｾー　ナニカ ゴヨウケン ハ？"); }, 300);
+                setTimeout(() => { addAiMessage(pickRandomAzaGreeting()); }, 300);
                 setTimeout(() => { applyModalTopBottom(true); }, 60);
             } else {
                 setTimeout(() => { applyModalTopBottom(false); }, 60);
             }
+        }
+        function pickRandomAzaGreeting() {
+            const lines = [
+                "ｲﾗｯｼｬｲﾏｾｰ　ゴヨウケン ハ？",
+                "ｲﾗｯｼｬｲﾏｾｰ　キョウ モ アルヨ。",
+                "ｲﾗｯｼｬｲﾏｾｰ　ユックリ シテネ。"
+            ];
+
+            const KEY = "katakoto_aza_greet_last";
+            const last = sessionStorage.getItem(KEY);
+
+            const candidates = lines.filter(t => t !== last);
+            const pick = candidates[Math.floor(Math.random() * candidates.length)];
+
+            sessionStorage.setItem(KEY, pick);
+            return pick;
         }
 
         function closeModal() {
@@ -1240,6 +1271,42 @@
             logArea.scrollTop = logArea.scrollHeight;
         }
 
+        // メニュー質問を検知
+        function isMenuQuestion(text) {
+            const raw = String(text || '');
+            const s = raw.toLowerCase();
+
+            // 日本語
+            if (/メニュー/.test(raw)) return true;
+            if (/フード|食べ物|料理/.test(raw)) return true;
+
+            // 英語
+            if (/\bmenu\b/.test(s)) return true;
+            if (/\bfood\b|\beat\b|\bdishes?\b/.test(s)) return true;
+
+            return false;
+        }
+
+        // チャット内に [MENU] ボタン付きで案内
+        async function addAiMenuLink() {
+            const logArea = document.getElementById('qa-log-scroll');
+            if (!logArea) return;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'qa-bubble-ai qa-bubble-menu';
+            msgDiv.innerHTML = `
+                フード　メニューハ　コチラネ
+                <br>
+                <button
+                    style="font-family: var(--font-press); border:2px solid var(--main-yellow); background:#000; color:var(--main-yellow); padding:8px 10px; cursor:pointer;"
+                    onclick="playClick(); showContent('menu');"
+                >[ MENU ]</button>
+            `;
+
+            logArea.appendChild(msgDiv);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
         // --- 【修正】チャット送信処理 ---
         async function sendChat() {
             const input = document.getElementById('chat-input');
@@ -1249,6 +1316,12 @@
             playClick();
             input.value = '';
             addUserMessage(msg);
+
+            // ★メニュー質問ならローカルで案内して終了
+            if (isMenuQuestion(msg)) {
+                await addAiMenuLink();
+                return;
+            }
 
             const logArea = document.getElementById('qa-log-scroll');
             let pending = null;

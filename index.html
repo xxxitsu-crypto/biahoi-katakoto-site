@@ -10,6 +10,17 @@
     <meta name="keywords"
         content="札幌,狸小路,ベトナム料理,ビアホイ,カタコト,ビール,クラフトビール,タイガービール,ヒューガルデン,Tiger beer,Hoegaarden,craft beer,street food" />
     <meta name="google-site-verification" content="BxZuQcdRBAq3xQ9s_eqrhf_J_GRHboblDeD0bpKfeI8" />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-P7LXEBJ7ZC"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-P7LXEBJ7ZC');
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap"
         rel="stylesheet" />
     <style>
@@ -706,7 +717,7 @@
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWc-0i9QZe3AR5D7Je_tw-BSeKYzC6sP6rPNPKAQWqwTX2ji9emDba3WJliTBlscL_/exec';
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzWgeKtKu3SR5AiPjLidGG5JMtts215AnQEWHbXemIu7gcOj1xgPx9_gySuzpQ1GNJa/exec';
 
         // メニュー取得用（doGet）
         const MENU_TOKEN = 'Katakoto09_itsuki_cockoo';
@@ -1292,11 +1303,14 @@
             }
 
             try {
-                // タイムアウト付きFetchを使用（8秒）
+                const now = new Date();
                 const payload = {
                     token: CHAT_TOKEN,
                     clientId: getClientId(),
-                    message: msg
+                    message: msg,
+                    // クライアントの現在時刻を送信
+                    currentTime: now.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+                    dayOfWeek: ['日', '月', '火', '水', '木', '金', '土'][now.getDay()]
                 };
 
                 const response = await fetchWithTimeout(
@@ -1306,12 +1320,16 @@
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify(payload),
                         cache: 'no-store',
-                        timeout: 25000
+                        timeout: 30000 // タイムアウトを30秒に延長
                     }
                 );
 
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
+
+                // GAS側がエラーを返した場合の処理
+                if (data.ok === false) throw new Error(data.error || 'Unknown Error');
+
                 const reply = String(data?.reply ?? "…");
 
                 if (pending) {
@@ -1321,8 +1339,8 @@
                     await addAiMessage(reply);
                 }
             } catch (e) {
-                console.error(e);
-                const errTxt = "エラー... ツウシン... デキナイ...";
+                console.error("Chat Error:", e);
+                const errTxt = "ツウシン エラー... テンチョウ ネテルカモ。";
                 if (pending) {
                     pending.innerText = '';
                     await typeWriter(pending, errTxt);

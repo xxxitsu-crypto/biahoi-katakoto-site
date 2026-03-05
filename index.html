@@ -768,17 +768,9 @@
             const s = String(url ?? '').trim();
             if (!s) return '';
 
-            // httpで始まらない（ファイル名のみ等の）場合、そのまま返す
-            if (!s.match(/^https?:\/\//i)) {
-                return s;
-            }
-
-            try {
-                const u = new URL(s, location.href);
-                return u.href;
-            } catch {
-                return s;
-            }
+            // http(s)で始まるフルパス、または .png や .jpg などのファイル名を許可
+            // 厳格なURLチェックを外し、文字列があればそのまま返すように修正
+            return s;
         }
 
         function openExternalLink(url) {

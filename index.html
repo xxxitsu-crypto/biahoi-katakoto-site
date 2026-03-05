@@ -767,10 +767,12 @@
         function safeUrl(url) {
             const s = String(url ?? '').trim();
             if (!s) return '';
-            // 相対パス（httpを含まない）も許容する設定
-            if (!s.startsWith('http')) {
+
+            // httpで始まらない（ファイル名のみ等の）場合、そのまま返す
+            if (!s.match(/^https?:\/\//i)) {
                 return s;
             }
+
             try {
                 const u = new URL(s, location.href);
                 return u.href;

@@ -1103,7 +1103,7 @@
                 let scheduleHtml = '';
                 if (menuData.schedule && menuData.schedule.length > 0) {
                     scheduleHtml = '<div style="text-align:left; font-size:0.85rem; color:var(--text-white); border:2px solid var(--main-blue); padding:10px; background:#111;">';
-                    scheduleHtml += '<p style="color:var(--main-yellow); font-size:0.7rem; margin-top:0; text-align:center;">--- 営業日程 ---</p>';
+                    scheduleHtml += '<p style="color:var(--main-yellow); font-size:1.4rem; margin-top:0; text-align:center;">--- 営業日程 ---</p>';
                     menuData.schedule.forEach(item => {
                         const isHoliday = item.info.includes('休');
                         const color = isHoliday ? 'var(--main-red)' : 'var(--text-white)';
@@ -1117,7 +1117,7 @@
 
                 content = `
                     <div style="padding:15px 10px;">
-                        <div style="display:flex; justify-content:center; gap:40px; margin-bottom:40
+                        <div style="display:flex; justify-content:center; gap:40px; margin-bottom:25
                         px;">
                             <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links')">
                                 <img src="fb.png" style="width:75px; height:auto; image-rendering:pixelated;" alt="Facebook">

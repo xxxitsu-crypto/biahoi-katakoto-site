@@ -744,7 +744,7 @@
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaBb3zn_s1H52Xub5wEPwLMfINfpoD7PQLipMMU05ozXzRD0zwKYLsqFecP4NL7ZvL/exec';
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-qVGAi46rw85K_J58Nu76Mcq6kK9mpw33IvCDQcOWAo9yODDDD3BCUseLtWyp9Cds/exec';
 
         // メニュー取得用（doGet）
         const MENU_TOKEN = 'Katakoto09_itsuki_cockoo';
@@ -1097,16 +1097,37 @@
                     `<div class="sub-menu-item" onclick="showContent('vietnamese')">${t.vietnamese} <span>▶</span></div>
            <div class="sub-menu-item" onclick="showContent('drinks')">${t.drinks} <span>▶</span></div>`;
             } else if (type === 'sns') {
-                title = 'SNS';
-                content =
-                    `<div style="display:flex; justify-content:center; gap:40px; margin-top:40px; margin-bottom:40px;">
-            <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links')">
-              <img src="fb.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Facebook">
-            </div>
-            <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.instagram.com/2_9_katakoto_biahoi/')">
-              <img src="insta.png" style="width:80px; height:auto; image-rendering:pixelated;" alt="Instagram">
-            </div>
-          </div>`;
+                title = 'INFO ・ SNS';
+
+                // スプレッドシートの schedule シートから取得したデータをリスト化
+                let scheduleHtml = '';
+                if (menuData.schedule && menuData.schedule.length > 0) {
+                    scheduleHtml = '<div style="text-align:left; font-size:0.85rem; color:var(--text-white); border:2px solid var(--main-blue); padding:10px; background:#111;">';
+                    scheduleHtml += '<p style="color:var(--main-yellow); font-size:0.7rem; margin-top:0; text-align:center;">--- MONTHLY SCHEDULE ---</p>';
+                    menuData.schedule.forEach(item => {
+                        const isHoliday = item.info.includes('休');
+                        const color = isHoliday ? 'var(--main-red)' : 'var(--text-white)';
+                        scheduleHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:4px; border-bottom:1px dotted #333; color:${color};">
+                            <span>${item.date}</span>
+                            <span>${item.info}</span>
+                        </div>`;
+                    });
+                    scheduleHtml += '</div>';
+                }
+
+                content = `
+                    <div style="padding:15px 10px;">
+                        <div style="display:flex; justify-content:center; gap:40px; margin-bottom:25px;">
+                            <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.facebook.com/profile.php?id=100063809370417&sk=directory_links')">
+                                <img src="fb.png" style="width:75px; height:auto; image-rendering:pixelated;" alt="Facebook">
+                            </div>
+                            <div style="cursor:pointer;" onclick="playClick(); openExternalLink('https://www.instagram.com/2_9_katakoto_biahoi/')">
+                                <img src="insta.png" style="width:75px; height:auto; image-rendering:pixelated;" alt="Instagram">
+                            </div>
+                        </div>
+                        ${scheduleHtml}
+                    </div>
+                `;
             } else if (type === 'staff') {
                 title = t.staff;
                 const n = (currentLang === 'ja')

@@ -1103,7 +1103,7 @@
                 let scheduleHtml = '';
                 if (menuData.schedule && menuData.schedule.length > 0) {
                     scheduleHtml = '<div style="text-align:left; font-size:0.85rem; color:var(--text-white); border:2px solid var(--main-blue); padding:10px; background:#111;">';
-                    scheduleHtml += '<p style="color:var(--main-yellow); font-size:0.7rem; margin-top:0; text-align:center;">--- MONTHLY SCHEDULE ---</p>';
+                    scheduleHtml += '<p style="color:var(--main-yellow); font-size:0.7rem; margin-top:0; text-align:center;">--- 営業日程 ---</p>';
                     menuData.schedule.forEach(item => {
                         const isHoliday = item.info.includes('休');
                         const color = isHoliday ? 'var(--main-red)' : 'var(--text-white)';

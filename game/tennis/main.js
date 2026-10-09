@@ -137,6 +137,10 @@ class InputHandler {
     return [...this.pointerDirections.values()].includes('down');
   }
   registerPress(dir, now = performance.now()) {
+    if (dir === 'down' && this.action) {
+      this.shotQueue.push({ type: 'lob' });
+      return;
+    }
     const h = this.history[dir];
     h.push(now);
     if (h.length > 3) h.shift();
@@ -243,6 +247,7 @@ class SealPlayer {
     this.isPreparing = false;
     this.facing = 1;
     this.shotType = 'forehand';
+    this.lobShot = false;
     this.incomingWasSmash = false;
     this.hasHit = false;
     this.cancelVersion = 0;
@@ -378,7 +383,8 @@ class SealPlayer {
         this.isPreparing = true;
       } else {
         if (this.isPreparing && !this.isSwinging) {
-          this.selectShot(ball);
+          this.lobShot = event.type === 'lob';
+          this.selectShot(ball, this.lobShot);
           this.isSwinging = true;
           this.swingTimer = VOLLEY[this.shotType]?.totalTicks ?? SETTINGS.swingTicks;
           this.swingElapsed = 0;
@@ -672,10 +678,12 @@ class Ball {
     // ラケット面の打点が左右へずれるほど角度が付き、横移動も狙いに少し加わる。
     const movementAim = Math.max(-1, Math.min(1, player.vx / SETTINGS.dashImpulse));
     const targetX = Math.max(39, Math.min(217, 128 + contact * 56 + movementAim * 28));
-    const targetY = 60;
+    const targetY = player.lobShot ? 50 : 60;
     // CPUスマッシュへの返球はプレイヤー側の打点タイミングで難度を付ける。
     const counteringSmash = player.incomingWasSmash === true;
-    const profile = counteringSmash
+    const profile = player.lobShot
+      ? { ticks: 78, gravity: 0.095 }
+      : counteringSmash
       ? (counterQuality === 'critical'
           ? { ticks: 30, gravity: 0.160 }
           : counterQuality === 'float'
@@ -687,7 +695,7 @@ class Ball {
     this.bouncesInCurrentCourt = 0;
     this.recordReturn();
     let curve = 0, curveTicks = 0;
-    if (player.isDashing && ['forehand', 'backhand'].includes(player.shotType)) {
+    if (!player.lobShot && player.isDashing && ['forehand', 'backhand'].includes(player.shotType)) {
       // カーブ方向はダッシュ方向ではなく、打つ側（フォア／バック）で決める。
       const dir = player.shotType === 'forehand' ? 1 : -1;
       curve = dir * SETTINGS.curveAcceleration;
@@ -701,7 +709,7 @@ class Ball {
     this.launch(targetX, targetY, profile.ticks, Math.max(profile.gravity, clearanceGravity));
     this.curve = curve;
     this.curveTicks = curveTicks;
-    this.message = counteringSmash && counterQuality === 'critical' ? 'スマッシュをカウンター！' :
+    this.message = player.lobShot ? 'ロブ！' : counteringSmash && counterQuality === 'critical' ? 'スマッシュをカウンター！' :
       counteringSmash && counterQuality === 'float' ? 'スマッシュに押された！' :
       player.shotType === 'smash' ? 'スマッシュ！' :
       this.curveTicks ? 'ダッシュカーブ！' : quality === 'critical' ? 'クリティカル！' :

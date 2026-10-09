@@ -497,6 +497,7 @@ class CpuPlayer {
   this.shotKind='leftShot';this.swingElapsed=0;this.isSwinging=false;this.hasHit=false;
   this.reactionTimer=0;this.dashTimer=0;this.dashCooldown=0;
   this.serveAge=0;this.plan=null;
+  this.fatigueShots=0;this.fatigueTriggered=false;this.observedHits=-1;
  }
  phase() {
   if(!this.isSwinging)return null;
@@ -542,13 +543,15 @@ class CpuPlayer {
   if(ball.cpuServing){this.moving=false;return;}
   const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
   if(incoming&&!this.isSwinging){
-   this.plan=this.predict(ball);
+   if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=6;this.plan=null;}
+   if(this.reactionTimer>0)this.reactionTimer--;
+   else this.plan=this.predict(ball);
    if(this.plan){this.targetX=this.plan.x;this.targetY=this.plan.y;}
-   else {this.targetX=Math.max(24,Math.min(232,ball.x));this.targetY=46;}
-  }else if(!this.isSwinging){this.targetX=128;this.targetY=46;}
+   else {this.targetX=Math.max(24,Math.min(232,ball.x));this.targetY=100;}
+  }else if(!this.isSwinging||this.hasHit){this.targetX=Math.max(36,Math.min(220,ball.x));this.targetY=100;}
   const dx=this.targetX-this.x,dy=this.targetY-this.y,distance=Math.hypot(dx,dy);
   if(incoming&&distance>38&&!this.dashCooldown&&!this.isSwinging){this.dashTimer=18;this.dashCooldown=100;}
-  const speed=this.dashTimer?1.5:CPU_SETTINGS.speed;
+  const speed=(this.dashTimer?1.3:CPU_SETTINGS.speed)*(dy<0?0.65:1)*(this.fatigueShots>0?0.7:1);
   if(distance>0.1){const step=Math.min(speed,distance);this.x+=dx/distance*step;this.y+=dy/distance*step;}
   this.moving=distance>0.1;
   if(Math.abs(dx)>0.1)this.visualFacing=Math.sign(dx);
@@ -566,12 +569,16 @@ class CpuPlayer {
   const quality=this.phase()?.quality;if(!quality||this.hasHit)return;
   this.hasHit=true;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
   ball.lastShotQuality=quality;
+  ball.recordReturn();
+  if(ball.rallyHits>=10&&!this.fatigueTriggered){this.fatigueTriggered=true;this.fatigueShots=3;}
+  const tired=this.fatigueShots>0;
   const r=this.racket();
   const contact=Math.max(-1,Math.min(1,(ball.x-r.x)/Math.max(1,r.hitRadius)));
   const aimX=Math.max(39,Math.min(217,128+contact*52+(this.targetX-this.x)*0.28));
   const profile=SHOT_PROFILES[quality]??SHOT_PROFILES.normal;
-  ball.launch(aimX,176,profile.ticks,profile.gravity);
-  ball.message=quality==='smash'?'CPUスマッシュ':quality==='float'?'CPU浮き球':
+  ball.launch(aimX,176,profile.ticks,tired?0.018:profile.gravity);
+  if(tired)this.fatigueShots--;
+  ball.message=tired?'CPU息切れ：低い返球':quality==='smash'?'CPUスマッシュ':quality==='float'?'CPU浮き球':
    quality==='critical'?'CPUクリティカル':'CPU返球';
  }
  updateServe(ball) {
@@ -623,6 +630,8 @@ class Ball {
     this.bounce = -0.85; this.radius = 3;
     this.bouncesInCurrentCourt = 0;
     this.hitNet = false;
+    this.rallyHits = 0;
+    this.returnCount = 0;
     this.lastShotQuality = null;
     this.curve = 0;
     this.curveTicks = 0;
@@ -635,6 +644,10 @@ class Ball {
     this.cpuServing = practiceMode === 'rally';
     this.servePrepareTicks = 0;
     this.launch(CANVAS_WIDTH / 2 + (Math.random() * 40 - 20), 176, 58);
+  }
+  recordReturn() {
+    this.rallyHits++;
+    this.returnCount = this.rallyHits;
   }
   launch(targetX, targetY, ticks, gravity = SETTINGS.gravity) {
     this.curve = 0;
@@ -664,13 +677,15 @@ class Ball {
     const counteringSmash = player.incomingWasSmash === true;
     const profile = counteringSmash
       ? (counterQuality === 'critical'
-          ? { ticks: 30, gravity: 0.115 }
-          : { ticks: 45, gravity: 0.045 })
+          ? { ticks: 30, gravity: 0.160 }
+          : counterQuality === 'float'
+            ? { ticks: 48, gravity: 0.065 }
+            : { ticks: 45, gravity: 0.100 })
       : (SHOT_PROFILES[quality] ?? SHOT_PROFILES.normal);
     this.lastHitter = 'player';
     this.lastShotQuality = quality;
     this.bouncesInCurrentCourt = 0;
-    this.returnCount++;
+    this.recordReturn();
     let curve = 0, curveTicks = 0;
     if (player.isDashing && ['forehand', 'backhand'].includes(player.shotType)) {
       // カーブ方向はダッシュ方向ではなく、打つ側（フォア／バック）で決める。
@@ -678,7 +693,12 @@ class Ball {
       curve = dir * SETTINGS.curveAcceleration;
       curveTicks = SETTINGS.curveTicks;
     }
-    this.launch(targetX, targetY, profile.ticks, profile.gravity);
+    // 通常・ジャストのカウンターは、前後の位置に合わせてネット通過高さを補う。
+    const fraction = (this.y - 120) / (this.y - targetY);
+    const clearanceGravity = counteringSmash && counterQuality !== 'float' && fraction > 0 && fraction < 1
+      ? Math.max(0, (18 - this.z * (1 - fraction)) / (0.5 * profile.ticks * profile.ticks * fraction * (1 - fraction)))
+      : 0;
+    this.launch(targetX, targetY, profile.ticks, Math.max(profile.gravity, clearanceGravity));
     this.curve = curve;
     this.curveTicks = curveTicks;
     this.message = counteringSmash && counterQuality === 'critical' ? 'スマッシュをカウンター！' :
@@ -818,7 +838,6 @@ class Ball {
         const counteringSmash = this.lastShotQuality === 'smash';
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
-        this.returnCount++;
         player.incomingWasSmash = counteringSmash;
         this.launchFromPlayer(player, r, quality, counterQuality);
         player.incomingWasSmash = false;

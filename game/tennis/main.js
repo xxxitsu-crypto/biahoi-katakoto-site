@@ -15,6 +15,8 @@ const SETTINGS = {
   hitRadius: 14,       // コート平面上でラケットが届く距離（仮）
   hitHeight: 12,      // ラケットの高さから上下に届く距離（仮）
   gravity: 0.08,
+  curveAcceleration: 0.035, // ダッシュボレーの横カーブ（座標/tick²）
+  curveTicks: 42,
 };
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -47,11 +49,11 @@ const VOLLEY = {
     sourceWidth: 70, sourceHeight: 75,
     cropX: 0, cropY: 0, drawOffsetX: -7,
     phases: [
-      { frame: 1, ticks: 2 }, { frame: 2, ticks: 2 },
+      { frame: 1, ticks: 2, quality: 'normal' }, { frame: 2, ticks: 2, quality: 'normal' },
       { frame: 3, ticks: 4, quality: 'critical' },
       { frame: 4, ticks: 4, quality: 'float' },
-      { frame: 5, ticks: 3 }, { frame: 6, ticks: 3 },
-      { frame: 7, ticks: 3 },
+      { frame: 5, ticks: 3, quality: 'normal' }, { frame: 6, ticks: 3, quality: 'normal' },
+      { frame: 7, ticks: 3, quality: 'normal' },
     ],
   },
   backhand: {
@@ -59,11 +61,11 @@ const VOLLEY = {
     cropX: 0, cropY: 0, sourceWidth: 96, sourceHeight: 76,
     drawWidth: 96 * 32 / 71, drawHeight: 34, drawOffsetX: -12,
     phases: [
-      { frame: 1, ticks: 4 },
+      { frame: 1, ticks: 4, quality: 'normal' },
       { frame: 2, ticks: 4, quality: 'float' },
       { frame: 3, ticks: 4, quality: 'critical' },
       { frame: 4, ticks: 4, quality: 'float' },
-      { frame: 3, ticks: 3 }, { frame: 2, ticks: 3 }, { frame: 1, ticks: 3 },
+      { frame: 3, ticks: 3, quality: 'normal' }, { frame: 2, ticks: 3, quality: 'normal' }, { frame: 1, ticks: 3, quality: 'normal' },
     ],
   },
 };
@@ -445,8 +447,8 @@ const CPU_SHOTS = {
  radii: [[6,9],[11,12],[12,11],[11,14],[12,9],[10,10]], lifts: [0,0,0,0,24,0] },
 };
 for(const kind of ['leftShot','rightShot']) CPU_SHOTS[kind].phases = [
- {frame:1,ticks:4}, {frame:2,ticks:4,quality:'critical'}, {frame:3,ticks:4,quality:'float'},
- {frame:4,ticks:3}, {frame:5,ticks:3}, {frame:6,ticks:3},
+ {frame:1,ticks:4,quality:'normal'}, {frame:2,ticks:4,quality:'critical'}, {frame:3,ticks:4,quality:'float'},
+ {frame:4,ticks:3,quality:'normal'}, {frame:5,ticks:3,quality:'normal'}, {frame:6,ticks:3,quality:'normal'},
 ];
 CPU_SHOTS.overhead.phases = [
  {frame:1,ticks:4},{frame:2,ticks:4},{frame:3,ticks:4,quality:'smash'},
@@ -528,7 +530,10 @@ class CpuPlayer {
  hit(ball) {
   const quality=this.phase()?.quality;if(!quality||this.hasHit)return;
   this.hasHit=true;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
-  ball.launch(128+(Math.random()*56-28),176,quality==='smash'?46:quality==='float'?76:62);
+  const r=this.racket();
+  const contact=Math.max(-1,Math.min(1,(ball.x-r.x)/Math.max(1,r.hitRadius)));
+  const aimX=Math.max(39,Math.min(217,128+contact*42+(this.targetX-this.x)*0.2));
+  ball.launch(aimX,176,quality==='smash'?34:quality==='critical'?46:quality==='float'?72:58);
   ball.message=quality==='smash'?'CPUスマッシュ':quality==='float'?'CPU浮き球':'CPUクリティカル';
  }
  updateServe(ball) {
@@ -577,6 +582,8 @@ class Ball {
     this.bounce = -0.85; this.radius = 3;
     this.bouncesInCurrentCourt = 0;
     this.hitNet = false;
+    this.curve = 0;
+    this.curveTicks = 0;
     this.lastHitter = 'cpu';
     this.resetTimer = 0;
     this.message = practiceMode === 'serve' ? '1回押すと構え→トス' : 'CPUサーブ';
@@ -588,10 +595,46 @@ class Ball {
     this.launch(CANVAS_WIDTH / 2 + (Math.random() * 40 - 20), 176, 58);
   }
   launch(targetX, targetY, ticks) {
+    this.curve = 0;
+    this.curveTicks = 0;
     this.vx = (targetX - this.x) / ticks;
     this.vy = (targetY - this.y) / ticks;
     // update内の積分順に合わせ、指定時間後に着地する初速度を計算。
     this.vz = (0.5 * this.gravity * ticks * (ticks - 1) - this.z) / ticks;
+  }
+  isInsideCourt(x = this.x, y = this.y) {
+    // 線に触れた球はイン。判定位置は球の中心と半径で見る。
+    return x + this.radius >= 36 && x - this.radius <= 220 &&
+      y + this.radius >= 46 && y - this.radius <= 204;
+  }
+  isOnReceiverSide(y = this.y) {
+    return this.lastHitter === 'player' ? y < 120 : y > 120;
+  }
+  launchFromPlayer(player, racket, quality) {
+    const contact = Math.max(-1, Math.min(1,
+      (this.x - racket.x) / Math.max(1, racket.hitRadius)));
+    // ラケット面の打点が左右へずれるほど角度が付き、横移動も狙いに少し加わる。
+    const movementAim = Math.max(-1, Math.min(1, player.vx / SETTINGS.dashImpulse));
+    const targetX = Math.max(39, Math.min(217, 128 + contact * 44 + movementAim * 20));
+    const targetY = 60;
+    const travelTicks = quality === 'smash' ? 32 : quality === 'critical' ? 42 :
+      quality === 'float' ? 70 : 54;
+    this.lastHitter = 'player';
+    this.bouncesInCurrentCourt = 0;
+    this.returnCount++;
+    let curve = 0, curveTicks = 0;
+    if (player.isDashing && ['forehand', 'backhand'].includes(player.shotType)) {
+      const dir = player.dashDirection === 'left' ? -1 :
+        player.dashDirection === 'right' ? 1 : player.visualFacing;
+      curve = dir * SETTINGS.curveAcceleration;
+      curveTicks = SETTINGS.curveTicks;
+    }
+    this.launch(targetX, targetY, travelTicks);
+    this.curve = curve;
+    this.curveTicks = curveTicks;
+    this.message = player.shotType === 'smash' ? 'スマッシュ！' :
+      this.curveTicks ? 'ダッシュカーブ！' : quality === 'critical' ? 'クリティカル！' :
+      quality === 'float' ? '浮き球' : 'ナイスショット';
   }
   resetPlayerServe() {
     this.servePhase = 'waiting';
@@ -679,6 +722,11 @@ class Ball {
     }
     if (this.cpuServing) { opponent.updateServe(this); return; }
     const oldY = this.y, oldZ = this.z;
+    if (this.curveTicks > 0) {
+      this.vx += this.curve;
+      this.curve *= 0.97;
+      this.curveTicks--;
+    } else this.curve = 0;
     this.x += this.vx; this.y += this.vy;
     this.z += this.vz; this.vz -= this.gravity;
     const crossing = (oldY < 120 && this.y >= 120) || (oldY > 120 && this.y <= 120);
@@ -687,7 +735,7 @@ class Ball {
       const crossingHeight = oldZ + (this.z - oldZ) * fraction;
       if (crossingHeight < 12) {
         this.hitNet = true;
-        this.endRally('ネット / 自動再開', this.lastHitter === 'player' ? 'cpu' : 'player');
+        this.endRally('ネット！', this.lastHitter === 'player' ? 'cpu' : 'player');
         return;
       }
       this.bouncesInCurrentCourt = 0;
@@ -696,6 +744,10 @@ class Ball {
       this.z = 0;
       this.vz *= this.bounce;
       this.bouncesInCurrentCourt++;
+      if (!this.isInsideCourt() || !this.isOnReceiverSide()) {
+        this.endRally('アウト！', this.lastHitter === 'player' ? 'cpu' : 'player');
+        return;
+      }
       if (this.bouncesInCurrentCourt >= 2) {
         this.endRally('2バウンド / 自動再開', this.y < 120 ? 'player' : 'cpu');
         return;
@@ -710,9 +762,7 @@ class Ball {
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
         this.returnCount++;
-        const targetX = Math.max(46, Math.min(210, 128 + (this.x - r.x) * 4));
-        this.launch(targetX, 60, quality === 'smash' ? 34 : quality === 'critical' ? 44 : 70);
-        this.message = quality === 'smash' ? 'スマッシュ' : quality === 'critical' ? 'クリティカル！' : '浮き球';
+        this.launchFromPlayer(player, r, quality);
       }
     }
     if (opponent?.canHit(this)) opponent.hit(this);
@@ -720,7 +770,7 @@ class Ball {
       // ラインのアウト判定は省略。相手側へ抜けた球を取り逃しとして扱う。
       const winner = this.y < 0 ? 'player' : this.y > CANVAS_HEIGHT ? 'cpu' :
         this.lastHitter === 'player' ? 'cpu' : 'player';
-      this.endRally('取り逃し / 自動再開', winner);
+      this.endRally('取り逃し', winner);
     }
   }
   draw(context) {
@@ -878,3 +928,4 @@ function gameLoop(now) {
   requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);
+

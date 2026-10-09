@@ -98,15 +98,10 @@ let practiceMode = 'rally'; // CPUサーブ／プレイヤーサーブの切替�
 const score = { player: 0, cpu: 0 };
 const CPU_SETTINGS = { speed: 0.9, reactionTicks: 10, reach: 14, minHeight: 3, maxHeight: 32 };
 const SHOT_PROFILES = {
-  normal: { ticks: 48, gravity: 0.032 },    // 低い打点だとネットにかかりやすい
-  critical: { ticks: 38, gravity: 0.075 }, // 強く速いが、ジャストならネットを越えやすい
-  float: { ticks: 62, gravity: 0.060 },
-  smash: { ticks: 30, gravity: 0.035 },    // 低いスマッシュはネットの危険がある
-};
-const LOB_PROFILES = {
-  normal: { ticks: 72, gravity: 0.075 },
-  critical: { ticks: 66, gravity: 0.080 },
-  float: { ticks: 82, gravity: 0.075 },
+  normal: { ticks: 48, gravity: 0.090 },    // 通常返球はネットを越えやすい山なり軌道
+  critical: { ticks: 38, gravity: 0.105 }, // ジャスト返球は速く、ネットも越える
+  float: { ticks: 62, gravity: 0.080 },
+  smash: { ticks: 30, gravity: 0.080 },
 };
 const SERVE_PROFILES = {
   // 早い打点は速い反面、低い打球になりネットしやすい。
@@ -132,7 +127,6 @@ class InputHandler {
     this.shotQueue = [];
     this.actionSources = new Set();
     this.pointerDirections = new Map();
-    this.lobRequested = false;
     this.keys = new Set();
     this.cancelVersion = 0;
     this.initKeyboard();
@@ -140,14 +134,9 @@ class InputHandler {
   }
   get action() { return this.actionSources.size > 0; }
   get downHeld() {
-    return this.keys.has('ArrowDown') || [...this.pointerDirections.values()].includes('down');
+    return [...this.pointerDirections.values()].includes('down');
   }
   registerPress(dir, now = performance.now()) {
-    // ショットを構えている間の下入力は、移動でなくロブ指定として記録する。
-    if (dir === 'down' && this.action) {
-      this.markLob();
-      return;
-    }
     const h = this.history[dir];
     h.push(now);
     if (h.length > 3) h.shift();
@@ -162,27 +151,15 @@ class InputHandler {
     }
     this.consumeQueue.push({ dir, isRhythmJump });
   }
-  markLob() {
-    this.lobRequested = true;
-    // 下入力とショット離しが同じ更新内でもロブ指定を失わない。
-    for (let i = this.shotQueue.length - 1; i >= 0; i--) {
-      if (this.shotQueue[i].type === 'release') {
-        this.shotQueue[i].lob = true;
-        break;
-      }
-    }
-  }
   pressShot(source) {
     if (this.actionSources.has(source)) return;
-    if (this.downHeld) this.lobRequested = true;
     if (!this.action) this.shotQueue.push({ type: 'press' });
     this.actionSources.add(source);
   }
   releaseShot(source) {
     if (!this.actionSources.delete(source)) return;
     if (!this.action) {
-      this.shotQueue.push({ type: 'release', lob: this.lobRequested || this.downHeld });
-      this.lobRequested = false;
+      this.shotQueue.push({ type: 'release' });
     }
   }
   releaseDirection(pointerId) {
@@ -192,7 +169,6 @@ class InputHandler {
     this.keys.clear();
     this.pointerDirections.clear();
     this.actionSources.clear();
-    this.lobRequested = false;
     this.consumeQueue.length = 0;
     this.shotQueue.length = 0;
     Object.keys(this.history).forEach(key => this.history[key] = []);
@@ -267,7 +243,7 @@ class SealPlayer {
     this.isPreparing = false;
     this.facing = 1;
     this.shotType = 'forehand';
-    this.lobShot = false;
+    this.incomingWasSmash = false;
     this.hasHit = false;
     this.cancelVersion = 0;
     this.swingCount = 0;
@@ -345,17 +321,16 @@ class SealPlayer {
       this.vx = this.vy = 0;
       if (ball.serveWaiting || ball.serving) ball.resetPlayerServe();
     }
+    if (this.swingTimer > 0) {
+      this.swingTimer--;
+      this.swingElapsed++;
+    }
+    this.isSwinging = this.swingTimer > 0;
+    if (!this.isSwinging) this.selectShot(ball);
     const previousX = this.x, previousY = this.y;
-    // 押しっぱなしの下入力も拾い、タッチ入力のイベント順に左右されないようにする。
-    if (this.isPreparing && input.downHeld) input.lobRequested = true;
     // 構え・スイングとは独立して移動する。長押しの自動移動は追加しない。
     let act;
     while ((act = input.popAction())) {
-      const shotChargeQueued = input.shotQueue.some(event => event.type === 'press');
-      if (act.dir === 'down' && (input.action || this.isPreparing || shotChargeQueued)) {
-        input.markLob();
-        continue;
-      }
       const speed = act.isRhythmJump ? SETTINGS.dashImpulse : SETTINGS.moveImpulse;
       if (act.dir === 'left') this.visualFacing = -1;
       if (act.dir === 'right') this.visualFacing = 1;
@@ -378,12 +353,6 @@ class SealPlayer {
     this.x = Math.max(24, Math.min(CANVAS_WIDTH - 24 - this.width, this.x));
     this.y = Math.max(130, Math.min(218 - this.height, this.y));
 
-    if (this.swingTimer > 0) {
-      this.swingTimer--;
-      this.swingElapsed++;
-    }
-    this.isSwinging = this.swingTimer > 0;
-    if (!this.isSwinging) this.selectShot(ball);
     // キューを使い、1回の更新より短い押す→離すも取りこぼさない。
     for (const event of input.shotQueue.splice(0)) {
       if (ball.serveWaiting || ball.serving || (this.isSwinging && this.shotType === 'serve')) {
@@ -409,8 +378,7 @@ class SealPlayer {
         this.isPreparing = true;
       } else {
         if (this.isPreparing && !this.isSwinging) {
-          this.lobShot = event.lob;
-          this.selectShot(ball, this.lobShot); // 下＋ショットならスマッシュ判定よりロブを優先。
+          this.selectShot(ball);
           this.isSwinging = true;
           this.swingTimer = VOLLEY[this.shotType]?.totalTicks ?? SETTINGS.swingTicks;
           this.swingElapsed = 0;
@@ -597,6 +565,7 @@ class CpuPlayer {
  hit(ball) {
   const quality=this.phase()?.quality;if(!quality||this.hasHit)return;
   this.hasHit=true;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
+  ball.lastShotQuality=quality;
   const r=this.racket();
   const contact=Math.max(-1,Math.min(1,(ball.x-r.x)/Math.max(1,r.hitRadius)));
   const aimX=Math.max(39,Math.min(217,128+contact*52+(this.targetX-this.x)*0.28));
@@ -654,6 +623,7 @@ class Ball {
     this.bounce = -0.85; this.radius = 3;
     this.bouncesInCurrentCourt = 0;
     this.hitNet = false;
+    this.lastShotQuality = null;
     this.curve = 0;
     this.curveTicks = 0;
     this.lastHitter = 'cpu';
@@ -683,15 +653,22 @@ class Ball {
   isOnReceiverSide(y = this.y) {
     return this.lastHitter === 'player' ? y < 120 : y > 120;
   }
-  launchFromPlayer(player, racket, quality) {
+  launchFromPlayer(player, racket, quality, counterQuality = quality) {
     const contact = Math.max(-1, Math.min(1,
       (this.x - racket.x) / Math.max(1, racket.hitRadius)));
     // ラケット面の打点が左右へずれるほど角度が付き、横移動も狙いに少し加わる。
     const movementAim = Math.max(-1, Math.min(1, player.vx / SETTINGS.dashImpulse));
     const targetX = Math.max(39, Math.min(217, 128 + contact * 56 + movementAim * 28));
     const targetY = 60;
-    const profile = SHOT_PROFILES[quality] ?? SHOT_PROFILES.normal;
+    // CPUスマッシュへの返球はプレイヤー側の打点タイミングで難度を付ける。
+    const counteringSmash = player.incomingWasSmash === true;
+    const profile = counteringSmash
+      ? (counterQuality === 'critical'
+          ? { ticks: 30, gravity: 0.115 }
+          : { ticks: 45, gravity: 0.045 })
+      : (SHOT_PROFILES[quality] ?? SHOT_PROFILES.normal);
     this.lastHitter = 'player';
+    this.lastShotQuality = quality;
     this.bouncesInCurrentCourt = 0;
     this.returnCount++;
     let curve = 0, curveTicks = 0;
@@ -701,12 +678,12 @@ class Ball {
       curve = dir * SETTINGS.curveAcceleration;
       curveTicks = SETTINGS.curveTicks;
     }
-    const lobProfile = player.lobShot ? (LOB_PROFILES[quality] ?? LOB_PROFILES.normal) : null;
-    const shotProfile = lobProfile ?? profile;
-    this.launch(targetX, player.lobShot ? 50 : targetY, shotProfile.ticks, shotProfile.gravity);
+    this.launch(targetX, targetY, profile.ticks, profile.gravity);
     this.curve = curve;
     this.curveTicks = curveTicks;
-    this.message = player.lobShot ? 'ロブ！' : player.shotType === 'smash' ? 'スマッシュ！' :
+    this.message = counteringSmash && counterQuality === 'critical' ? 'スマッシュをカウンター！' :
+      counteringSmash && counterQuality === 'float' ? 'スマッシュに押された！' :
+      player.shotType === 'smash' ? 'スマッシュ！' :
       this.curveTicks ? 'ダッシュカーブ！' : quality === 'critical' ? 'クリティカル！' :
       quality === 'float' ? '浮き球' : 'ナイスショット';
   }
@@ -837,10 +814,15 @@ class Ball {
       const distance = Math.hypot(this.x - r.x, this.y - r.y);
       if (distance < r.hitRadius && Math.abs(this.z - r.z) < r.hitHeight) {
         player.hasHit = true;
+        const counterQuality = quality;
+        const counteringSmash = this.lastShotQuality === 'smash';
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
         this.returnCount++;
-        this.launchFromPlayer(player, r, quality);
+        player.incomingWasSmash = counteringSmash;
+        this.launchFromPlayer(player, r, quality, counterQuality);
+        player.incomingWasSmash = false;
+        player.incomingCounterQuality = null;
       }
     }
     if (opponent?.canHit(this)) opponent.hit(this);

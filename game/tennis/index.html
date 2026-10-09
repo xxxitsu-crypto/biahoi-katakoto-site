@@ -2,30 +2,45 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SEAL TENNIS</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="game-container">
-    <canvas id="gameCanvas" width="256" height="240"></canvas>
+    <p class="version">SEAL TENNIS · PC・スマホ操作確認版 12</p>
+    <canvas id="gameCanvas" width="512" height="640"></canvas>
     
-    <!-- モバイル用バーチャルパッド -->
+    <p id="status" role="status">読み込み中</p>
+    <div class="toolbar">
+      <button id="restart" type="button">やり直す</button>
+      <button id="serve-mode" type="button">サーブ切替</button>
+      <button id="guide-toggle" type="button" aria-pressed="false">打点ガイド</button>
+    </div>
+    <details class="instructions">
+      <summary>操作方法</summary>
+      <p>移動：方向ボタンを叩く／同じ方向に「トントン、トン」でダッシュ</p>
+      <p>ラリー：ショットを押して構え、離して打つ。構え中も別の指で移動できます。</p>
+      <p>サーブ：ショットを1回押す → 構え・トス → もう一度押すと打つ。</p>
+      <p>PC：矢印で移動／Z・Spaceでショット／Rでやり直し／Sでサーブ切替／Dでガイド。</p>
+      <p class="note">簡易対戦：1ミス1点。アウト・正式な試合の勝敗は未実装。</p>
+    </details>
+    <!-- コートと操作領域を分離。縦持ちは下、横持ちは左右へ配置。 -->
     <div id="virtual-controller">
       <div id="dpad">
-        <button class="dpad-btn" id="btn-up" aria-label="上">▲</button>
+        <button type="button" class="dpad-btn" id="btn-up" aria-label="上">▲</button>
         <div class="dpad-middle">
-          <button class="dpad-btn" id="btn-left" aria-label="左">◀</button>
-          <button class="dpad-btn" id="btn-right" aria-label="右">▶</button>
+          <button type="button" class="dpad-btn" id="btn-left" aria-label="左">◀</button>
+          <button type="button" class="dpad-btn" id="btn-right" aria-label="右">▶</button>
         </div>
-        <button class="dpad-btn" id="btn-down" aria-label="下">▼</button>
+        <button type="button" class="dpad-btn" id="btn-down" aria-label="下">▼</button>
       </div>
       <div id="action-buttons">
-        <button class="act-btn" id="btn-action" aria-label="ショット">A</button>
+        <button type="button" class="act-btn" id="btn-action" aria-label="ショット">ショット</button>
       </div>
     </div>
   </div>
 
-  <script type="module" src="main.js"></script>
+  <script defer src="main.js"></script>
 </body>
 </html>

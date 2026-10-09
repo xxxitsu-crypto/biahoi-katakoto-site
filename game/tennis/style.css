@@ -1,95 +1,39 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  touch-action: none;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+* { box-sizing: border-box; }
+body { margin: 0; background: #000; color: #fff; font-family: 'Courier New', monospace; }
+#game-container { width: 100%; max-width: 720px; margin: auto; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 14px 12px; }
+.version { order: 1; margin: 0; font-size: 13px; text-align: center; color: #ddd; }
+#gameCanvas { order: 2; display: block; width: min(512px, 100%, calc((100vh - 230px) * .8)); height: auto; aspect-ratio: 4 / 5; image-rendering: pixelated; border: 2px solid #333; flex: none; }
+#status { order: 3; margin: 0; width: 100%; min-height: 42px; line-height: 1.4; font-size: 12px; color: #f4e9b0; text-align: center; }
+.toolbar { order: 5; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+button { background: #222; color: #fff; border: 2px solid #555; border-radius: 6px; font: inherit; cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.toolbar button { padding: 8px 10px; min-height: 44px; font-size: 12px; touch-action: manipulation; }
+button:active, button[aria-pressed="true"] { border-color: #fff; background: #555; }
+button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outline-offset: 2px; }
+.instructions { order: 6; width: 100%; font-family: sans-serif; font-size: 12px; line-height: 1.7; }
+.instructions summary { text-align: center; cursor: pointer; padding: 8px; }
+.instructions p { margin: 6px 0; }
+.note { color: #aaa; }
+#virtual-controller { order: 4; display: none; }
+#dpad { display: flex; flex-direction: column; align-items: center; }
+.dpad-middle { display: flex; gap: 52px; }
+.dpad-btn { width: 52px; height: 52px; font-size: 20px; padding: 0; }
+.act-btn { width: 84px; height: 84px; border-radius: 50%; background: #a00; border-color: #f55; font-size: 14px; font-weight: bold; }
+#virtual-controller, #dpad, #action-buttons, .dpad-btn, .act-btn { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+@media (any-pointer: coarse), (max-width: 600px) {
+ #game-container { min-height: 100svh; justify-content: flex-start; gap: 6px; padding: max(6px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); }
+ .version { font-size: 11px; }
+ #gameCanvas { width: min(100%, 512px, calc((100svh - 310px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .8)); min-width: 176px; }
+ #virtual-controller { display: flex; width: 100%; max-width: 440px; min-height: 156px; align-items: center; justify-content: space-between; padding: 0 10px; flex: none; }
+ #status { font-size: 11px; min-height: 34px; }
 }
-
-body {
-  background-color: #000;
-  color: #fff;
-  font-family: 'Courier New', Courier, monospace;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  overflow: hidden;
-}
-
-#game-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 480px;
-  height: 100vh;
-}
-
-#gameCanvas {
-  width: 100%;
-  max-height: 60vh;
-  aspect-ratio: 256 / 240;
-  background-color: #000;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  border: 2px solid #333;
-}
-
-/* 仮想コントローラー */
-#virtual-controller {
-  width: 100%;
-  max-width: 320px;
-  height: 160px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-}
-
-#dpad {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.dpad-middle {
-  display: flex;
-  gap: 20px;
-}
-
-.dpad-btn, .act-btn {
-  background: #222;
-  color: #fff;
-  border: 2px solid #555;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  active-background-color: #555;
-}
-
-.dpad-btn {
-  width: 40px;
-  height: 40px;
-  font-size: 16px;
-}
-
-.act-btn {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  font-size: 18px;
-  background: #a00;
-  border-color: #f55;
-}
-
-.dpad-btn:active, .act-btn:active {
-  background: #fff;
-  color: #000;
+@media (orientation: landscape) and (any-pointer: coarse) {
+ #game-container { display: grid; max-width: 960px; grid-template-columns: 156px minmax(160px,1fr) 96px; grid-template-rows: auto auto auto auto auto; align-items: center; justify-items: center; gap: 4px 8px; }
+ .version { grid-column: 1 / -1; grid-row: 1; }
+ #gameCanvas { grid-column: 2; grid-row: 2; width: min(100%,512px,calc((100svh - 148px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .8)); min-width: 144px; }
+ #virtual-controller { display: contents; }
+ #dpad { grid-column: 1; grid-row: 2; }
+ #action-buttons { grid-column: 3; grid-row: 2; }
+ #status { grid-column: 1 / -1; grid-row: 3; }
+ .toolbar { grid-column: 1 / -1; grid-row: 4; }
+ .instructions { grid-column: 1 / -1; grid-row: 5; }
 }

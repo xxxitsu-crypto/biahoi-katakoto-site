@@ -87,8 +87,8 @@ for (const kind of ['smash', 'serve']) {
     racketRadii: [[11.39, 11.58], [13.52, 12.91], [14.33, 15.87], [9.86, 11.66], [13.85, 13.96]],
     phases: [
       { frame: 1, ticks: 4 },
-      { frame: 2, ticks: 4, quality: kind },
-      { frame: 3, ticks: 4, quality: kind },
+      { frame: 2, ticks: 4, quality: kind === 'serve' ? 'serve_fast' : kind },
+      { frame: 3, ticks: 4, quality: kind === 'serve' ? 'serve_safe' : kind },
       { frame: 4, ticks: 18 },
     ],
   };
@@ -101,6 +101,17 @@ const SHOT_PROFILES = {
   critical: { ticks: 38, gravity: 0.075 }, // 強く速いが、ジャストならネットを越えやすい
   float: { ticks: 62, gravity: 0.060 },
   smash: { ticks: 30, gravity: 0.035 },    // 低いスマッシュはネットの危険がある
+};
+const LOB_PROFILES = {
+  normal: { ticks: 72, gravity: 0.075 },
+  critical: { ticks: 66, gravity: 0.080 },
+  float: { ticks: 82, gravity: 0.075 },
+};
+const SERVE_PROFILES = {
+  // 早い打点は速い反面、低い打球になりネットしやすい。
+  serve_fast: { ticks: 18, gravity: 0.075, targetY: 60 },
+  // 少し遅い打点は高く通り、速度は落ちる。
+  serve_safe: { ticks: 36, gravity: 0.075, targetY: 60 },
 };
 for (const config of Object.values(VOLLEY)) {
   config.totalTicks = config.phases.reduce((total, phase) => total + phase.ticks, 0);
@@ -115,13 +126,23 @@ class InputHandler {
     this.consumeQueue = [];
     this.shotQueue = [];
     this.actionSources = new Set();
+    this.pointerDirections = new Map();
+    this.lobRequested = false;
     this.keys = new Set();
     this.cancelVersion = 0;
     this.initKeyboard();
     this.initTouch();
   }
   get action() { return this.actionSources.size > 0; }
+  get downHeld() {
+    return this.keys.has('ArrowDown') || [...this.pointerDirections.values()].includes('down');
+  }
   registerPress(dir, now = performance.now()) {
+    // ショットを構えている間の下入力は、移動でなくロブ指定として記録する。
+    if (dir === 'down' && this.action) {
+      this.lobRequested = true;
+      return;
+    }
     const h = this.history[dir];
     h.push(now);
     if (h.length > 3) h.shift();
@@ -138,16 +159,25 @@ class InputHandler {
   }
   pressShot(source) {
     if (this.actionSources.has(source)) return;
-    if (!this.action) this.shotQueue.push('press');
+    if (this.downHeld) this.lobRequested = true;
+    if (!this.action) this.shotQueue.push({ type: 'press' });
     this.actionSources.add(source);
   }
   releaseShot(source) {
     if (!this.actionSources.delete(source)) return;
-    if (!this.action) this.shotQueue.push('release');
+    if (!this.action) {
+      this.shotQueue.push({ type: 'release', lob: this.lobRequested });
+      this.lobRequested = false;
+    }
+  }
+  releaseDirection(pointerId) {
+    this.pointerDirections.delete(pointerId);
   }
   cancel() {
     this.keys.clear();
+    this.pointerDirections.clear();
     this.actionSources.clear();
+    this.lobRequested = false;
     this.consumeQueue.length = 0;
     this.shotQueue.length = 0;
     Object.keys(this.history).forEach(key => this.history[key] = []);
@@ -184,8 +214,12 @@ class InputHandler {
         if (e.button !== 0) return;
         e.preventDefault();
         el.setPointerCapture(e.pointerId);
+        this.pointerDirections.set(e.pointerId, dir);
         this.registerPress(dir);
       });
+      el?.addEventListener('pointerup', e => this.releaseDirection(e.pointerId));
+      el?.addEventListener('pointercancel', e => this.releaseDirection(e.pointerId));
+      el?.addEventListener('lostpointercapture', e => this.releaseDirection(e.pointerId));
     }
     const el = document.getElementById('btn-action');
     if (!el) return;
@@ -218,6 +252,7 @@ class SealPlayer {
     this.isPreparing = false;
     this.facing = 1;
     this.shotType = 'forehand';
+    this.lobShot = false;
     this.hasHit = false;
     this.cancelVersion = 0;
     this.swingCount = 0;
@@ -229,11 +264,11 @@ class SealPlayer {
     this.animationFrame = 0;
     this.wasMoving = false;
   }
-  selectShot(ball) {
+  selectShot(ball, forceVolley = false) {
     if (ball.serveWaiting || ball.serving) { this.shotType = 'serve'; return; }
     const dx = ball.x - (this.x + this.width / 2);
     const dy = ball.y - (this.y + 6);
-    if (ball.z >= 22 && Math.abs(dx) <= 14 && Math.abs(dy) <= 24) {
+    if (!forceVolley && ball.z >= 22 && Math.abs(dx) <= 14 && Math.abs(dy) <= 24) {
       this.shotType = 'smash';
     } else {
       // 中心付近で左右が細かく切り替わらないように幅を持たせる。
@@ -311,7 +346,7 @@ class SealPlayer {
       if (act.dir === 'left') this.vx -= speed;
       if (act.dir === 'right') this.vx += speed;
       if (act.dir === 'up') this.vy -= speed * SETTINGS.verticalRatio;
-      if (act.dir === 'down') this.vy += speed * SETTINGS.verticalRatio;
+      if (act.dir === 'down' && !input.action) this.vy += speed * SETTINGS.verticalRatio;
     }
     this.x += this.vx; this.y += this.vy;
     this.vx *= this.friction; this.vy *= this.friction;
@@ -331,7 +366,7 @@ class SealPlayer {
     for (const event of input.shotQueue.splice(0)) {
       if (ball.serveWaiting || ball.serving || (this.isSwinging && this.shotType === 'serve')) {
         // サーブ専用：離す操作では振らない。最初の押下で準備→トス、次の押下で振る。
-        if (event === 'press' && !this.isSwinging) {
+        if (event.type === 'press' && !this.isSwinging) {
           if (ball.servePhase === 'waiting') {
             this.shotType = 'serve';
             this.isPreparing = true;
@@ -348,11 +383,12 @@ class SealPlayer {
         }
         continue;
       }
-      if (event === 'press') {
+      if (event.type === 'press') {
         this.isPreparing = true;
       } else {
         if (this.isPreparing && !this.isSwinging) {
-          this.selectShot(ball); // 離した瞬間に種類を確定。振っている間は変更しない。
+          this.lobShot = event.lob;
+          this.selectShot(ball, this.lobShot); // 下＋ショットならスマッシュ判定よりロブを優先。
           this.isSwinging = true;
           this.swingTimer = VOLLEY[this.shotType]?.totalTicks ?? SETTINGS.swingTicks;
           this.swingElapsed = 0;
@@ -557,11 +593,14 @@ class CpuPlayer {
   }
   ball.z+=ball.vz;ball.vz-=ball.gravity;
   if(this.serveAge===40)this.startSwing('overhead');
-  if(this.isSwinging&&!this.hasHit&&this.phase()?.quality){
+  const serveQuality=this.phase()?.frame===3?'serve_fast':this.phase()?.frame===4?'serve_safe':null;
+  if(this.isSwinging&&!this.hasHit&&serveQuality){
    const r=this.racket();
    if(Math.hypot(ball.x-r.x,ball.y-r.y)<r.hitRadius&&Math.abs(ball.z-r.z)<r.hitHeight){
     this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
-    ball.launch(128+(Math.random()*40-20),176,62,0.052);ball.message='CPUサーブ';return;
+    const profile=SERVE_PROFILES[serveQuality];
+    ball.launch(128+(Math.random()*40-20),176,profile.ticks,profile.gravity);
+    ball.message=serveQuality==='serve_fast'?'CPU速いサーブ':'CPU安定サーブ';return;
    }
   }
   if(ball.z<=0){this.reset();ball.message='CPUサーブやり直し';}
@@ -635,15 +674,17 @@ class Ball {
     this.returnCount++;
     let curve = 0, curveTicks = 0;
     if (player.isDashing && ['forehand', 'backhand'].includes(player.shotType)) {
-      const dir = player.dashDirection === 'left' ? -1 :
-        player.dashDirection === 'right' ? 1 : player.visualFacing;
+      // カーブ方向はダッシュ方向ではなく、打つ側（フォア／バック）で決める。
+      const dir = player.shotType === 'forehand' ? 1 : -1;
       curve = dir * SETTINGS.curveAcceleration;
       curveTicks = SETTINGS.curveTicks;
     }
-    this.launch(targetX, targetY, profile.ticks, profile.gravity);
+    const lobProfile = player.lobShot ? (LOB_PROFILES[quality] ?? LOB_PROFILES.normal) : null;
+    const shotProfile = lobProfile ?? profile;
+    this.launch(targetX, player.lobShot ? 50 : targetY, shotProfile.ticks, shotProfile.gravity);
     this.curve = curve;
     this.curveTicks = curveTicks;
-    this.message = player.shotType === 'smash' ? 'スマッシュ！' :
+    this.message = player.lobShot ? 'ロブ！' : player.shotType === 'smash' ? 'スマッシュ！' :
       this.curveTicks ? 'ダッシュカーブ！' : quality === 'critical' ? 'クリティカル！' :
       quality === 'float' ? '浮き球' : 'ナイスショット';
   }
@@ -692,7 +733,8 @@ class Ball {
     // 手を離れた球はプレイヤーに追従せず、重力で上下する。
     this.z += this.vz;
     this.vz -= this.gravity;
-    if (player.getHitQuality() === 'serve') {
+    const serveQuality = player.getHitQuality();
+    if (serveQuality === 'serve_fast' || serveQuality === 'serve_safe') {
       const r = player.getRacketPosition();
       if (Math.hypot(this.x - r.x, this.y - r.y) < r.hitRadius &&
           Math.abs(this.z - r.z) < r.hitHeight) {
@@ -702,8 +744,9 @@ class Ball {
         this.servePhase = 'rally';
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
-        this.launch(128, 60, 40, 0.052);
-        this.message = 'サーブ';
+        const profile = SERVE_PROFILES[serveQuality];
+        this.launch(128, profile.targetY, profile.ticks, profile.gravity);
+        this.message = serveQuality === 'serve_fast' ? '速いサーブ！ネット注意' : '安定サーブ';
         return;
       }
     }
@@ -932,7 +975,7 @@ function gameLoop(now) {
   ctx.imageSmoothingEnabled = false;
   drawScene(ctx);
   const names = { forehand: 'フォア', backhand: 'バック', smash: 'スマッシュ', serve: 'サーブ' };
-  const qualityNames = { normal: '通常打点', critical: 'ジャスト！', float: '浮き球', smash: 'スマッシュ', serve: 'サーブ' };
+  const qualityNames = { normal: '通常打点', critical: 'ジャスト！', float: '浮き球', smash: 'スマッシュ', serve_fast: '速いサーブ', serve_safe: '安定サーブ' };
   const activeQuality = player.getHitQuality();
   const guideButton = document.getElementById('guide-toggle');
   guideButton?.setAttribute('aria-pressed', String(showGuide));

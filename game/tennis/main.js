@@ -109,9 +109,9 @@ const LOB_PROFILES = {
 };
 const SERVE_PROFILES = {
   // 早い打点は速い反面、低い打球になりネットしやすい。
-  serve_fast: { ticks: 18, gravity: 0.075, targetY: 60 },
+  serve_fast: { ticks: 36, gravity: 0.020, targetY: 60 },
   // 少し遅い打点は高く通り、速度は落ちる。
-  serve_safe: { ticks: 36, gravity: 0.075, targetY: 60 },
+  serve_safe: { ticks: 72, gravity: 0.075, targetY: 60 },
 };
 for (const config of Object.values(VOLLEY)) {
   config.totalTicks = config.phases.reduce((total, phase) => total + phase.ticks, 0);
@@ -166,7 +166,7 @@ class InputHandler {
   releaseShot(source) {
     if (!this.actionSources.delete(source)) return;
     if (!this.action) {
-      this.shotQueue.push({ type: 'release', lob: this.lobRequested });
+      this.shotQueue.push({ type: 'release', lob: this.lobRequested || this.downHeld });
       this.lobRequested = false;
     }
   }
@@ -331,6 +331,8 @@ class SealPlayer {
       if (ball.serveWaiting || ball.serving) ball.resetPlayerServe();
     }
     const previousX = this.x, previousY = this.y;
+    // 押しっぱなしの下入力も拾い、タッチ入力のイベント順に左右されないようにする。
+    if (this.isPreparing && input.downHeld) input.lobRequested = true;
     // 構え・スイングとは独立して移動する。長押しの自動移動は追加しない。
     let act;
     while ((act = input.popAction())) {

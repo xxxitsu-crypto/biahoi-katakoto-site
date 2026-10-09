@@ -17,6 +17,7 @@ const SETTINGS = {
   gravity: 0.08,
   curveAcceleration: 0.085, // ダッシュボレーが見て分かる横カーブ
   curveTicks: 36,
+  shotAnimationScale: 1.5, // プレイヤーのショットを約1.5倍ゆっくり見せる
 };
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -114,6 +115,10 @@ const SERVE_PROFILES = {
   serve_safe: { ticks: 72, gravity: 0.075, targetY: 60 },
 };
 for (const config of Object.values(VOLLEY)) {
+  config.phases = config.phases.map(phase => ({
+    ...phase,
+    ticks: Math.max(1, Math.round(phase.ticks * SETTINGS.shotAnimationScale)),
+  }));
   config.totalTicks = config.phases.reduce((total, phase) => total + phase.ticks, 0);
   config.image = new Image();
   config.image.src = `assets/${config.file}`;
@@ -140,7 +145,7 @@ class InputHandler {
   registerPress(dir, now = performance.now()) {
     // ショットを構えている間の下入力は、移動でなくロブ指定として記録する。
     if (dir === 'down' && this.action) {
-      this.lobRequested = true;
+      this.markLob();
       return;
     }
     const h = this.history[dir];
@@ -156,6 +161,16 @@ class InputHandler {
       }
     }
     this.consumeQueue.push({ dir, isRhythmJump });
+  }
+  markLob() {
+    this.lobRequested = true;
+    // 下入力とショット離しが同じ更新内でもロブ指定を失わない。
+    for (let i = this.shotQueue.length - 1; i >= 0; i--) {
+      if (this.shotQueue[i].type === 'release') {
+        this.shotQueue[i].lob = true;
+        break;
+      }
+    }
   }
   pressShot(source) {
     if (this.actionSources.has(source)) return;
@@ -336,6 +351,11 @@ class SealPlayer {
     // 構え・スイングとは独立して移動する。長押しの自動移動は追加しない。
     let act;
     while ((act = input.popAction())) {
+      const shotChargeQueued = input.shotQueue.some(event => event.type === 'press');
+      if (act.dir === 'down' && (input.action || this.isPreparing || shotChargeQueued)) {
+        input.markLob();
+        continue;
+      }
       const speed = act.isRhythmJump ? SETTINGS.dashImpulse : SETTINGS.moveImpulse;
       if (act.dir === 'left') this.visualFacing = -1;
       if (act.dir === 'right') this.visualFacing = 1;
@@ -348,7 +368,7 @@ class SealPlayer {
       if (act.dir === 'left') this.vx -= speed;
       if (act.dir === 'right') this.vx += speed;
       if (act.dir === 'up') this.vy -= speed * SETTINGS.verticalRatio;
-      if (act.dir === 'down' && !input.action) this.vy += speed * SETTINGS.verticalRatio;
+      if (act.dir === 'down') this.vy += speed * SETTINGS.verticalRatio;
     }
     this.x += this.vx; this.y += this.vy;
     this.vx *= this.friction; this.vy *= this.friction;

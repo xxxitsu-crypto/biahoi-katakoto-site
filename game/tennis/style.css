@@ -38,3 +38,11 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
  .instructions { grid-column: 1 / -1; grid-row: 5; }
 }
 
+
+/* PCは最初の表示領域をゲーム専用にする。補助表示はスクロール先。 */
+@media (min-width: 601px) and (pointer: fine) {
+ #game-container { max-width: none; min-height: 100dvh; justify-content: flex-start; padding: 12px; gap: 12px; }
+ #gameCanvas { order: 1; width: min(100%, calc((100vh - 24px) * .8)); width: min(100%, calc((100dvh - 24px) * .8)); }
+ .version { order: 2; }
+ #status, .instructions { max-width: 720px; }
+}

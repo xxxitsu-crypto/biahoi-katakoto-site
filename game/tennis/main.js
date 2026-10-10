@@ -96,30 +96,43 @@ for (const kind of ['smash', 'serve']) {
 }
 let practiceMode = 'rally'; // CPUサーブ／プレイヤーサーブの切替。
 const score = { player: 0, cpu: 0 };
-const referee = { text: '', ticks: 0,
-  call(text, ticks = 90) { this.text = text; this.ticks = ticks; },
-  update() { if (this.ticks > 0 && --this.ticks === 0) this.text = ''; },
+const judgeImages = {};
+for (const [key, file] of Object.entries({ referee: 'sinpan.png', bubble: 'fukidasi.png', win: 'WIN.png', lose: 'gameover.png' })) {
+  const image = new Image(); image.src = `assets/${file}`; judgeImages[key] = image;
+}
+const referee = { text: '', ticks: 0, frame: 1,
+  call(text, ticks = 90) {
+    if (!['インッ', 'アウト', 'フォルト', 'Wフォルト', 'ワンモア', 'GAME', 'プレイッ'].includes(text)) return;
+    this.text = text; this.ticks = ticks;
+  },
+  update() {
+    if (this.ticks > 0 && --this.ticks === 0) this.text = '';
+    // 奥・ネット付近・手前の球を、提供された顔の3コマで追う。
+    this.frame = ball.y < 100 ? 0 : ball.y > 145 ? 2 : 1;
+  },
   draw(context) {
-    context.fillStyle = '#eee'; context.fillRect(465, 337, 22, 22);
-    context.fillStyle = '#333'; context.fillRect(462, 360, 28, 7);
-    if (!this.text) return;
-    context.font = '16px sans-serif';
-    const width = context.measureText(this.text).width + 16;
-    context.fillStyle = '#10171a'; context.fillRect(Math.max(8, 490 - width), 305, width, 26);
-    context.fillStyle = '#fff'; context.textAlign = 'right';
-    context.fillText(this.text, 482, 324); context.textAlign = 'left';
+    const image = judgeImages.referee;
+    if (imageReady(image)) {
+      const starts = [0, 48, 96], widths = [48, 48, 46];
+      context.drawImage(image, starts[this.frame], 0, widths[this.frame], 83, 452, 312, widths[this.frame], 83);
+    }
+    if (!this.text || !imageReady(judgeImages.bubble)) return;
+    context.drawImage(judgeImages.bubble, 444, 244, 63, 57);
+    context.save(); context.fillStyle = '#000'; context.font = 'bold 12px sans-serif';
+    context.textAlign = 'center'; context.textBaseline = 'middle';
+    context.fillText(this.text, 475.5, 267, 55); context.restore();
   }
 };
 const match = {
-  games: { player: 0, cpu: 0 }, server: 'cpu', faults: 0, winner: null,
-  reset(server = 'cpu') { score.player = score.cpu = 0; this.games.player = this.games.cpu = 0; this.server = server; this.faults = 0; this.winner = null; referee.text = ''; referee.ticks = 0; },
+  games: { player: 0, cpu: 0 }, server: 'cpu', faults: 0, winner: null, boardTicks: 90,
+  reset(server = 'cpu') { score.player = score.cpu = 0; this.games.player = this.games.cpu = 0; this.server = server; this.faults = 0; this.winner = null; this.boardTicks = 90; referee.text = ''; referee.ticks = 0; },
   award(winner) {
     if (this.winner) return;
     score[winner]++; this.faults = 0;
     const other = winner === 'player' ? 'cpu' : 'player';
     if (score[winner] >= 4 && score[winner] - score[other] >= 2) {
       this.games[winner]++; score.player = score.cpu = 0;
-      referee.call('GAME / ' + (winner === 'player' ? 'YOU' : 'CPU'), 150);
+      referee.call('GAME', 150); this.boardTicks = 150;
       if (this.games[winner] >= 3) this.winner = winner;
       else this.server = this.server === 'player' ? 'cpu' : 'player';
     }
@@ -152,7 +165,7 @@ for (const config of Object.values(VOLLEY)) {
   config.image = new Image();
   config.image.src = `assets/${config.file}`;
 }
-let showGuide = !window.matchMedia?.('(any-pointer: coarse)').matches;
+let showGuide = false;
 
 class InputHandler {
   constructor() {
@@ -704,6 +717,7 @@ class Ball {
     this.cpuServing = practiceMode === 'rally';
     this.servePrepareTicks = 0;
     this.launch(CANVAS_WIDTH / 2 + (Math.random() * 40 - 20), 176, 58);
+    this.playTicks = 75; referee.call('プレイッ', 75);
   }
   startService() {
     this.servicePending = true; this.netTouched = false;
@@ -861,9 +875,9 @@ class Ball {
     if (this.resetTimer || match.winner) return;
     this.servicePending = false;
     this.message = message;
-    referee.call(message + (winner ? ' / ' + (winner === 'player' ? 'YOU' : 'CPU') : ''));
+    referee.call(['取り逃し', '2バウンド'].includes(message) ? 'インッ' : 'アウト');
     if (winner) match.award(winner);
-    this.resetTimer = 90;
+    this.resetTimer = Math.max(90, match.boardTicks);
   }
   update(player, opponent) {
     if (match.winner) return;
@@ -879,6 +893,7 @@ class Ball {
       }
       return;
     }
+    if (this.playTicks > 0) return;
     if (this.serveWaiting || this.serving) { this.updatePlayerServe(player); return; }
     if (this.cpuServing) { opponent.updateServe(this); return; }
     const oldY = this.y, oldZ = this.z;
@@ -896,7 +911,7 @@ class Ball {
       // 上端に触れた球は減速して続行。低い接触は自分側へ落ちる。
       if (crossingHeight - this.radius < 12 && !this.netTouched) {
         this.hitNet = true; this.netTouched = true;
-        referee.call('・・・', 240);
+        // ネット接触は最終判定だけ宣言する。
         this.vx *= 0.65;
         if (crossingHeight >= 10) { this.vy *= 0.65; this.vz *= 0.55; }
         else { this.y = oldY < 120 ? 119 : 121; this.vy *= -0.12; this.vz = Math.min(this.vz, 0); }
@@ -1035,11 +1050,43 @@ function drawScene(context) {
   drawProjected(context,player,player.x+8,player.y+6);
   if(ball.y >= 120) drawProjected(context,ball,ball.x,ball.y);
   referee.draw(context);
+  drawScoreboard(context);
+  if (match.winner) {
+    const image = judgeImages[match.winner === 'player' ? 'win' : 'lose'];
+    if (imageReady(image)) {
+      const width = 486, height = width * image.naturalHeight / image.naturalWidth;
+      context.drawImage(image, (VIEW.width - width) / 2, (VIEW.height - height) / 2, width, height);
+    }
+  }
   if (sceneLoadErrors.size) {
     context.fillStyle = '#600'; context.fillRect(0,0,512,32);
     context.fillStyle = '#fff'; context.font = '14px sans-serif';
     context.fillText('画像を読めません: ' + [...sceneLoadErrors].join(', ') + '（assetsを確認）',8,22);
   }
+}
+
+function drawScoreboard(context) {
+  if (match.winner || !(ball.resetTimer || ball.playTicks || match.boardTicks)) return;
+  context.save(); context.fillStyle = '#ffa500'; context.fillRect(176, 344, 160, 72);
+  context.fillStyle = '#fff'; context.textAlign = 'center'; context.font = 'bold 11px sans-serif';
+  context.fillText('YOU', 214, 359); context.fillText('COM', 298, 359);
+  if (match.boardTicks > 0 && referee.text === 'GAME') {
+    for (const [side, x] of [['player', 190], ['cpu', 280]]) {
+      for (let i = 0; i < 3; i++) {
+        context.fillStyle = i < match.games[side] ? '#ff3030' : '#fff';
+        context.beginPath(); context.arc(x + i * 22, 389, 7, 0, Math.PI * 2); context.fill();
+      }
+    }
+  } else {
+    let labels = ['00', '15', '30', '40'];
+    let left = labels[Math.min(3, score.player)], right = labels[Math.min(3, score.cpu)];
+    if (score.player >= 3 && score.cpu >= 3 && score.player !== score.cpu) {
+      left = score.player > score.cpu ? 'AD' : '40'; right = score.cpu > score.player ? 'AD' : '40';
+    }
+    context.font = 'bold 34px sans-serif'; context.fillText(left, 214, 400); context.fillText(right, 298, 400);
+    context.font = 'bold 24px sans-serif'; context.fillText('-', 256, 397);
+  }
+  context.restore();
 }
 
 // 固定更新器。描画60Hz/120Hz/144Hzでも同じ経過時間なら同じ回数更新する。
@@ -1062,7 +1109,15 @@ const player = new SealPlayer(CANVAS_WIDTH / 2 - 8, 180);
 const ball = new Ball();
 const cpu = new CpuPlayer();
 cpu.x = 128; cpu.targetX = 128;
-const clock = new FixedClock(() => { referee.update(); if (match.winner) return; if (!ball.resetTimer) { player.update(input, ball); cpu.update(ball); } ball.update(player, cpu); });
+const clock = new FixedClock(() => {
+  referee.update(); if (match.boardTicks > 0) match.boardTicks--;
+  if (match.winner) return;
+  if (ball.playTicks > 0 && !ball.resetTimer) {
+    input.cancel(); ball.playTicks--; return;
+  }
+  if (!ball.resetTimer) { player.update(input, ball); cpu.update(ball); }
+  ball.update(player, cpu);
+});
 let paused = false;
 function toggleServePractice() {
   practiceMode = practiceMode === 'serve' ? 'rally' : 'serve';
@@ -1106,8 +1161,7 @@ function gameLoop(now) {
   guideButton?.setAttribute('aria-pressed', String(showGuide));
   const modeButton = document.getElementById('serve-mode');
   if (modeButton) modeButton.textContent = practiceMode === 'serve' ? 'CPUサーブへ' : '自分のサーブへ';
-  if (status) status.textContent = paused ? '一時停止：画面に戻ると再開' :
-    `${player.isSwinging ? 'スイング' : player.isPreparing ? '構え' : '待機'} / ${names[player.shotType]}${player.getVolleyFrame() !== null ? ' ' + String(player.getVolleyFrame() + 1).padStart(2, '0') : ''}${activeQuality ? ' / ' + qualityNames[activeQuality] : ''}${player.isDashing ? ' / ダッシュ' : ''} ｜ ${ball.message} ｜ ${match.points()} ｜ GAME ${match.games.player} : ${match.games.cpu} ｜ サーブ ${match.server === 'player' ? 'YOU' : 'CPU'} ｜ ${referee.text || ball.message} ｜ 返球 ${ball.returnCount}${match.winner ? ' ｜ 勝者 ' + (match.winner === 'player' ? 'YOU' : 'CPU') : ''}`;
+  if (status) status.textContent = paused ? '一時停止' : '';
   requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);

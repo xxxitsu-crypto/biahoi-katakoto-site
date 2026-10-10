@@ -136,9 +136,10 @@ const SHOT_PROFILES = {
   float: { ticks: 62, gravity: 0.080 },
   smash: { ticks: 30, gravity: 0.080 },
 };
+function serveAimX(p) { return Math.max(114, Math.min(142, 128 + (128 - (p.x + p.width / 2)) * 0.45)); }
 const SERVE_PROFILES = {
   // 早い打点は速い反面、低い打球になりネットしやすい。
-  serve_fast: { ticks: 36, gravity: 0.110, targetY: 60 },
+  serve_fast: { ticks: 54, gravity: 0.070, targetY: 60 },
   // 少し遅い打点は高く通り、速度は落ちる。
   serve_safe: { ticks: 72, gravity: 0.075, targetY: 60 },
 };
@@ -365,10 +366,13 @@ class SealPlayer {
     }
     this.isSwinging = this.swingTimer > 0;
     if (!this.isSwinging) this.selectShot(ball);
+    const servePositioning = ball.serveWaiting || ball.serving;
+    const serveLocked = servePositioning && ball.servePhase !== 'waiting';
     const previousX = this.x, previousY = this.y;
     // 構え・スイングとは独立して移動する。長押しの自動移動は追加しない。
     let act;
     while ((act = input.popAction())) {
+      if (servePositioning && (serveLocked || act.dir === 'up' || act.dir === 'down')) continue;
       const speed = act.isRhythmJump ? SETTINGS.dashImpulse : SETTINGS.moveImpulse;
       if (act.dir === 'left') this.visualFacing = -1;
       if (act.dir === 'right') this.visualFacing = 1;
@@ -383,6 +387,7 @@ class SealPlayer {
       if (act.dir === 'up') this.vy -= speed * SETTINGS.verticalRatio;
       if (act.dir === 'down') this.vy += speed * SETTINGS.verticalRatio;
     }
+    if (servePositioning) { this.vy=0; if(serveLocked)this.vx=0; }
     this.x += this.vx; this.y += this.vy;
     this.vx *= this.friction; this.vy *= this.friction;
     if (Math.abs(this.vx) < 0.05) this.vx = 0;
@@ -390,6 +395,7 @@ class SealPlayer {
     if (this.vx === 0 && this.vy === 0) this.isDashing = false;
     this.x = Math.max(24, Math.min(CANVAS_WIDTH - 24 - this.width, this.x));
     this.y = Math.max(130, Math.min(218 - this.height, this.y));
+    if (servePositioning) { this.x=Math.max(90,Math.min(150,this.x));this.y=206; }
 
     // キューを使い、1回の更新より短い押す→離すも取りこぼさない。
     for (const event of input.shotQueue.splice(0)) {
@@ -553,13 +559,13 @@ class CpuPlayer {
  }
  // 予測は打ち始めるために使用。実際の返球にはコマ・位置・高さの接触が必要。
  predict(ball) {
-  let x=ball.x,y=ball.y,z=ball.z,vz=ball.vz,bounces=ball.bouncesInCurrentCourt;
+  let x=ball.x,y=ball.y,z=ball.z,vz=ball.vz,bounces=ball.bouncesInCurrentCourt,g=ball.gravity;
   for(let n=1;n<=100;n++) {
-   const oldY=y;x+=ball.vx;y+=ball.vy;z+=vz;vz-=ball.gravity;
+   const oldY=y;x+=ball.vx;y+=ball.vy;z+=vz;vz-=g;
    if(oldY>120&&y<=120)bounces=0;
-   if(z<=0){z=0;vz*=ball.bounce;if(++bounces>=2)break;}
+   if(z<=0){z=0;vz*=ball.bounce;g=SETTINGS.gravity;if(++bounces>=2)break;}
    if(y<30)break;
-   if(y>(ball.rallyHits===0?76:108))continue;
+   if(y>(ball.rallyHits===0?90:108))continue;
    const kinds=z>=24?['overhead','leftShot','rightShot']:['leftShot','rightShot'];
    for(const kind of kinds){
     const windup=kind==='overhead'?8:4;
@@ -582,7 +588,7 @@ class CpuPlayer {
   if(ball.cpuServing){this.moving=false;return;}
   // サーブ準備中は後方で待ち、サーバーの位置から受球位置を合わせる。
   if(ball.serveWaiting||ball.serving){
-   this.targetX=Math.max(60,Math.min(196,256-(player.x+player.width/2)));
+   this.targetX=ball.servePhase==='waiting'?serveAimX(player):ball.serviceTargetX;
    this.targetY=58;
    const dx=this.targetX-this.x,dy=this.targetY-this.y,d=Math.hypot(dx,dy);
    if(d>0.1){const step=Math.min(CPU_SETTINGS.speed,d);this.x+=dx/d*step;this.y+=dy/d*step;}
@@ -790,6 +796,7 @@ class Ball {
     this.message = '1回押すと構え→トス';
   }
   beginServePreparation() {
+    this.serviceTargetX=serveAimX(player);
     this.servePhase = 'preparing';
     this.servePrepareTicks = 12; // 左手に乗った球と構えを0.2秒見せてからトス。
     this.message = '構え';
@@ -838,7 +845,7 @@ class Ball {
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
         const profile = SERVE_PROFILES[serveQuality];
-        this.serviceTargetX=Math.max(60,Math.min(196,256-(player.x+player.width/2)));
+        // サーブの狙いはトス開始前に固定済み。
         this.launch(this.serviceTargetX,102,profile.ticks,profile.gravity);
         this.startService();
         this.message = serveQuality === 'serve_fast' ? '速いサーブネット注意' : '安定サーブ';
@@ -863,7 +870,7 @@ class Ball {
     if (this.resetTimer) {
       if (--this.resetTimer === 0) {
         input.cancel();
-        Object.assign(player, new SealPlayer(128, match.server === 'player' ? 198 : 180));
+        Object.assign(player, new SealPlayer(128, match.server === 'player' ? 206 : 180));
         player.cancelVersion = input.cancelVersion;
         opponent?.reset();
         this.resetServe();
@@ -1072,7 +1079,7 @@ function resetPractice() {
   player.x = 120;
   cpu.x = 128; cpu.targetX = 128;
   if (practiceMode === 'serve') {
-    player.y = 198;
+    player.y = 206;
     player.selectShot(ball);
     ball.updatePlayerServe(player);
   }

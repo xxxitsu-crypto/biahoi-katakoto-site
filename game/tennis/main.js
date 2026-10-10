@@ -96,6 +96,39 @@ for (const kind of ['smash', 'serve']) {
 }
 let practiceMode = 'rally'; // CPUサーブ／プレイヤーサーブの切替。
 const score = { player: 0, cpu: 0 };
+const referee = { text: '', ticks: 0,
+  call(text, ticks = 90) { this.text = text; this.ticks = ticks; },
+  update() { if (this.ticks > 0 && --this.ticks === 0) this.text = ''; },
+  draw(context) {
+    context.fillStyle = '#eee'; context.fillRect(465, 337, 22, 22);
+    context.fillStyle = '#333'; context.fillRect(462, 360, 28, 7);
+    if (!this.text) return;
+    context.font = '16px sans-serif';
+    const width = context.measureText(this.text).width + 16;
+    context.fillStyle = '#10171a'; context.fillRect(Math.max(8, 490 - width), 305, width, 26);
+    context.fillStyle = '#fff'; context.textAlign = 'right';
+    context.fillText(this.text, 482, 324); context.textAlign = 'left';
+  }
+};
+const match = {
+  games: { player: 0, cpu: 0 }, server: 'cpu', faults: 0, winner: null,
+  reset(server = 'cpu') { score.player = score.cpu = 0; this.games.player = this.games.cpu = 0; this.server = server; this.faults = 0; this.winner = null; referee.text = ''; referee.ticks = 0; },
+  award(winner) {
+    if (this.winner) return;
+    score[winner]++; this.faults = 0;
+    const other = winner === 'player' ? 'cpu' : 'player';
+    if (score[winner] >= 4 && score[winner] - score[other] >= 2) {
+      this.games[winner]++; score.player = score.cpu = 0;
+      referee.call('GAME / ' + (winner === 'player' ? 'YOU' : 'CPU'), 150);
+      if (this.games[winner] >= 3) this.winner = winner;
+      else this.server = this.server === 'player' ? 'cpu' : 'player';
+    }
+  },
+  points() {
+    if (score.player >= 3 && score.cpu >= 3) return score.player === score.cpu ? 'デュース' : 'アドバンテージ ' + (score.player > score.cpu ? 'YOU' : 'CPU');
+    const labels = ['0', '15', '30', '40']; return labels[score.player] + ' : ' + labels[score.cpu];
+  }
+};
 const CPU_SETTINGS = { speed: 0.9, reactionTicks: 10, reach: 14, minHeight: 3, maxHeight: 32 };
 const SHOT_PROFILES = {
   normal: { ticks: 48, gravity: 0.090 },    // 通常返球はネットを越えやすい山なり軌道
@@ -105,7 +138,7 @@ const SHOT_PROFILES = {
 };
 const SERVE_PROFILES = {
   // 早い打点は速い反面、低い打球になりネットしやすい。
-  serve_fast: { ticks: 36, gravity: 0.020, targetY: 60 },
+  serve_fast: { ticks: 36, gravity: 0.110, targetY: 60 },
   // 少し遅い打点は高く通り、速度は落ちる。
   serve_safe: { ticks: 72, gravity: 0.075, targetY: 60 },
 };
@@ -567,12 +600,13 @@ class CpuPlayer {
   }
  }
  canHit(ball) {
-  if(!this.isSwinging||this.hasHit||!this.phase()?.quality||ball.lastHitter!=='player'||ball.vy>=0||ball.y>=120)return false;
+  if(ball.servicePending||!this.isSwinging||this.hasHit||!this.phase()?.quality||ball.lastHitter!=='player'||ball.vy>=0||ball.y>=120)return false;
   const r=this.racket();
   return Math.hypot(ball.x-r.x,ball.y-r.y)<r.hitRadius&&Math.abs(ball.z-r.z)<r.hitHeight;
  }
  hit(ball) {
   const quality=this.phase()?.quality;if(!quality||this.hasHit)return;
+  if(referee.text==='・・・'){referee.text='';referee.ticks=0;}
   this.hasHit=true;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
   ball.lastShotQuality=quality;
   ball.recordReturn();
@@ -603,11 +637,12 @@ class CpuPlayer {
    if(Math.hypot(ball.x-r.x,ball.y-r.y)<r.hitRadius&&Math.abs(ball.z-r.z)<r.hitHeight){
     this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
     const profile=SERVE_PROFILES[serveQuality];
-    ball.launch(128+(Math.random()*40-20),176,profile.ticks,profile.gravity);
+    ball.launch(ball.serviceTargetX,144,profile.ticks,profile.gravity);
+    ball.startService();
     ball.message=serveQuality==='serve_fast'?'CPU速いサーブ':'CPU安定サーブ';return;
    }
   }
-  if(ball.z<=0){this.reset();ball.message='CPUサーブやり直し';}
+  if(ball.z<=0)ball.fault();
  }
  draw(context) {
   context.fillStyle='rgba(0,0,0,0.4)';context.fillRect(this.x-8,this.y+1,16,3);
@@ -630,6 +665,9 @@ class CpuPlayer {
 class Ball {
   constructor() { this.returnCount = 0; this.resetServe(); }
   resetServe() {
+    practiceMode = match.server === 'player' ? 'serve' : 'rally';
+    this.servicePending = false; this.netTouched = false;
+    this.serviceTargetX = (score.player + score.cpu) % 2 === 0 ? 88 : 168;
     this.x = CANVAS_WIDTH / 2 + (Math.random() * 24 - 12);
     this.y = 56; this.z = 16;
     this.gravity = SETTINGS.gravity;
@@ -651,6 +689,22 @@ class Ball {
     this.servePrepareTicks = 0;
     this.launch(CANVAS_WIDTH / 2 + (Math.random() * 40 - 20), 176, 58);
   }
+  startService() {
+    this.servicePending = true; this.netTouched = false;
+  }
+  serviceIn() {
+    const left = this.serviceTargetX < 128;
+    return this.x + this.radius >= (left ? 36 : 128) && this.x - this.radius <= (left ? 128 : 220) &&
+      (match.server === 'player' ? this.y + this.radius >= 84 && this.y - this.radius <= 120 : this.y + this.radius >= 120 && this.y - this.radius <= 166);
+  }
+  fault() {
+    if (this.resetTimer) return;
+    this.servicePending = false; this.serveWaiting = this.serving = this.cpuServing = false;
+    match.faults++;
+    const text = match.faults >= 2 ? 'Wフォルト' : 'フォルト';
+    referee.call(text); this.message = text; this.resetTimer = 90;
+    if (match.faults >= 2) match.award(match.server === 'player' ? 'cpu' : 'player');
+  }
   recordReturn() {
     this.rallyHits++;
     this.returnCount = this.rallyHits;
@@ -658,6 +712,7 @@ class Ball {
   launch(targetX, targetY, ticks, gravity = SETTINGS.gravity) {
     this.curve = 0;
     this.curveTicks = 0;
+    this.netTouched = false;
     this.gravity = gravity;
     this.vx = (targetX - this.x) / ticks;
     this.vy = (targetY - this.y) / ticks;
@@ -673,6 +728,7 @@ class Ball {
     return this.lastHitter === 'player' ? y < 120 : y > 120;
   }
   launchFromPlayer(player, racket, quality, counterQuality = quality) {
+    if(referee.text==='・・・'){referee.text='';referee.ticks=0;}
     const contact = Math.max(-1, Math.min(1,
       (this.x - racket.x) / Math.max(1, racket.hitRadius)));
     // ラケット面の打点が左右へずれるほど角度が付き、横移動も狙いに少し加わる。
@@ -709,10 +765,10 @@ class Ball {
     this.launch(targetX, targetY, profile.ticks, Math.max(profile.gravity, clearanceGravity));
     this.curve = curve;
     this.curveTicks = curveTicks;
-    this.message = player.lobShot ? 'ロブ！' : counteringSmash && counterQuality === 'critical' ? 'スマッシュをカウンター！' :
-      counteringSmash && counterQuality === 'float' ? 'スマッシュに押された！' :
-      player.shotType === 'smash' ? 'スマッシュ！' :
-      this.curveTicks ? 'ダッシュカーブ！' : quality === 'critical' ? 'クリティカル！' :
+    this.message = player.lobShot ? 'ロブ' : counteringSmash && counterQuality === 'critical' ? 'スマッシュをカウンター' :
+      counteringSmash && counterQuality === 'float' ? 'スマッシュに押された' :
+      player.shotType === 'smash' ? 'スマッシュ' :
+      this.curveTicks ? 'ダッシュカーブ' : quality === 'critical' ? 'クリティカル' :
       quality === 'float' ? '浮き球' : 'ナイスショット';
   }
   resetPlayerServe() {
@@ -772,35 +828,40 @@ class Ball {
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
         const profile = SERVE_PROFILES[serveQuality];
-        this.launch(128, profile.targetY, profile.ticks, profile.gravity);
-        this.message = serveQuality === 'serve_fast' ? '速いサーブ！ネット注意' : '安定サーブ';
+        this.launch(this.serviceTargetX,102,profile.ticks,profile.gravity);
+        this.startService();
+        this.message = serveQuality === 'serve_fast' ? '速いサーブネット注意' : '安定サーブ';
         return;
       }
     }
     if (this.z <= 0) {
       this.z = 0;
-      this.servePhase = 'miss';
-      this.message = '空振り：構え直し';
+      this.fault();
     }
   }
   endRally(message, winner = null) {
-    if (this.resetTimer) return;
-    if (winner) score[winner]++;
-    this.message = (winner === 'player' ? 'YOU +1：' : winner === 'cpu' ? 'CPU +1：' : '') + message;
-    this.resetTimer = 54;
+    if (this.resetTimer || match.winner) return;
+    this.servicePending = false;
+    this.message = message;
+    referee.call(message + (winner ? ' / ' + (winner === 'player' ? 'YOU' : 'CPU') : ''));
+    if (winner) match.award(winner);
+    this.resetTimer = 90;
   }
   update(player, opponent) {
-    if (this.serveWaiting || this.serving) {
-      this.updatePlayerServe(player);
-      return;
-    }
+    if (match.winner) return;
     if (this.resetTimer) {
       if (--this.resetTimer === 0) {
-        this.resetServe();
+        input.cancel();
+        Object.assign(player, new SealPlayer(128, match.server === 'player' ? 198 : 180));
+        player.cancelVersion = input.cancelVersion;
         opponent?.reset();
+        this.resetServe();
+        player.x = 256 - this.serviceTargetX - 8;
+        if (match.server === 'cpu' && opponent) { opponent.x = 256 - this.serviceTargetX; opponent.targetX = opponent.x; }
       }
       return;
     }
+    if (this.serveWaiting || this.serving) { this.updatePlayerServe(player); return; }
     if (this.cpuServing) { opponent.updateServe(this); return; }
     const oldY = this.y, oldZ = this.z;
     if (this.curveTicks > 0) {
@@ -814,33 +875,40 @@ class Ball {
     if (crossing) {
       const fraction = (120 - oldY) / (this.y - oldY);
       const crossingHeight = oldZ + (this.z - oldZ) * fraction;
-      // ネット上端は高さ12。球の中心ではなく、球の下端が触れるかで判定。
-      if (crossingHeight - this.radius < 12) {
-        this.hitNet = true;
-        this.endRally('ネット！', this.lastHitter === 'player' ? 'cpu' : 'player');
-        return;
+      // 上端に触れた球は減速して続行。低い接触は自分側へ落ちる。
+      if (crossingHeight - this.radius < 12 && !this.netTouched) {
+        this.hitNet = true; this.netTouched = true;
+        referee.call('・・・', 240);
+        this.vx *= 0.65;
+        if (crossingHeight >= 10) { this.vy *= 0.65; this.vz *= 0.55; }
+        else { this.y = oldY < 120 ? 119 : 121; this.vy *= -0.12; this.vz = Math.min(this.vz, 0); }
       }
       this.bouncesInCurrentCourt = 0;
     }
     if (this.z <= 0 && oldZ > 0) {
       this.z = 0;
-      this.vz *= this.bounce;
-      this.gravity = SETTINGS.gravity;
+      if (this.servicePending) {
+        if (!this.serviceIn() || !this.isOnReceiverSide()) { this.fault(); return; }
+        if (this.netTouched) {
+          referee.call('ワンモア'); this.message = 'ワンモア';
+          this.servicePending = false; this.resetTimer = 90; return;
+        }
+        this.servicePending = false; match.faults = 0;
+      }
+      if (this.bouncesInCurrentCourt === 0 && (!this.isInsideCourt() || !this.isOnReceiverSide())) {
+        this.endRally(this.netTouched && !this.isOnReceiverSide() ? 'ネット' : 'アウト', this.lastHitter === 'player' ? 'cpu' : 'player'); return;
+      }
+      if (referee.text === '・・・') { referee.text = ''; referee.ticks = 0; }
+      this.vz *= this.bounce; this.gravity = SETTINGS.gravity;
       this.bouncesInCurrentCourt++;
-      if (!this.isInsideCourt() || !this.isOnReceiverSide()) {
-        this.endRally('アウト！', this.lastHitter === 'player' ? 'cpu' : 'player');
-        return;
-      }
-      if (this.bouncesInCurrentCourt >= 2) {
-        this.endRally('2バウンド / 自動再開', this.y < 120 ? 'player' : 'cpu');
-        return;
-      }
+      if (this.bouncesInCurrentCourt >= 2) { this.endRally('2バウンド', this.lastHitter); return; }
     }
     const quality = player.getHitQuality();
     if (quality && this.lastHitter === 'cpu' && this.y > 120) {
       const r = player.getRacketPosition();
       const distance = Math.hypot(this.x - r.x, this.y - r.y);
       if (distance < r.hitRadius && Math.abs(this.z - r.z) < r.hitHeight) {
+        if (this.servicePending) { this.endRally('サーブはバウンド後', 'cpu'); return; }
         player.hasHit = true;
         const counterQuality = quality;
         const counteringSmash = this.lastShotQuality === 'smash';
@@ -852,12 +920,16 @@ class Ball {
         player.incomingCounterQuality = null;
       }
     }
-    if (opponent?.canHit(this)) opponent.hit(this);
+    if (opponent?.canHit(this)) {
+      if (this.servicePending) { this.endRally('サーブはバウンド後', 'player'); return; }
+      opponent.hit(this);
+    }
     if (this.y > CANVAS_HEIGHT + 10 || this.y < -30 || this.x < -20 || this.x > CANVAS_WIDTH + 20) {
       // ラインのアウト判定は省略。相手側へ抜けた球を取り逃しとして扱う。
       const winner = this.y < 0 ? 'player' : this.y > CANVAS_HEIGHT ? 'cpu' :
         this.lastHitter === 'player' ? 'cpu' : 'player';
-      this.endRally('取り逃し', winner);
+      if (this.servicePending) this.fault();
+      else this.endRally('取り逃し', this.bouncesInCurrentCourt > 0 ? this.lastHitter : (this.lastHitter === 'player' ? 'cpu' : 'player'));
     }
   }
   draw(context) {
@@ -944,6 +1016,7 @@ function drawScene(context) {
   drawProjectedNet(context);
   drawProjected(context,player,player.x+8,player.y+6);
   if(ball.y >= 120) drawProjected(context,ball,ball.x,ball.y);
+  referee.draw(context);
   if (sceneLoadErrors.size) {
     context.fillStyle = '#600'; context.fillRect(0,0,512,32);
     context.fillStyle = '#fff'; context.font = '14px sans-serif';
@@ -970,7 +1043,8 @@ const input = new InputHandler();
 const player = new SealPlayer(CANVAS_WIDTH / 2 - 8, 180);
 const ball = new Ball();
 const cpu = new CpuPlayer();
-const clock = new FixedClock(() => { player.update(input, ball); cpu.update(ball); ball.update(player, cpu); });
+cpu.x = 256 - ball.serviceTargetX; cpu.targetX = cpu.x;
+const clock = new FixedClock(() => { referee.update(); if (match.winner) return; if (!ball.resetTimer) { player.update(input, ball); cpu.update(ball); } ball.update(player, cpu); });
 let paused = false;
 function toggleServePractice() {
   practiceMode = practiceMode === 'serve' ? 'rally' : 'serve';
@@ -980,10 +1054,12 @@ function resetPractice() {
   input.cancel();
   Object.assign(player, new SealPlayer(CANVAS_WIDTH / 2 - 8, 180));
   player.cancelVersion = input.cancelVersion;
-  score.player = score.cpu = 0;
+  match.reset(practiceMode === 'serve' ? 'player' : 'cpu');
   cpu.reset();
   ball.returnCount = 0;
   ball.resetServe();
+  player.x = 256 - ball.serviceTargetX - 8;
+  if (match.server === 'cpu') { cpu.x = 256 - ball.serviceTargetX; cpu.targetX = cpu.x; }
   if (practiceMode === 'serve') {
     player.y = 198;
     player.selectShot(ball);
@@ -1006,14 +1082,14 @@ function gameLoop(now) {
   ctx.imageSmoothingEnabled = false;
   drawScene(ctx);
   const names = { forehand: 'フォア', backhand: 'バック', smash: 'スマッシュ', serve: 'サーブ' };
-  const qualityNames = { normal: '通常打点', critical: 'ジャスト！', float: '浮き球', smash: 'スマッシュ', serve_fast: '速いサーブ', serve_safe: '安定サーブ' };
+  const qualityNames = { normal: '通常打点', critical: 'ジャスト', float: '浮き球', smash: 'スマッシュ', serve_fast: '速いサーブ', serve_safe: '安定サーブ' };
   const activeQuality = player.getHitQuality();
   const guideButton = document.getElementById('guide-toggle');
   guideButton?.setAttribute('aria-pressed', String(showGuide));
   const modeButton = document.getElementById('serve-mode');
   if (modeButton) modeButton.textContent = practiceMode === 'serve' ? 'CPUサーブへ' : '自分のサーブへ';
   if (status) status.textContent = paused ? '一時停止：画面に戻ると再開' :
-    `${player.isSwinging ? 'スイング' : player.isPreparing ? '構え' : '待機'} / ${names[player.shotType]}${player.getVolleyFrame() !== null ? ' ' + String(player.getVolleyFrame() + 1).padStart(2, '0') : ''}${activeQuality ? ' / ' + qualityNames[activeQuality] : ''}${player.isDashing ? ' / ダッシュ' : ''} ｜ ${ball.message} ｜ YOU ${score.player} : ${score.cpu} CPU ｜ 返球 ${ball.returnCount}`;
+    `${player.isSwinging ? 'スイング' : player.isPreparing ? '構え' : '待機'} / ${names[player.shotType]}${player.getVolleyFrame() !== null ? ' ' + String(player.getVolleyFrame() + 1).padStart(2, '0') : ''}${activeQuality ? ' / ' + qualityNames[activeQuality] : ''}${player.isDashing ? ' / ダッシュ' : ''} ｜ ${ball.message} ｜ ${match.points()} ｜ GAME ${match.games.player} : ${match.games.cpu} ｜ サーブ ${match.server === 'player' ? 'YOU' : 'CPU'} ｜ ${referee.text || ball.message} ｜ 返球 ${ball.returnCount}${match.winner ? ' ｜ 勝者 ' + (match.winner === 'player' ? 'YOU' : 'CPU') : ''}`;
   requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);

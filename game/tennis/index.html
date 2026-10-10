@@ -8,7 +8,7 @@
 </head>
 <body>
   <div id="game-container">
-    <p class="version">SEAL TENNIS · 突進型CPU・ロブ版 17</p>
+    <p class="version">SEAL TENNIS · 審判・試合版 18</p>
     <canvas id="gameCanvas" width="512" height="640"></canvas>
     
     <p id="status" role="status">読み込み中</p>
@@ -23,7 +23,7 @@
       <p>ラリー：ショットを押し続けて構え、打点に合わせて離します。タメ中に下を押した瞬間にロブを打ちます（下移動はしません）。左右・上はタメ中も移動できます。</p>
       <p>サーブ：ショットを1回押す → 構え・トス → もう一度押すと打つ。</p>
       <p>PC：矢印で移動／Z・Spaceでショット／Rでやり直し／Sでサーブ切替／Dでガイド。</p>
-      <p class="note">簡易対戦：ネット・アウト・2バウンドで1点。セット形式の試合は未実装。</p>
+      <p class="note">試合：3ゲーム先取。0・15・30・40、本来のデュース（2点差でGAME）。サーブはゲームごとに交代し、対角線のサービス枠へ。フォルト2回でWフォルト。ネットに触れて枠へ入ったサーブはワンモア。サーブは1バウンド後に返します。</p>
     </details>
     <!-- コートと操作領域を分離。縦持ちは下、横持ちは左右へ配置。 -->
     <div id="virtual-controller">
@@ -41,7 +41,7 @@
     </div>
   </div>
 
-  <script defer src="main.js?v=20261010-lob-17"></script>
+  <script defer src="main.js?v=20261010-umpire-18"></script>
 </body>
 </html>
 

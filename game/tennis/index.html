@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SEAL TENNIS</title>
-  <link rel="stylesheet" href="style.css?v=20261010-fit-22">
+  <link rel="stylesheet" href="style.css?v=20261010-stage-23">
 </head>
 <body>
   <div id="game-container">
-    <p class="version">SEAL TENNIS · 画面自動調整版 22</p>
+    <p class="version">SEAL TENNIS · ゲーム画面優先版 23</p>
     <canvas id="gameCanvas" width="512" height="640"></canvas>
     
     <p id="status" role="status">読み込み中</p>
@@ -41,33 +41,6 @@
     </div>
   </div>
 
-  <script>
-    // 表示サイズだけを調整し、canvas内部の512×640は維持する。
-    window.addEventListener('DOMContentLoaded', () => {
-      const container = document.getElementById('game-container');
-      const canvas = document.getElementById('gameCanvas');
-      const controls = [document.querySelector('.version'), document.getElementById('status'), document.querySelector('.toolbar'), document.querySelector('.instructions summary')];
-      let pending = false;
-      function fit() {
-        pending = false;
-        if (window.matchMedia('(any-pointer: coarse), (max-width: 600px)').matches) {
-          canvas.style.removeProperty('--game-fit-width'); return;
-        }
-        const style = getComputedStyle(container);
-        const padding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-        const gaps = parseFloat(style.rowGap) * 4;
-        const remainingHeight = window.innerHeight - padding - gaps - controls.reduce((sum, el) => sum + el.getBoundingClientRect().height, 0) - 12;
-        const width = Math.max(64, Math.floor((remainingHeight - 4) * 0.8 + 4));
-        const value = width + 'px';
-        if (canvas.style.getPropertyValue('--game-fit-width') !== value) canvas.style.setProperty('--game-fit-width', value);
-      }
-      function schedule() { if (!pending) { pending = true; requestAnimationFrame(fit); } }
-      window.addEventListener('resize', schedule);
-      const observer = new ResizeObserver(schedule);
-      controls.forEach(el => observer.observe(el));
-      fit();
-    });
-  </script>
   <script defer src="main.js?v=20261010-serve-20"></script>
 </body>
 </html>

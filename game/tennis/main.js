@@ -559,7 +559,7 @@ class CpuPlayer {
    if(oldY>120&&y<=120)bounces=0;
    if(z<=0){z=0;vz*=ball.bounce;if(++bounces>=2)break;}
    if(y<30)break;
-   if(y>108)continue;
+   if(y>(ball.rallyHits===0?76:108))continue;
    const kinds=z>=24?['overhead','leftShot','rightShot']:['leftShot','rightShot'];
    for(const kind of kinds){
     const windup=kind==='overhead'?8:4;
@@ -580,14 +580,24 @@ class CpuPlayer {
   if(this.dashCooldown>0)this.dashCooldown--;
   if(ball.resetTimer){this.moving=false;return;}
   if(ball.cpuServing){this.moving=false;return;}
+  // サーブ準備中は後方で待ち、サーバーの位置から受球位置を合わせる。
+  if(ball.serveWaiting||ball.serving){
+   this.targetX=Math.max(60,Math.min(196,256-(player.x+player.width/2)));
+   this.targetY=58;
+   const dx=this.targetX-this.x,dy=this.targetY-this.y,d=Math.hypot(dx,dy);
+   if(d>0.1){const step=Math.min(CPU_SETTINGS.speed,d);this.x+=dx/d*step;this.y+=dy/d*step;}
+   this.moving=d>0.1;if(Math.abs(dx)>0.1)this.visualFacing=Math.sign(dx);
+   this.animationTick=this.moving?this.animationTick+1:0;
+   return;
+  }
   const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
   if(incoming&&!this.isSwinging){
    if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=6;this.plan=null;}
    if(this.reactionTimer>0)this.reactionTimer--;
    else this.plan=this.predict(ball);
    if(this.plan){this.targetX=this.plan.x;this.targetY=this.plan.y;}
-   else {this.targetX=Math.max(24,Math.min(232,ball.x));this.targetY=100;}
-  }else if(!this.isSwinging||this.hasHit){this.targetX=Math.max(36,Math.min(220,ball.x));this.targetY=100;}
+   else {this.targetX=Math.max(24,Math.min(232,ball.x));this.targetY=ball.rallyHits===0?58:100;}
+  }else if(!this.isSwinging||this.hasHit){this.targetX=ball.rallyHits===0?128:Math.max(36,Math.min(220,ball.x));this.targetY=ball.rallyHits===0?58:100;}
   const dx=this.targetX-this.x,dy=this.targetY-this.y,distance=Math.hypot(dx,dy);
   if(incoming&&distance>38&&!this.dashCooldown&&!this.isSwinging){this.dashTimer=18;this.dashCooldown=100;}
   const speed=(this.dashTimer?1.3:CPU_SETTINGS.speed)*(dy<0?0.65:1)*(this.fatigueShots>0?0.7:1);
@@ -667,7 +677,7 @@ class Ball {
   resetServe() {
     practiceMode = match.server === 'player' ? 'serve' : 'rally';
     this.servicePending = false; this.netTouched = false;
-    this.serviceTargetX = (score.player + score.cpu) % 2 === 0 ? 88 : 168;
+    this.serviceTargetX = 128;
     this.x = CANVAS_WIDTH / 2 + (Math.random() * 24 - 12);
     this.y = 56; this.z = 16;
     this.gravity = SETTINGS.gravity;
@@ -828,6 +838,7 @@ class Ball {
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
         const profile = SERVE_PROFILES[serveQuality];
+        this.serviceTargetX=Math.max(60,Math.min(196,256-(player.x+player.width/2)));
         this.launch(this.serviceTargetX,102,profile.ticks,profile.gravity);
         this.startService();
         this.message = serveQuality === 'serve_fast' ? '速いサーブネット注意' : '安定サーブ';
@@ -856,8 +867,8 @@ class Ball {
         player.cancelVersion = input.cancelVersion;
         opponent?.reset();
         this.resetServe();
-        player.x = 256 - this.serviceTargetX - 8;
-        if (match.server === 'cpu' && opponent) { opponent.x = 256 - this.serviceTargetX; opponent.targetX = opponent.x; }
+        player.x = 120;
+        if (opponent) { opponent.x=128;opponent.targetX=128; }
       }
       return;
     }
@@ -1043,7 +1054,7 @@ const input = new InputHandler();
 const player = new SealPlayer(CANVAS_WIDTH / 2 - 8, 180);
 const ball = new Ball();
 const cpu = new CpuPlayer();
-cpu.x = 256 - ball.serviceTargetX; cpu.targetX = cpu.x;
+cpu.x = 128; cpu.targetX = 128;
 const clock = new FixedClock(() => { referee.update(); if (match.winner) return; if (!ball.resetTimer) { player.update(input, ball); cpu.update(ball); } ball.update(player, cpu); });
 let paused = false;
 function toggleServePractice() {
@@ -1058,8 +1069,8 @@ function resetPractice() {
   cpu.reset();
   ball.returnCount = 0;
   ball.resetServe();
-  player.x = 256 - ball.serviceTargetX - 8;
-  if (match.server === 'cpu') { cpu.x = 256 - ball.serviceTargetX; cpu.targetX = cpu.x; }
+  player.x = 120;
+  cpu.x = 128; cpu.targetX = 128;
   if (practiceMode === 'serve') {
     player.y = 198;
     player.selectShot(ball);

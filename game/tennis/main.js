@@ -22,6 +22,68 @@ const SETTINGS = {
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const status = document.getElementById('status');
+
+// 短い効果音を端末内で合成。初回のユーザー操作で音声を有効化する。
+const sound = {
+  enabled: true, context: null, master: null, noise: null,
+  unlock() {
+    if (!this.enabled) return;
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return;
+      if (!this.context) {
+        this.context = new Audio();
+        this.master = this.context.createGain();
+        this.master.gain.value = 0.35;
+        this.master.connect(this.context.destination);
+        this.noise = this.context.createBuffer(1, Math.ceil(this.context.sampleRate * 0.15), this.context.sampleRate);
+        const data = this.noise.getChannelData(0);
+        // ゲームの乱数に影響しない固定のノイズ。
+        let seed = 12345;
+        for (let i = 0; i < data.length; i++) {
+          seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+          data[i] = seed / 2147483648 - 1;
+        }
+      }
+      if (this.context.state === 'suspended') this.context.resume().catch(() => {});
+    } catch (_) { /* 音声非対応でもゲームは続行する。 */ }
+  },
+  play(kind) {
+    if (!this.enabled || !this.context || this.context.state !== 'running' || document.hidden) return;
+    try {
+      const audio = this.context, now = audio.currentTime;
+      const duration = kind === 'net' ? 0.12 : kind === 'hit' ? 0.075 : 0.09;
+      const gain = audio.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(kind === 'net' ? 0.30 : 0.22, now + 0.003);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      gain.connect(this.master);
+      let source, filter;
+      if (kind === 'net') {
+        source = audio.createBufferSource(); source.buffer = this.noise;
+        filter = audio.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 850;
+        source.connect(filter); filter.connect(gain);
+      } else {
+        source = audio.createOscillator(); source.type = kind === 'hit' ? 'square' : 'triangle';
+        source.frequency.setValueAtTime(kind === 'hit' ? 760 : 240, now);
+        source.frequency.exponentialRampToValueAtTime(kind === 'hit' ? 330 : 95, now + duration);
+        source.connect(gain);
+      }
+      source.onended = () => { source.disconnect(); filter?.disconnect(); gain.disconnect(); };
+      source.start(now); source.stop(now + duration + 0.01);
+    } catch (_) { /* 音声の失敗でラリーを止めない。 */ }
+  },
+  toggle() {
+    this.enabled = !this.enabled;
+    if (this.master) this.master.gain.setValueAtTime(this.enabled ? 0.35 : 0, this.context.currentTime);
+    if (this.enabled) this.unlock();
+    const button = document.getElementById('sound-toggle');
+    if (button) { button.textContent = this.enabled ? '音：オン' : '音：オフ'; button.setAttribute('aria-pressed', String(this.enabled)); }
+  }
+};
+window.addEventListener('pointerdown', () => sound.unlock(), { capture: true });
+window.addEventListener('keydown', () => sound.unlock(), { capture: true });
+
 const sealImage = new Image();
 sealImage.src = 'assets/move_01.png';
 // コマ寸法は提供データの実寸。画像は加工・反転せず読み込む。
@@ -636,6 +698,7 @@ class CpuPlayer {
  hit(ball) {
   const quality=this.phase()?.quality;if(!quality||this.hasHit)return;
   if(referee.text==='・・・'){referee.text='';referee.ticks=0;}
+  sound.play('hit');
   this.hasHit=true;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
   ball.lastShotQuality=quality;
   ball.recordReturn();
@@ -720,6 +783,7 @@ class Ball {
     this.playTicks = 75; referee.call('プレイッ', 75);
   }
   startService() {
+    sound.play('hit');
     this.servicePending = true; this.netTouched = false;
   }
   serviceIn() {
@@ -758,6 +822,7 @@ class Ball {
     return this.lastHitter === 'player' ? y < 120 : y > 120;
   }
   launchFromPlayer(player, racket, quality, counterQuality = quality) {
+    sound.play('hit');
     if(referee.text==='・・・'){referee.text='';referee.ticks=0;}
     const contact = Math.max(-1, Math.min(1,
       (this.x - racket.x) / Math.max(1, racket.hitRadius)));
@@ -911,6 +976,7 @@ class Ball {
       // 上端に触れた球は減速して続行。低い接触は自分側へ落ちる。
       if (crossingHeight - this.radius < 12 && !this.netTouched) {
         this.hitNet = true; this.netTouched = true;
+        sound.play('net');
         // ネット接触は最終判定だけ宣言する。
         this.vx *= 0.65;
         if (crossingHeight >= 10) { this.vy *= 0.65; this.vz *= 0.55; }
@@ -919,6 +985,7 @@ class Ball {
       this.bouncesInCurrentCourt = 0;
     }
     if (this.z <= 0 && oldZ > 0) {
+      sound.play('bounce');
       this.z = 0;
       if (this.servicePending) {
         if (!this.serviceIn() || !this.isOnReceiverSide()) { this.fault(); return; }
@@ -1146,6 +1213,7 @@ document.addEventListener('visibilitychange', () => {
   paused = document.hidden || !document.hasFocus();
   clock.reset();
 });
+document.getElementById('sound-toggle')?.addEventListener('click', () => sound.toggle());
 document.getElementById('restart')?.addEventListener('click', resetPractice);
 document.getElementById('serve-mode')?.addEventListener('click', toggleServePractice);
 document.getElementById('guide-toggle')?.addEventListener('click', () => { showGuide = !showGuide; });

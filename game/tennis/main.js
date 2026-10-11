@@ -158,6 +158,21 @@ for (const kind of ['smash', 'serve']) {
 }
 let practiceMode = 'rally'; // CPUサーブ／プレイヤーサーブの切替。
 const score = { player: 0, cpu: 0 };
+const openingImages = {};
+for (const [key, file] of Object.entries({ background: 'openning.png', logo: 'logo.png' })) {
+  const image = new Image(); image.src = `assets/${file}`; openingImages[key] = image;
+}
+const screen = { phase: 'title', ticks: 0 };
+function drawOpening(context, now) {
+  context.fillStyle = '#00cde4'; context.fillRect(0, 0, 512, 640);
+  if (imageReady(openingImages.background)) context.drawImage(openingImages.background, 0, 0, 512, 640);
+  if (imageReady(openingImages.logo)) context.drawImage(openingImages.logo, 53, 39, 406, 143);
+  if (Math.floor(now / 650) % 2 === 0) {
+    context.save(); context.fillStyle = '#fff'; context.textAlign = 'center';
+    context.font = 'bold italic 26px Georgia, serif';
+    context.fillText('push to play', 256, 228); context.restore();
+  }
+}
 const judgeImages = {};
 for (const [key, file] of Object.entries({ referee: 'sinpan.png', bubble: 'fukidasi.png', win: 'WIN.png', lose: 'gameover.png' })) {
   const image = new Image(); image.src = `assets/${file}`; judgeImages[key] = image;
@@ -1177,6 +1192,13 @@ const ball = new Ball();
 const cpu = new CpuPlayer();
 cpu.x = 128; cpu.targetX = 128;
 const clock = new FixedClock(() => {
+  if (screen.phase === 'title') { input.cancel(); return; }
+  if (screen.phase === 'starting') {
+    input.cancel(); referee.update(); screen.ticks--;
+    if (screen.ticks === 60) referee.call('プレイッ', 60);
+    if (screen.ticks === 0) { screen.phase = 'playing'; referee.text = ''; referee.ticks = 0; }
+    return;
+  }
   referee.update(); if (match.boardTicks > 0) match.boardTicks--;
   if (match.winner) return;
   if (ball.playTicks > 0 && !ball.resetTimer) {
@@ -1191,6 +1213,8 @@ function toggleServePractice() {
   resetPractice();
 }
 function resetPractice() {
+  screen.phase = 'starting'; screen.ticks = 120;
+  document.getElementById('game-container').dataset.screen = 'playing';
   input.cancel();
   Object.assign(player, new SealPlayer(CANVAS_WIDTH / 2 - 8, 180));
   player.cancelVersion = input.cancelVersion;
@@ -1205,8 +1229,22 @@ function resetPractice() {
     player.selectShot(ball);
     ball.updatePlayerServe(player);
   }
+  ball.playTicks = 0; match.boardTicks = 0; referee.text = ''; referee.ticks = 0;
   clock.reset();
 }
+function startOpening() {
+  if (screen.phase !== 'title') return;
+  sound.unlock(); resetPractice();
+  canvas.removeAttribute('role'); canvas.setAttribute('aria-label', 'アザラシテニス');
+}
+canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'push to play'); canvas.tabIndex = 0;
+canvas.addEventListener('click', startOpening);
+document.getElementById('btn-action')?.addEventListener('click', startOpening);
+window.addEventListener('keydown', event => {
+  if (screen.phase === 'title' && ['Enter', 'Space', 'KeyZ'].includes(event.code)) {
+    event.preventDefault(); event.stopImmediatePropagation(); startOpening();
+  }
+}, { capture: true });
 window.addEventListener('blur', () => { paused = true; clock.reset(); });
 window.addEventListener('focus', () => { paused = document.hidden; clock.reset(); });
 document.addEventListener('visibilitychange', () => {
@@ -1221,7 +1259,7 @@ window.addEventListener('pagehide', () => { input.cancel(); clock.reset(); });
 function gameLoop(now) {
   if (!paused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
-  drawScene(ctx);
+  if (screen.phase === 'title') drawOpening(ctx, now); else drawScene(ctx);
   const names = { forehand: 'フォア', backhand: 'バック', smash: 'スマッシュ', serve: 'サーブ' };
   const qualityNames = { normal: '通常打点', critical: 'ジャスト', float: '浮き球', smash: 'スマッシュ', serve_fast: '速いサーブ', serve_safe: '安定サーブ' };
   const activeQuality = player.getHitQuality();

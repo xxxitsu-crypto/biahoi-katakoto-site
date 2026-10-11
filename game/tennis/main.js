@@ -73,6 +73,28 @@ const sound = {
       source.start(now); source.stop(now + duration + 0.01);
     } catch (_) { /* 音声の失敗でラリーを止めない。 */ }
   },
+  tune(kind) {
+    if (!this.enabled || !this.context || this.context.state !== 'running' || document.hidden) return;
+    const songs = {
+      start: [[659,.10],[784,.10],[988,.10],[784,.10],[1047,.42]],
+      in: [[784,.09],[1047,.30]],
+      sad: [[659,.10],[494,.12],[330,.30]],
+      win: [[523,.12],[659,.12],[784,.16],[1047,.50]],
+      lose: [[494,.20],[440,.20],[392,.24],[262,.55]]
+    };
+    try {
+      const audio = this.context; let when = audio.currentTime;
+      for (const [frequency, duration] of songs[kind] || []) {
+        const source = audio.createOscillator(), gain = audio.createGain();
+        source.type = 'square'; source.frequency.setValueAtTime(frequency, when);
+        gain.gain.setValueAtTime(0, when); gain.gain.linearRampToValueAtTime(.16, when + .005);
+        gain.gain.exponentialRampToValueAtTime(.0001, when + duration);
+        source.connect(gain); gain.connect(this.master);
+        source.onended = () => { source.disconnect(); gain.disconnect(); };
+        source.start(when); source.stop(when + duration + .005); when += duration + .025;
+      }
+    } catch (_) { /* 音声の失敗でゲーム進行を止めない。 */ }
+  },
   toggle() {
     this.enabled = !this.enabled;
     if (this.master) this.master.gain.setValueAtTime(this.enabled ? 0.35 : 0, this.context.currentTime);
@@ -167,7 +189,7 @@ function drawOpening(context, now) {
   context.fillStyle = '#00cde4'; context.fillRect(0, 0, 512, 640);
   if (imageReady(openingImages.background)) context.drawImage(openingImages.background, 0, 0, 512, 640);
   if (imageReady(openingImages.logo)) context.drawImage(openingImages.logo, 53, 39, 406, 143);
-  if (Math.floor(now / 650) % 2 === 0) {
+  if (Math.floor(now / (screen.phase === 'confirming' ? 80 : 650)) % 2 === 0) {
     context.save(); context.fillStyle = '#fff'; context.textAlign = 'center';
     context.font = 'bold italic 26px Georgia, serif';
     context.fillText('push to play', 256, 228); context.restore();
@@ -210,7 +232,7 @@ const match = {
     if (score[winner] >= 4 && score[winner] - score[other] >= 2) {
       this.games[winner]++; score.player = score.cpu = 0;
       referee.call('GAME', 150); this.boardTicks = 150;
-      if (this.games[winner] >= 3) this.winner = winner;
+      if (this.games[winner] >= 3) { this.winner = winner; sound.tune(winner === 'player' ? 'win' : 'lose'); }
       else this.server = this.server === 'player' ? 'cpu' : 'player';
     }
   },
@@ -813,6 +835,7 @@ class Ball {
     const text = match.faults >= 2 ? 'Wフォルト' : 'フォルト';
     referee.call(text); this.message = text; this.resetTimer = 90;
     if (match.faults >= 2) match.award(match.server === 'player' ? 'cpu' : 'player');
+    if (!match.winner) sound.tune('sad');
   }
   recordReturn() {
     this.rallyHits++;
@@ -957,6 +980,7 @@ class Ball {
     this.message = message;
     referee.call(['取り逃し', '2バウンド'].includes(message) ? 'インッ' : 'アウト');
     if (winner) match.award(winner);
+    if (!match.winner && (!this.netTouched || ['取り逃し', '2バウンド'].includes(message))) sound.tune(['取り逃し', '2バウンド'].includes(message) ? 'in' : 'sad');
     this.resetTimer = Math.max(90, match.boardTicks);
   }
   update(player, opponent) {
@@ -991,7 +1015,7 @@ class Ball {
       // 上端に触れた球は減速して続行。低い接触は自分側へ落ちる。
       if (crossingHeight - this.radius < 12 && !this.netTouched) {
         this.hitNet = true; this.netTouched = true;
-        sound.play('net');
+        sound.tune('sad');
         // ネット接触は最終判定だけ宣言する。
         this.vx *= 0.65;
         if (crossingHeight >= 10) { this.vy *= 0.65; this.vz *= 0.55; }
@@ -1193,6 +1217,9 @@ const cpu = new CpuPlayer();
 cpu.x = 128; cpu.targetX = 128;
 const clock = new FixedClock(() => {
   if (screen.phase === 'title') { input.cancel(); return; }
+  if (screen.phase === 'confirming') {
+    input.cancel(); if (--screen.ticks === 0) resetPractice(); return;
+  }
   if (screen.phase === 'starting') {
     input.cancel(); referee.update(); screen.ticks--;
     if (screen.ticks === 60) referee.call('プレイッ', 60);
@@ -1234,7 +1261,8 @@ function resetPractice() {
 }
 function startOpening() {
   if (screen.phase !== 'title') return;
-  sound.unlock(); resetPractice();
+  sound.unlock(); sound.tune('start');
+  screen.phase = 'confirming'; screen.ticks = 72;
   canvas.removeAttribute('role'); canvas.setAttribute('aria-label', 'アザラシテニス');
 }
 canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'push to play'); canvas.tabIndex = 0;
@@ -1259,7 +1287,7 @@ window.addEventListener('pagehide', () => { input.cancel(); clock.reset(); });
 function gameLoop(now) {
   if (!paused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
-  if (screen.phase === 'title') drawOpening(ctx, now); else drawScene(ctx);
+  if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else drawScene(ctx);
   const names = { forehand: 'フォア', backhand: 'バック', smash: 'スマッシュ', serve: 'サーブ' };
   const qualityNames = { normal: '通常打点', critical: 'ジャスト', float: '浮き球', smash: 'スマッシュ', serve_fast: '速いサーブ', serve_safe: '安定サーブ' };
   const activeQuality = player.getHitQuality();

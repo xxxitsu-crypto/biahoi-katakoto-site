@@ -186,6 +186,24 @@ for (const [key, file] of Object.entries({ background: 'openning.png', logo: 'lo
   const image = new Image(); image.src = `assets/${file}`; openingImages[key] = image;
 }
 const screen = { phase: 'title', ticks: 0 };
+const stageIntros = [null,...[1,2,3].map((stage)=>{
+ const card=new Image();card.src=`assets/intro-stage${stage}.png`;
+ const portrait=new Image();portrait.src=`assets/intro-${['cha','ich','erin'][stage-1]}.png`;
+ return{card,portrait};
+})];
+function drawStageIntro(context){
+ const intro=stageIntros[campaign.stage];
+ context.fillStyle='#252525';context.fillRect(0,0,512,640);
+ // 見本の文字をそのまま使い、元のキャラクター素材を同じ位置へ配置。
+ if(imageReady(intro.card))context.drawImage(intro.card,0,0,512,640);
+ if(imageReady(intro.portrait))context.drawImage(intro.portrait,78,247,115,147);
+}
+function beginStageIntro(){
+ input.cancel();screen.phase='intro';screen.ticks=60;
+ document.getElementById('game-container').dataset.screen='intro';
+ const select=document.getElementById('stage-select');if(select)select.hidden=true;
+ canvas.setAttribute('aria-label','ステージ'+campaign.stage+' キャラクター紹介');
+}
 function drawOpening(context, now) {
   context.fillStyle = '#00cde4'; context.fillRect(0, 0, 512, 640);
   if (imageReady(openingImages.background)) context.drawImage(openingImages.background, 0, 0, 512, 640);
@@ -924,13 +942,13 @@ function launchOverNet(ball,x,y,ticks,gravity=.06){
 }
 class ErinPlayer extends BoyPlayer {
  shots(){return ERIN_SHOTS;}
- reset(){super.reset();this.superUsed=false;this.lastMoveY=46;}
+ reset(){super.reset();this.superUsed=false;this.lastMoveY=46;this.smashRecovery=0;this.lobCooldown=0;}
  racket(kind=this.shotKind,frame=this.phase()?.frame??0){
   const c=this.shots()[kind],[x,y]=c.centers[frame],[ax,ay]=c.anchor,scale=32/71;
   return{x:this.x+(x-ax)*scale,y:this.y,z:Math.max(2,(ay-y)*scale),radiusX:7,radiusY:7,hitRadius:36,hitHeight:26};
  }
  canHit(ball){
-  if(ball.guaranteedWinner||ball.servicePending||ball.lastHitter!=='player'||ball.vy>=0)return false;
+  if(ball.guaranteedWinner||ball.erinRecoveryMiss||ball.servicePending||ball.lastHitter!=='player'||ball.vy>=0)return false;
   if(CpuPlayer.prototype.canHit.call(this,ball))return true;
   // 中央・左右とも、届く球は振り終わりでも次のスイングへつなげる。
   // サーブのバウンド前、コート外、必殺技の確定カウンターは対象外。
@@ -965,7 +983,7 @@ class ErinPlayer extends BoyPlayer {
   this.lastMoveY=this.y;
   if(this.isSwinging){this.swingElapsed++;if(!this.phase())this.isSwinging=false;}
   if(ball.resetTimer||ball.cpuServing){this.moving=false;return;}
-  const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting&&!ball.guaranteedWinner;
+  const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting&&!ball.guaranteedWinner&&!ball.erinRecoveryMiss;
   if(ball.serveWaiting||ball.serving){
    this.targetX=ball.servePhase==='waiting'?serveAimX(player):ball.serviceTargetX;this.targetY=58;
   }else if(incoming){
@@ -986,22 +1004,30 @@ class ErinPlayer extends BoyPlayer {
  hit(ball){
   const quality=this.phase()?.quality;if(!quality||this.hasHit)return;
   const serveReturn=ball.rallyHits===0&&match.server==='player';
+  const curveReturn=ball.wasCurveShot===true||ball.erinOpeningSmash===true;
   const punishFloat=ball.lastShotQuality==='float';
+  const recovering=this.smashRecovery>0,canLob=this.lobCooldown===0;
+  if(this.smashRecovery>0)this.smashRecovery--;
+  if(this.lobCooldown>0)this.lobCooldown--;
   this.hasHit=true;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;ball.recordReturn();sound.play('hit');
   const targetX=Math.max(42,Math.min(214,player.x+player.width/2));
-  if(ball.rallyHits>=20&&!this.superUsed){
+  if(curveReturn){
+   // 曲がり終わった後もカーブだったことを覚え、必ずチャンスの浮き玉を返す。
+   launchOverNet(ball,128,174,72,.08);ball.lastShotQuality='float';ball.erinSmashOpening=true;ball.nextBounceMaxVz=2;
+  }else if(ball.rallyHits>=20&&!this.superUsed){
    this.superUsed=true;this.shotKind='overhead';this.swingElapsed=21;ball.z=Math.max(ball.z,this.racket('overhead',4).z);
    this.launchShot(ball,targetX,176,24,.10);ball.erinSuper=true;ball.bodyAim=true;ball.lastShotQuality='smash';
   }else if(serveReturn){
-   // 最初の受けは足元へ届く穏やかな球。バウンド後の上昇速度も制限する。
    launchOverNet(ball,128,166,60,.045);ball.nextBounceMaxVz=1.45;ball.lastShotQuality='normal';
-  }else if(punishFloat){
-   this.shotKind='overhead';this.swingElapsed=21;ball.z=Math.max(ball.z,this.racket('overhead',4).z);
+  }else if(punishFloat&&!recovering){
+   this.smashRecovery=1;this.shotKind='overhead';this.swingElapsed=21;ball.z=Math.max(ball.z,this.racket('overhead',4).z);
    this.launchShot(ball,targetX,176,36,.08);ball.bodyAim=true;ball.lastShotQuality='smash';
-  }else if(player.y<160){
-   this.launchShot(ball,targetX,199,88,.095);ball.lastShotQuality='lob';
+  }else if(player.y<145&&canLob&&!recovering){
+   this.lobCooldown=2;
+   const inCourt=Math.random()<.70;
+   this.launchShot(ball,targetX,inCourt?199:222,88,.095);ball.lastShotQuality='lob';
   }else{
-   this.launchShot(ball,128+(ball.rallyHits%2?18:-18),176,54,.06);ball.lastShotQuality='normal';
+   this.launchShot(ball,128+(ball.rallyHits%2?18:-18),176,54,.06);ball.lastShotQuality='normal';ball.nextBounceMaxVz=2;
   }
  }
  updateServe(ball){
@@ -1010,7 +1036,7 @@ class ErinPlayer extends BoyPlayer {
   ball.z+=ball.vz;ball.vz-=ball.gravity;if(this.serveAge===40)this.startSwing('overhead');
   if(this.isSwinging&&!this.hasHit&&this.phase()?.frame===4){
    const r=this.racket();Object.assign(ball,{x:r.x,y:r.y,z:r.z});this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
-   ball.serviceTargetX=128;this.launchShot(ball,128,144,90,.035);ball.nextBounceFactor=.72;ball.startService();return;
+   ball.serviceTargetX=128;launchOverNet(ball,128,150,45,.14);ball.nextBounceFactor=.65;ball.nextBounceMaxVz=1.6;ball.startService();return;
   }
   if(ball.z<=0)ball.fault();
  }
@@ -1078,7 +1104,7 @@ class Ball {
     this.returnCount = this.rallyHits;
   }
   launch(targetX, targetY, ticks, gravity = SETTINGS.gravity) {
-    this.nextBounceFactor = null; this.nextBounceMaxVz=null; this.erinSuper=false; this.bodyAim=false; this.guaranteedWinner=null;
+    this.nextBounceFactor = null; this.nextBounceMaxVz=null; this.wasCurveShot=false;this.erinSmashOpening=false;this.erinOpeningSmash=false;this.erinRecoveryMiss=false; this.erinSuper=false; this.bodyAim=false; this.guaranteedWinner=null;
     this.curve = 0;
     this.curveTicks = 0;
     this.netTouched = false;
@@ -1137,6 +1163,7 @@ class Ball {
     else this.launch(targetX, targetY, profile.ticks, Math.max(profile.gravity, clearanceGravity));
     this.curve = curve;
     this.curveTicks = curveTicks;
+    this.wasCurveShot=curveTicks>0;
     this.message = player.lobShot ? 'ロブ' : counteringSmash && counterQuality === 'critical' ? 'スマッシュをカウンター' :
       counteringSmash && counterQuality === 'float' ? 'スマッシュに押された' :
       player.shotType === 'smash' ? 'スマッシュ' :
@@ -1296,6 +1323,7 @@ class Ball {
       const radiusScale=lobAssist?1.6:1,heightScale=lobAssist?1.7:1;
       if (distance < r.hitRadius*radiusScale && Math.abs(this.z - r.z) < r.hitHeight*heightScale) {
         const superCounter=this.erinSuper;
+        const openingSmash=campaign.stage===3&&this.erinSmashOpening&&quality==='smash'&&!player.lobShot;
         if (this.servicePending) { this.endRally('サーブはバウンド後', 'cpu'); return; }
         player.hasHit = true;
         // 狙い撃ちスマッシュは芯とタイミングの両方が必要。ロブなら広く拾える。
@@ -1307,6 +1335,10 @@ class Ball {
         player.incomingWasSmash = counteringSmash;
         this.launchFromPlayer(player, r, counterQuality, counterQuality);
         if(superCounter){launchOverNet(this,128,58,40,.13);this.guaranteedWinner='player';}
+        else if(openingSmash){
+          const miss=Math.random()<.30;
+          launchOverNet(this,128,58,30,.16);this.erinRecoveryMiss=miss;this.erinOpeningSmash=true;
+        }
         player.incomingWasSmash = false;
         player.incomingCounterQuality = null;
       }
@@ -1503,8 +1535,9 @@ cpu.x = 128; cpu.targetX = 128;
 const clock = new FixedClock(() => {
   if (screen.phase === 'title') { input.cancel(); return; }
   if (screen.phase === 'confirming') {
-    input.cancel(); if (--screen.ticks === 0) resetPractice(); return;
+    input.cancel(); if (--screen.ticks === 0) beginStageIntro(); return;
   }
+  if(screen.phase==='intro'){input.cancel();if(--screen.ticks===0){resetPractice();canvas.setAttribute('aria-label','アザラシテニス');}return;}
   if (screen.phase === 'starting') {
     input.cancel(); referee.update(); screen.ticks--;
     if (screen.ticks === 60) referee.call('プレイッ', 60);
@@ -1519,7 +1552,7 @@ const clock = new FixedClock(() => {
   }
   referee.update(); if (match.boardTicks > 0) match.boardTicks--;
   if (match.winner) {
-    if (campaign.transitionTicks > 0 && --campaign.transitionTicks === 0) { campaign.stage++; cpu = createOpponent(); resetPractice(); }
+    if (campaign.transitionTicks > 0 && --campaign.transitionTicks === 0) { campaign.stage++; cpu = createOpponent(); beginStageIntro(); }
     return;
   }
   if (ball.playTicks > 0 && !ball.resetTimer) {
@@ -1596,7 +1629,7 @@ window.addEventListener('pagehide', () => { input.cancel(); clock.reset(); });
 function gameLoop(now) {
   if (!paused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
-  if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else drawScene(ctx);
+  if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
   const names = { forehand: 'フォア', backhand: 'バック', smash: 'スマッシュ', serve: 'サーブ' };
   const qualityNames = { normal: '通常打点', critical: 'ジャスト', float: '浮き球', smash: 'スマッシュ', serve_fast: '速いサーブ', serve_safe: '安定サーブ' };
   const activeQuality = player.getHitQuality();

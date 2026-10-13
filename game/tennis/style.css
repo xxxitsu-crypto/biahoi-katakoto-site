@@ -71,3 +71,5 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
  #action-buttons { grid-column: 3; grid-row: 1; }
  #game-container[data-screen="title"] #gameCanvas { grid-column: 1 / -1; }
 }
+
+#game-container[data-screen="intro"] #virtual-controller { visibility: hidden; }

@@ -179,6 +179,7 @@ for (const kind of ['smash', 'serve']) {
   };
 }
 let practiceMode = 'rally'; // CPUサーブ／プレイヤーサーブの切替。
+const campaign = { stage: [2,3].includes(window.SEAL_START_STAGE) ? window.SEAL_START_STAGE : 1, selectedStage: [2,3].includes(window.SEAL_START_STAGE) ? window.SEAL_START_STAGE : 1, transitionTicks: 0 };
 const score = { player: 0, cpu: 0 };
 const openingImages = {};
 for (const [key, file] of Object.entries({ background: 'openning.png', logo: 'logo.png' })) {
@@ -232,7 +233,7 @@ const match = {
     if (score[winner] >= 4 && score[winner] - score[other] >= 2) {
       this.games[winner]++; score.player = score.cpu = 0;
       referee.call('GAME', 150); this.boardTicks = 150;
-      if (this.games[winner] >= 3) { this.winner = winner; sound.tune(winner === 'player' ? 'win' : 'lose'); }
+      if (this.games[winner] >= 3) { this.winner = winner; sound.tune(winner === 'player' ? 'win' : 'lose'); if (winner === 'player' && campaign.stage < 3) campaign.transitionTicks = 150; if (winner === 'cpu' && campaign.stage >= 2) { screen.phase='gameover'; screen.ticks=120; } }
       else this.server = this.server === 'player' ? 'cpu' : 'player';
     }
   },
@@ -302,6 +303,7 @@ class InputHandler {
     this.consumeQueue.push({ dir, isRhythmJump });
   }
   pressShot(source) {
+    if(screen.phase==='continue'){ input.cancel(); resetPractice(); return; }
     if (this.actionSources.has(source)) return;
     if (!this.action) this.shotQueue.push({ type: 'press' });
     this.actionSources.add(source);
@@ -334,7 +336,7 @@ class InputHandler {
       if (map[e.code]) this.registerPress(map[e.code]);
       if (shot) this.pressShot(e.code);
       if (e.code === 'KeyD') showGuide = !showGuide;
-      if (e.code === 'KeyR') resetPractice();
+      if (e.code === 'KeyR') resetCampaign();
       if (e.code === 'KeyS') toggleServePractice();
     });
     window.addEventListener('keyup', e => {
@@ -791,11 +793,245 @@ class CpuPlayer {
  }
 }
 
+// 添付画像のセル位置をそのまま切り出す。左右反転はしない。
+const BOY_SPRITES = {};
+for (const [key,file,cuts,h] of [
+ ['leftShot','boy-back.png',[0,110,220,330,440,550],99],
+ ['rightShot','boy-fore.png',[0,110,220,330,440,550,660],99],
+ ['overhead','boy-serve.png',[0,126,251,377,503,629,754,880],130],
+ ['walk','boy-walk.png',[0,126,252,378,503],111]
+]) { const image=new Image();image.src=`assets/${file}`; BOY_SPRITES[key]={image,cuts,h}; }
+const BOY_SHOTS = {
+ leftShot: { centers:[[10,33],[64,18],[98,32],[98,61],[10,33]], anchor:[40,92], phases:[
+  {frame:1,ticks:7},{frame:2,ticks:6,quality:'float'},{frame:3,ticks:7,quality:'critical'},{frame:4,ticks:8}] },
+ rightShot: { centers:[[16,40],[24,10],[14,54],[10,83],[70,88],[14,54]], anchor:[40,94], phases:[
+  {frame:1,ticks:7},{frame:2,ticks:7,quality:'critical'},{frame:3,ticks:6,quality:'float'},{frame:4,ticks:7},{frame:5,ticks:7}] },
+ overhead: { centers:[[27,65],[28,41],[36,39],[39,39],[44,14],[113,106],[20,80]], anchor:[55,120], phases:[
+  {frame:1,ticks:7},{frame:2,ticks:7},{frame:3,ticks:7},{frame:4,ticks:8,quality:'smash'},{frame:5,ticks:12},{frame:6,ticks:8}] }
+};
+class BoyPlayer extends CpuPlayer {
+ shots() { return BOY_SHOTS; }
+ reset() { super.reset(); this.curveBlunderUsed=false; }
+ update(ball) {
+  if(this.isSwinging){this.swingElapsed++;if(!this.phase())this.isSwinging=false;}
+  if(ball.resetTimer||ball.cpuServing){this.moving=false;return;}
+  const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
+  if(ball.serveWaiting||ball.serving){this.targetX=ball.servePhase==='waiting'?serveAimX(player):ball.serviceTargetX;this.targetY=58;}
+  else if(incoming&&!this.isSwinging){
+   if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=ball.x>128?11:6;this.plan=null;}
+   if(this.reactionTimer>0)this.reactionTimer--;else this.plan=this.predict(ball);
+   this.targetX=this.plan?.x??Math.max(24,Math.min(232,ball.x));this.targetY=this.plan?.y??58;
+  }else if(!this.isSwinging||this.hasHit){this.targetX=128;this.targetY=58;}
+  // 前へ突進せず、後方から長いリーチで返球する。
+  this.targetY=Math.max(46,Math.min(84,this.targetY));
+  const dx=this.targetX-this.x,dy=this.targetY-this.y,d=Math.hypot(dx,dy);
+  if(d>.1){const speed=CPU_SETTINGS.speed*(this.fatigueShots>0?.7:1),step=Math.min(speed,d);this.x+=dx/d*step;this.y+=dy/d*step;}
+  this.y=Math.min(84,this.y);this.moving=d>.1;this.animationTick=this.moving?this.animationTick+1:0;
+  if(Math.abs(dx)>.1)this.visualFacing=Math.sign(dx);
+  if(incoming&&!this.isSwinging&&this.plan&&this.plan.n<=this.plan.windup+1)this.startSwing(this.plan.kind);
+ }
+ canHit(ball) {
+  if(!super.canHit(ball))return false;
+  // 苦手なバックのジャスト打点は短い。浮きのコマはそのまま使う。
+  if(this.shotKind==='leftShot'&&this.phase()?.quality==='critical')return this.swingElapsed<17;
+  return true;
+ }
+ hit(ball) {
+  const kind=this.shotKind,r=this.racket(),offCenter=Math.abs(ball.x-r.x);
+  super.hit(ball);
+  if(!this.hasHit)return;
+  const profile=SHOT_PROFILES[ball.lastShotQuality]??SHOT_PROFILES.normal;
+  const ticks=Math.round(profile.ticks*1.25),gravity=ball.gravity*Math.pow(profile.ticks/ticks,2);
+  const side=ball.rallyHits%2===0?-1:1;
+  // 少しだけ左右に振り、滞空時間を延ばして約20%減速する。
+  ball.launch(128+side*10,176,ticks,gravity);
+  if(ball.rallyHits>=16&&!this.curveBlunderUsed){
+   this.curveBlunderUsed=true;ball.z=Math.max(24,ball.z);
+   ball.launch(280,176,75,.07);ball.curve=.14;ball.curveTicks=75;ball.lastShotQuality='critical';
+   ball.message='大カーブ：右へ曲がりすぎ';
+  }else if(kind==='leftShot'&&offCenter>10){
+   // 右へ振られたバックは、芯を外すと弱い低い返球になる。
+   ball.launch(128+side*10,176,78,.018);ball.lastShotQuality='float';
+  }
+ }
+
+ phase() {
+  if(!this.isSwinging)return null;let t=this.swingElapsed;
+  for(const p of this.shots()[this.shotKind].phases){if(t<p.ticks)return p;t-=p.ticks;}return null;
+ }
+ racket(kind=this.shotKind,frame=this.phase()?.frame??0) {
+  const c=this.shots()[kind], [x,y]=c.centers[frame], [ax,ay]=c.anchor, scale=32/71;
+  return {x:this.x+(x-ax)*scale,y:this.y,z:Math.max(2,(ay-y)*scale),radiusX:5,radiusY:5,hitRadius:kind==='leftShot'?18:26,hitHeight:15};
+ }
+ predict(ball) {
+  let x=ball.x,y=ball.y,z=ball.z,vz=ball.vz,bounces=ball.bouncesInCurrentCourt,g=ball.gravity;
+  for(let n=1;n<=110;n++){
+   const oldY=y;x+=ball.vx;y+=ball.vy;z+=vz;vz-=g;
+   if(oldY>120&&y<=120)bounces=0;
+   if(z<=0){z=0;vz*=ball.bounce;g=SETTINGS.gravity;if(++bounces>=2)break;}
+   if(y<30)break;if(y>98)continue;
+   for(const kind of z>=36?['overhead',x>128?'leftShot':'rightShot']:[x>128?'leftShot':'rightShot']){
+    const phases=this.shots()[kind].phases, target=phases.find(p=>p.quality==='critical'||p.quality==='smash');
+    const windup=phases.slice(0,phases.indexOf(target)).reduce((v,p)=>v+p.ticks,0);
+    if(n<windup)continue;const r=this.racket(kind,target.frame);
+    if(Math.abs(z-r.z)>r.hitHeight-2)continue;
+    const tx=Math.max(24,Math.min(232,x-(r.x-this.x))),ty=Math.max(34,Math.min(84,y));
+    if(Math.hypot(tx-this.x,ty-this.y)<=CPU_SETTINGS.speed*n+4)return{x:tx,y:ty,n,kind,windup};
+   }
+  }return null;
+ }
+ updateServe(ball) {
+  this.serveAge++;this.shotKind='overhead';
+  if(this.serveAge<=30){Object.assign(ball,{x:this.x-8,y:this.y,z:23,vx:0,vy:0,vz:2.7});return;}
+  ball.z+=ball.vz;ball.vz-=ball.gravity;
+  if(this.serveAge===40)this.startSwing('overhead');
+  if(this.isSwinging&&!this.hasHit&&this.phase()?.frame===4){
+   // 5コマ目のラケット面をサーブの打点にする。
+   const r=this.racket();Object.assign(ball,{x:r.x,y:r.y,z:r.z});
+   this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
+   // サーブは低い弾道と小さなバウンド。左右差は中心から8だけ。
+   ball.serviceTargetX=128+(match.games.player+match.games.cpu+score.player+score.cpu+match.faults)%2*16-8;
+   ball.launch(ball.serviceTargetX,144,90,.035);ball.nextBounceFactor=.72;ball.startService();return;
+  }
+  if(ball.z<=0)ball.fault();
+ }
+ draw(context) {
+  const shot=this.isSwinging||ball.cpuServing,key=shot?this.shotKind:'walk',cfg=BOY_SPRITES[key];
+  const frame=shot?(this.phase()?.frame??0):this.moving?Math.floor(this.animationTick/7)%4:0;
+  const [ax,ay]=shot?this.shots()[key].anchor:[62,104],scale=32/71;
+  if(imageReady(cfg.image))context.drawImage(cfg.image,cfg.cuts[frame],0,cfg.cuts[frame+1]-cfg.cuts[frame],cfg.h,
+   this.x-ax*scale,this.y-ay*scale,(cfg.cuts[frame+1]-cfg.cuts[frame])*scale,cfg.h*scale);
+  if(showGuide&&shot){const r=this.racket();context.strokeStyle=this.phase()?.quality?'#66ff99':'#8feaff';context.beginPath();context.ellipse(r.x,r.y-r.z,r.radiusX,r.radiusY,0,0,Math.PI*2);context.stroke();}
+ }
+}
+
+const ERIN_SPRITES = {};
+for(const [key,file,frames,w,h] of [
+ ['leftShot','erin-back.png',5,98,108],['rightShot','erin-fore.png',5,98,100],
+ ['overhead','erin-serve.png',6,97,125],['moveLeft','erin-left.png',5,98,108],['moveRight','erin-right.png',5,98,108]
+]){const image=new Image();image.src=`assets/${file}`;ERIN_SPRITES[key]={image,frames,w,h};}
+const ERIN_SHOTS = {
+ leftShot:{anchor:[44,99],centers:[[76,74],[12,36],[26,64],[64,44],[86,27]],phases:[{frame:1,ticks:7},{frame:2,ticks:7,quality:'critical'},{frame:3,ticks:6,quality:'float'},{frame:4,ticks:9}]},
+ rightShot:{anchor:[44,93],centers:[[83,65],[74,30],[82,53],[35,43],[14,38]],phases:[{frame:1,ticks:7},{frame:2,ticks:7,quality:'critical'},{frame:3,ticks:6,quality:'float'},{frame:4,ticks:9}]},
+ overhead:{anchor:[44,120],centers:[[75,87],[82,82],[82,63],[82,50],[79,16],[24,89]],phases:[{frame:1,ticks:7},{frame:2,ticks:7},{frame:3,ticks:7},{frame:4,ticks:8,quality:'smash'},{frame:5,ticks:14}]}
+};
+function launchOverNet(ball,x,y,ticks,gravity=.06){
+ const q=(120-ball.y)/(y-ball.y)*ticks;
+ if(q>0&&q<ticks){const clearance=campaign.stage===3?30:35;
+  gravity=Math.max(gravity,2*(clearance-ball.z*(1-q/ticks))/(q*(ticks-q)));
+ }
+ ball.launch(x,y,ticks,gravity);
+}
+class ErinPlayer extends BoyPlayer {
+ shots(){return ERIN_SHOTS;}
+ reset(){super.reset();this.superUsed=false;this.lastMoveY=46;}
+ racket(kind=this.shotKind,frame=this.phase()?.frame??0){
+  const c=this.shots()[kind],[x,y]=c.centers[frame],[ax,ay]=c.anchor,scale=32/71;
+  return{x:this.x+(x-ax)*scale,y:this.y,z:Math.max(2,(ay-y)*scale),radiusX:7,radiusY:7,hitRadius:36,hitHeight:26};
+ }
+ canHit(ball){
+  if(ball.guaranteedWinner||ball.servicePending||ball.lastHitter!=='player'||ball.vy>=0)return false;
+  if(CpuPlayer.prototype.canHit.call(this,ball))return true;
+  // 中央・左右とも、届く球は振り終わりでも次のスイングへつなげる。
+  // サーブのバウンド前、コート外、必殺技の確定カウンターは対象外。
+  if(ball.x>=24&&ball.x<=232&&ball.y>=24&&ball.y<=112&&ball.z>=0&&ball.z<=85&&
+     Math.hypot(ball.x-this.x,ball.y-this.y)<=48){
+   const kind=ball.z>=32?'overhead':ball.x<this.x?'leftShot':'rightShot';
+   this.startSwing(kind);this.swingElapsed=kind==='overhead'?21:7;
+   return true;
+  }
+  return false;
+ }
+ predict(ball){
+  let x=ball.x,y=ball.y,z=ball.z,vx=ball.vx,vz=ball.vz,g=ball.gravity;
+  let bounces=ball.bouncesInCurrentCourt,curve=ball.curve,curveTicks=ball.curveTicks;
+  let nextBounce=ball.nextBounceFactor;
+  for(let n=1;n<=140;n++){
+   if(curveTicks>0){vx+=curve;curve*=.985;curveTicks--;}
+   const oldY=y;x+=vx;y+=ball.vy;z+=vz;vz-=g;
+   if(oldY>120&&y<=120)bounces=0;
+   if(z<=0){z=0;vz*=-(nextBounce??Math.abs(ball.bounce));nextBounce=null;g=SETTINGS.gravity;if(++bounces>=2)break;}
+   if(y<24)break;
+   if(y>108||x<24||x>232||z>85||(ball.servicePending&&bounces===0))continue;
+   const tx=Math.max(28,Math.min(228,x)),ty=Math.max(36,Math.min(88,y));
+   if(Math.hypot(tx-this.x,ty-this.y)<=2.2*n+32){
+    const kind=z>=32?'overhead':x<this.x?'leftShot':'rightShot';
+    return{x:tx,y:ty,n,kind,windup:kind==='overhead'?21:7};
+   }
+  }
+  return null;
+ }
+ update(ball){
+  this.lastMoveY=this.y;
+  if(this.isSwinging){this.swingElapsed++;if(!this.phase())this.isSwinging=false;}
+  if(ball.resetTimer||ball.cpuServing){this.moving=false;return;}
+  const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting&&!ball.guaranteedWinner;
+  if(ball.serveWaiting||ball.serving){
+   this.targetX=ball.servePhase==='waiting'?serveAimX(player):ball.serviceTargetX;this.targetY=58;
+  }else if(incoming){
+   this.plan=this.predict(ball);
+   this.targetX=this.plan?.x??Math.max(28,Math.min(228,ball.x));
+   this.targetY=this.plan?.y??Math.max(36,Math.min(88,ball.y));
+  }else{this.targetX=128;this.targetY=58;this.plan=null;}
+  const dx=this.targetX-this.x,dy=this.targetY-this.y,d=Math.hypot(dx,dy);
+  if(d>.1){const step=Math.min(incoming?2.2:1.2,d);this.x+=dx/d*step;this.y+=dy/d*step;}
+  this.moving=d>.1;this.animationTick=this.moving?this.animationTick+1:0;
+  if(Math.abs(dx)>.1)this.visualFacing=Math.sign(dx);
+  if(incoming&&!this.isSwinging&&this.plan&&this.plan.n<=this.plan.windup+1)this.startSwing(this.plan.kind);
+ }
+ launchShot(ball,x,y,ticks,gravity){
+  // 到達時間を2/3にし、重力も合わせて弾道の高さを保つ。
+  launchOverNet(ball,x,y,ticks/1.5,gravity*1.5*1.5);
+ }
+ hit(ball){
+  const quality=this.phase()?.quality;if(!quality||this.hasHit)return;
+  const serveReturn=ball.rallyHits===0&&match.server==='player';
+  const punishFloat=ball.lastShotQuality==='float';
+  this.hasHit=true;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;ball.recordReturn();sound.play('hit');
+  const targetX=Math.max(42,Math.min(214,player.x+player.width/2));
+  if(ball.rallyHits>=20&&!this.superUsed){
+   this.superUsed=true;this.shotKind='overhead';this.swingElapsed=21;ball.z=Math.max(ball.z,this.racket('overhead',4).z);
+   this.launchShot(ball,targetX,176,24,.10);ball.erinSuper=true;ball.bodyAim=true;ball.lastShotQuality='smash';
+  }else if(serveReturn){
+   // 最初の受けは足元へ届く穏やかな球。バウンド後の上昇速度も制限する。
+   launchOverNet(ball,128,166,60,.045);ball.nextBounceMaxVz=1.45;ball.lastShotQuality='normal';
+  }else if(punishFloat){
+   this.shotKind='overhead';this.swingElapsed=21;ball.z=Math.max(ball.z,this.racket('overhead',4).z);
+   this.launchShot(ball,targetX,176,36,.08);ball.bodyAim=true;ball.lastShotQuality='smash';
+  }else if(player.y<160){
+   this.launchShot(ball,targetX,199,88,.095);ball.lastShotQuality='lob';
+  }else{
+   this.launchShot(ball,128+(ball.rallyHits%2?18:-18),176,54,.06);ball.lastShotQuality='normal';
+  }
+ }
+ updateServe(ball){
+  this.serveAge++;this.shotKind='overhead';
+  if(this.serveAge<=30){Object.assign(ball,{x:this.x+8,y:this.y,z:23,vx:0,vy:0,vz:2.7});return;}
+  ball.z+=ball.vz;ball.vz-=ball.gravity;if(this.serveAge===40)this.startSwing('overhead');
+  if(this.isSwinging&&!this.hasHit&&this.phase()?.frame===4){
+   const r=this.racket();Object.assign(ball,{x:r.x,y:r.y,z:r.z});this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
+   ball.serviceTargetX=128;this.launchShot(ball,128,144,90,.035);ball.nextBounceFactor=.72;ball.startService();return;
+  }
+  if(ball.z<=0)ball.fault();
+ }
+ draw(context){
+  const shot=this.isSwinging||ball.cpuServing;
+  const vertical=Math.abs(this.targetY-this.lastMoveY)>Math.abs(this.targetX-this.x);
+  const facing=vertical?(this.targetY<this.y?-1:1):this.visualFacing;
+  const key=shot?this.shotKind:facing<0?'moveLeft':'moveRight',cfg=ERIN_SPRITES[key];
+  const frame=shot?(this.phase()?.frame??0):this.moving?Math.floor(this.animationTick/7)%cfg.frames:0;
+  const [ax,ay]=shot?this.shots()[key].anchor:[44,99],scale=32/71;
+  if(imageReady(cfg.image))context.drawImage(cfg.image,frame*cfg.w,0,cfg.w,cfg.h,this.x-ax*scale,this.y-ay*scale,cfg.w*scale,cfg.h*scale);
+  if(showGuide&&shot){const r=this.racket();context.strokeStyle=this.phase()?.quality?'#66ff99':'#8feaff';context.beginPath();context.ellipse(r.x,r.y-r.z,r.radiusX,r.radiusY,0,0,Math.PI*2);context.stroke();}
+ }
+}
+function createOpponent(){return campaign.stage===3?new ErinPlayer():campaign.stage===2?new BoyPlayer():new CpuPlayer();}
+
 class Ball {
   constructor() { this.returnCount = 0; this.resetServe(); }
   resetServe() {
     practiceMode = match.server === 'player' ? 'serve' : 'rally';
-    this.servicePending = false; this.netTouched = false;
+    this.servicePending = false; this.netTouched = false; this.erinSuper=false; this.bodyAim=false; this.guaranteedWinner=null;
     this.serviceTargetX = 128;
     this.x = CANVAS_WIDTH / 2 + (Math.random() * 24 - 12);
     this.y = 56; this.z = 16;
@@ -842,6 +1078,7 @@ class Ball {
     this.returnCount = this.rallyHits;
   }
   launch(targetX, targetY, ticks, gravity = SETTINGS.gravity) {
+    this.nextBounceFactor = null; this.nextBounceMaxVz=null; this.erinSuper=false; this.bodyAim=false; this.guaranteedWinner=null;
     this.curve = 0;
     this.curveTicks = 0;
     this.netTouched = false;
@@ -876,11 +1113,11 @@ class Ball {
       ? (counterQuality === 'critical'
           ? { ticks: 30, gravity: 0.160 }
           : counterQuality === 'float'
-            ? { ticks: 48, gravity: 0.065 }
+            ? (campaign.stage===3 ? { ticks: 62, gravity: 0.105 } : { ticks: 48, gravity: 0.065 })
             : { ticks: 45, gravity: 0.100 })
       : (SHOT_PROFILES[quality] ?? SHOT_PROFILES.normal);
     this.lastHitter = 'player';
-    this.lastShotQuality = quality;
+    this.lastShotQuality = player.lobShot ? 'lob' : quality;
     this.bouncesInCurrentCourt = 0;
     this.recordReturn();
     let curve = 0, curveTicks = 0;
@@ -895,7 +1132,9 @@ class Ball {
     const clearanceGravity = counteringSmash && counterQuality !== 'float' && fraction > 0 && fraction < 1
       ? Math.max(0, (18 - this.z * (1 - fraction)) / (0.5 * profile.ticks * profile.ticks * fraction * (1 - fraction)))
       : 0;
-    this.launch(targetX, targetY, profile.ticks, Math.max(profile.gravity, clearanceGravity));
+    if(campaign.stage===3&&(player.lobShot||counteringSmash))
+      launchOverNet(this,targetX,targetY,profile.ticks,Math.max(profile.gravity,clearanceGravity));
+    else this.launch(targetX, targetY, profile.ticks, Math.max(profile.gravity, clearanceGravity));
     this.curve = curve;
     this.curveTicks = curveTicks;
     this.message = player.lobShot ? 'ロブ' : counteringSmash && counterQuality === 'critical' ? 'スマッシュをカウンター' :
@@ -963,7 +1202,8 @@ class Ball {
         this.bouncesInCurrentCourt = 0;
         const profile = SERVE_PROFILES[serveQuality];
         // サーブの狙いはトス開始前に固定済み。
-        this.launch(this.serviceTargetX,102,profile.ticks,profile.gravity);
+        if(campaign.stage===3)launchOverNet(this,this.serviceTargetX,102,profile.ticks,profile.gravity);
+        else this.launch(this.serviceTargetX,102,profile.ticks,profile.gravity);
         this.startService();
         this.message = serveQuality === 'serve_fast' ? '速いサーブネット注意' : '安定サーブ';
         return;
@@ -1013,12 +1253,15 @@ class Ball {
       const fraction = (120 - oldY) / (this.y - oldY);
       const crossingHeight = oldZ + (this.z - oldZ) * fraction;
       // 上端に触れた球は減速して続行。低い接触は自分側へ落ちる。
-      if (crossingHeight - this.radius < 12 && !this.netTouched) {
+      const netHeight = campaign.stage === 3 ? 27/projectCourt(128,120).scale : campaign.stage === 2 ? 25 / projectCourt(128, 120).scale : 12;
+      if (crossingHeight - this.radius < netHeight && !this.netTouched) {
         this.hitNet = true; this.netTouched = true;
+        // ステージ3のサーブはネット接触もフォルトに数え、2回目で失点。
+        if(campaign.stage===3&&this.servicePending){this.fault();return;}
         sound.tune('sad');
         // ネット接触は最終判定だけ宣言する。
         this.vx *= 0.65;
-        if (crossingHeight >= 10) { this.vy *= 0.65; this.vz *= 0.55; }
+        if (crossingHeight >= netHeight - 2) { this.vy *= 0.65; this.vz *= 0.55; }
         else { this.y = oldY < 120 ? 119 : 121; this.vy *= -0.12; this.vz = Math.min(this.vz, 0); }
       }
       this.bouncesInCurrentCourt = 0;
@@ -1034,11 +1277,14 @@ class Ball {
         }
         this.servicePending = false; match.faults = 0;
       }
+      if(this.guaranteedWinner&&this.isOnReceiverSide()&&this.isInsideCourt()){this.endRally('取り逃し',this.guaranteedWinner);return;}
       if (this.bouncesInCurrentCourt === 0 && (!this.isInsideCourt() || !this.isOnReceiverSide())) {
         this.endRally(this.netTouched && !this.isOnReceiverSide() ? 'ネット' : 'アウト', this.lastHitter === 'player' ? 'cpu' : 'player'); return;
       }
       if (referee.text === '・・・') { referee.text = ''; referee.ticks = 0; }
-      this.vz *= this.bounce; this.gravity = SETTINGS.gravity;
+      this.vz *= -(this.nextBounceFactor ?? Math.abs(this.bounce));
+      if(this.nextBounceMaxVz!==null&&this.nextBounceMaxVz!==undefined)this.vz=Math.min(this.vz,this.nextBounceMaxVz);
+      this.nextBounceFactor = null; this.nextBounceMaxVz=null; this.gravity = SETTINGS.gravity;
       this.bouncesInCurrentCourt++;
       if (this.bouncesInCurrentCourt >= 2) { this.endRally('2バウンド', this.lastHitter); return; }
     }
@@ -1046,15 +1292,21 @@ class Ball {
     if (quality && this.lastHitter === 'cpu' && this.y > 120) {
       const r = player.getRacketPosition();
       const distance = Math.hypot(this.x - r.x, this.y - r.y);
-      if (distance < r.hitRadius && Math.abs(this.z - r.z) < r.hitHeight) {
+      const lobAssist=campaign.stage===3&&player.lobShot;
+      const radiusScale=lobAssist?1.6:1,heightScale=lobAssist?1.7:1;
+      if (distance < r.hitRadius*radiusScale && Math.abs(this.z - r.z) < r.hitHeight*heightScale) {
+        const superCounter=this.erinSuper;
         if (this.servicePending) { this.endRally('サーブはバウンド後', 'cpu'); return; }
         player.hasHit = true;
-        const counterQuality = quality;
+        // 狙い撃ちスマッシュは芯とタイミングの両方が必要。ロブなら広く拾える。
+        const solidContact=(quality==='critical'||quality==='smash')&&distance<r.hitRadius*.7&&Math.abs(this.z-r.z)<r.hitHeight*.7;
+        const counterQuality=campaign.stage===3&&this.bodyAim&&!lobAssist&&!solidContact?'float':quality;
         const counteringSmash = this.lastShotQuality === 'smash';
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
         player.incomingWasSmash = counteringSmash;
-        this.launchFromPlayer(player, r, quality, counterQuality);
+        this.launchFromPlayer(player, r, counterQuality, counterQuality);
+        if(superCounter){launchOverNet(this,128,58,40,.13);this.guaranteedWinner='player';}
         player.incomingWasSmash = false;
         player.incomingCounterQuality = null;
       }
@@ -1068,7 +1320,7 @@ class Ball {
       const winner = this.y < 0 ? 'player' : this.y > CANVAS_HEIGHT ? 'cpu' :
         this.lastHitter === 'player' ? 'cpu' : 'player';
       if (this.servicePending) this.fault();
-      else this.endRally('取り逃し', this.bouncesInCurrentCourt > 0 ? this.lastHitter : (this.lastHitter === 'player' ? 'cpu' : 'player'));
+      else this.endRally(this.bouncesInCurrentCourt > 0 ? '取り逃し' : 'アウト', this.bouncesInCurrentCourt > 0 ? this.lastHitter : (this.lastHitter === 'player' ? 'cpu' : 'player'));
     }
   }
   draw(context) {
@@ -1117,7 +1369,23 @@ for (const name of ['background', 'court', 'net']) {
 const COURT_ART = { x: 59, y: 199, width: 394, height: 406, sourceHeight: 396 };
 // 白線の奥・サービスライン・ネット・サービスライン・手前に対応。
 const COURT_Y = [[46,18], [84,67], [120,172.5], [166,278], [204,370]];
+const stage2Image = new Image(); stage2Image.src = 'assets/stage2.png';
+const stage3Image = new Image();stage3Image.src='assets/stage3.png';
+const continueImage = new Image();continueImage.src='assets/contenu.png';
 function projectCourt(x, y) {
+  if(campaign.stage===3){
+   const rows=[[46,266],[84,311],[120,415],[166,500],[204,582]];let i=0;
+   while(i<rows.length-2&&y>rows[i+1][0])i++;
+   const [wa,sa]=rows[i],[wb,sb]=rows[i+1],sy=sa+(y-wa)/(wb-wa)*(sb-sa),t=(sy-266)/316;
+   const left=144-55*t,right=367+58*t,scale=(right-left)/184;return{x:left+(x-36)*scale,y:sy,scale};
+  }
+  if (campaign.stage === 2) {
+    const rows=[[46,225],[84,277],[120,390],[166,486],[204,578]];let i=0;
+    while(i<rows.length-2&&y>rows[i+1][0])i++;
+    const [wa,sa]=rows[i],[wb,sb]=rows[i+1], sy=sa+(y-wa)/(wb-wa)*(sb-sa);
+    const t=(sy-225)/(578-225),left=144-59*t,right=369+59*t,scale=(right-left)/184;
+    return{x:left+(x-36)*scale,y:sy,scale};
+  }
   let i = 0;
   while (i < COURT_Y.length - 2 && y > COURT_Y[i + 1][0]) i++;
   const [wa, sa] = COURT_Y[i], [wb, sb] = COURT_Y[i + 1];
@@ -1139,6 +1407,12 @@ function drawProjected(context, object, x, y) {
   context.restore();
 }
 function drawProjectedNet(context) {
+  if(campaign.stage===3){if(imageReady(stage3Image))context.drawImage(stage3Image,87,389,336,27,87,389,336,27);return;}
+  if (campaign.stage === 2) {
+    // 背景内ネットを同じ画像から前景に重ね、奥の球・人物を隠す。
+    if(imageReady(stage2Image))context.drawImage(stage2Image,83,365,348,25,83,365,348,25);
+    return;
+  }
   const a = projectCourt(24, 120), b = projectCourt(232, 120);
   // 上端を従来の衝突判定（高さ12）に合わせる。
   const height = 12 * a.scale;
@@ -1147,9 +1421,12 @@ function drawProjectedNet(context) {
 }
 function drawScene(context) {
   context.fillStyle = '#10171a'; context.fillRect(0,0,VIEW.width,VIEW.height);
-  if (imageReady(sceneImages.background)) context.drawImage(sceneImages.background,0,0,VIEW.width,VIEW.height);
-  if (imageReady(sceneImages.court)) context.drawImage(sceneImages.court,
+  if(campaign.stage===3&&imageReady(stage3Image))context.drawImage(stage3Image,0,0,512,640);
+  if (campaign.stage === 2 && imageReady(stage2Image)) context.drawImage(stage2Image,0,0,512,640);
+  if (campaign.stage === 1 && imageReady(sceneImages.background)) context.drawImage(sceneImages.background,0,0,VIEW.width,VIEW.height);
+  if (campaign.stage === 1 && imageReady(sceneImages.court)) context.drawImage(sceneImages.court,
     COURT_ART.x, COURT_ART.y, COURT_ART.width, COURT_ART.height);
+  if(screen.phase==='continue'){drawContinue(context);return;}
   drawProjected(context,cpu,cpu.x,cpu.y);
   if(ball.y < 120) drawProjected(context,ball,ball.x,ball.y);
   drawProjectedNet(context);
@@ -1157,7 +1434,7 @@ function drawScene(context) {
   if(ball.y >= 120) drawProjected(context,ball,ball.x,ball.y);
   referee.draw(context);
   drawScoreboard(context);
-  if (match.winner) {
+  if (match.winner && screen.phase !== 'continue') {
     const image = judgeImages[match.winner === 'player' ? 'win' : 'lose'];
     if (imageReady(image)) {
       const width = 486, height = width * image.naturalHeight / image.naturalWidth;
@@ -1171,6 +1448,14 @@ function drawScene(context) {
   }
 }
 
+function drawContinue(context){
+  context.save();context.imageSmoothingEnabled=false;
+  if(imageReady(continueImage))context.drawImage(continueImage,76,304,113,145);
+  context.fillStyle='#ff4b00';context.textAlign='center';context.textBaseline='alphabetic';
+  context.font='36px sans-serif';context.fillText('コンテニュー？',338,335);
+  context.font='96px serif';context.fillText(String(Math.ceil(screen.ticks/60)),342,443);
+  context.restore();
+}
 function drawScoreboard(context) {
   if (match.winner || !(ball.resetTimer || ball.playTicks || match.boardTicks)) return;
   context.save(); context.fillStyle = '#ffa500'; context.fillRect(176, 344, 160, 72);
@@ -1213,7 +1498,7 @@ class FixedClock {
 const input = new InputHandler();
 const player = new SealPlayer(CANVAS_WIDTH / 2 - 8, 180);
 const ball = new Ball();
-const cpu = new CpuPlayer();
+let cpu = createOpponent();
 cpu.x = 128; cpu.targetX = 128;
 const clock = new FixedClock(() => {
   if (screen.phase === 'title') { input.cancel(); return; }
@@ -1226,8 +1511,17 @@ const clock = new FixedClock(() => {
     if (screen.ticks === 0) { screen.phase = 'playing'; referee.text = ''; referee.ticks = 0; }
     return;
   }
+  if(screen.phase==='gameover'){
+    input.cancel();if(--screen.ticks===0){screen.phase='continue';screen.ticks=300;}return;
+  }
+  if(screen.phase==='continue'){
+    input.cancel();if(--screen.ticks===0)returnToOpening();return;
+  }
   referee.update(); if (match.boardTicks > 0) match.boardTicks--;
-  if (match.winner) return;
+  if (match.winner) {
+    if (campaign.transitionTicks > 0 && --campaign.transitionTicks === 0) { campaign.stage++; cpu = createOpponent(); resetPractice(); }
+    return;
+  }
   if (ball.playTicks > 0 && !ball.resetTimer) {
     input.cancel(); ball.playTicks--; return;
   }
@@ -1242,6 +1536,7 @@ function toggleServePractice() {
 function resetPractice() {
   screen.phase = 'starting'; screen.ticks = 120;
   document.getElementById('game-container').dataset.screen = 'playing';
+  const select=document.getElementById('stage-select');if(select)select.hidden=true;
   input.cancel();
   Object.assign(player, new SealPlayer(CANVAS_WIDTH / 2 - 8, 180));
   player.cancelVersion = input.cancelVersion;
@@ -1259,14 +1554,27 @@ function resetPractice() {
   ball.playTicks = 0; match.boardTicks = 0; referee.text = ''; referee.ticks = 0;
   clock.reset();
 }
+function returnToOpening() {
+  input.cancel();campaign.transitionTicks=0;match.reset('cpu');cpu.reset();ball.resetServe();
+  screen.phase='title';screen.ticks=0;referee.text='';referee.ticks=0;
+  document.getElementById('game-container').dataset.screen='title';
+  const select=document.getElementById('stage-select');if(select)select.hidden=false;
+  canvas.setAttribute('role','button');canvas.setAttribute('aria-label','push to play');clock.reset();
+}
 function startOpening() {
   if (screen.phase !== 'title') return;
+  campaign.stage=campaign.selectedStage;campaign.transitionTicks=0;cpu=createOpponent();
   sound.unlock(); sound.tune('start');
   screen.phase = 'confirming'; screen.ticks = 72;
   canvas.removeAttribute('role'); canvas.setAttribute('aria-label', 'アザラシテニス');
 }
 canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'push to play'); canvas.tabIndex = 0;
 canvas.addEventListener('click', startOpening);
+for(const stage of [1,2,3])document.getElementById('stage-'+stage)?.addEventListener('click',()=>{
+ if(screen.phase!=='title')return;campaign.selectedStage=stage;
+ for(const n of [1,2,3])document.getElementById('stage-'+n)?.setAttribute('aria-pressed',String(n===stage));
+});
+for(const stage of [1,2,3])document.getElementById('stage-'+stage)?.setAttribute('aria-pressed',String(stage===campaign.selectedStage));
 document.getElementById('btn-action')?.addEventListener('click', startOpening);
 window.addEventListener('keydown', event => {
   if (screen.phase === 'title' && ['Enter', 'Space', 'KeyZ'].includes(event.code)) {
@@ -1280,7 +1588,8 @@ document.addEventListener('visibilitychange', () => {
   clock.reset();
 });
 document.getElementById('sound-toggle')?.addEventListener('click', () => sound.toggle());
-document.getElementById('restart')?.addEventListener('click', resetPractice);
+function resetCampaign() { campaign.stage = campaign.selectedStage; campaign.transitionTicks = 0; cpu = createOpponent(); resetPractice(); }
+document.getElementById('restart')?.addEventListener('click', resetCampaign);
 document.getElementById('serve-mode')?.addEventListener('click', toggleServePractice);
 document.getElementById('guide-toggle')?.addEventListener('click', () => { showGuide = !showGuide; });
 window.addEventListener('pagehide', () => { input.cancel(); clock.reset(); });

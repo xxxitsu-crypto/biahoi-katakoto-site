@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SEAL TENNIS</title>
+  <link rel="stylesheet" href="style.css?v=20261014-mobile-32">
+  <style>
+    #game-container[data-screen="title"] .toolbar,
+    #game-container[data-screen="title"] #status,
+    #game-container[data-screen="title"] #virtual-controller { display: none; }
+    #game-container[data-screen="title"] #gameCanvas { cursor: pointer; }
+  #stage-select { position: fixed; bottom: max(16px,env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 5; max-width: 95vw; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    #stage-select[hidden] { display: none; }
+    #stage-select button[aria-pressed="true"] { border-color: #fff; background: #444; }
+  </style>
+</head>
+<body>
+  <div id="game-container" data-screen="title">
+    <p class="version">SEAL TENNIS · ステージ3確認版 37</p>
+    <canvas id="gameCanvas" width="512" height="640"></canvas>
+    
+    <div id="stage-select" aria-label="テスト用ステージ選択">
+      <button id="stage-1" type="button" aria-pressed="true">STAGE 1：茶色アザラシ</button>
+      <button id="stage-2" type="button" aria-pressed="false">STAGE 2：男の子</button>
+      <button id="stage-3" type="button" aria-pressed="false">STAGE 3：女の子</button>
+    </div>
+    <p id="status" role="status">読み込み中</p>
+    <div class="toolbar">
+      <button id="sound-toggle" type="button" aria-pressed="true">音：オン</button>
+      <button id="restart" type="button">やり直す</button>
+      <button id="serve-mode" type="button">サーブ切替</button>
+      <button id="guide-toggle" type="button" aria-pressed="false">打点ガイド</button>
+    </div>
+    <!-- コートと操作領域を分離。縦持ちは下、横持ちは左右へ配置。 -->
+    <div id="virtual-controller">
+      <div id="dpad">
+        <button type="button" class="dpad-btn" id="btn-up" aria-label="上">▲</button>
+        <div class="dpad-middle">
+          <button type="button" class="dpad-btn" id="btn-left" aria-label="左">◀</button>
+          <button type="button" class="dpad-btn" id="btn-right" aria-label="右">▶</button>
+        </div>
+        <button type="button" class="dpad-btn" id="btn-down" aria-label="下">▼</button>
+      </div>
+      <div id="action-buttons">
+        <button type="button" class="act-btn" id="btn-action" aria-label="ショット">ショット</button>
+      </div>
+    </div>
+  </div>
+
+  <script>window.SEAL_START_STAGE = 2;</script>
+  <script defer src="main.js?v=20261014-stage3-37"></script>
+</body>
+</html>
+

@@ -46,3 +46,28 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
  .version { order: 2; }
  #status, .instructions { max-width: 720px; }
 }
+
+/* スマホ確認版：補助表示を外し、表示領域を画面と操作に使う。 */
+@media (any-pointer: coarse), (max-width: 600px) {
+ .version, .toolbar, #status { display: none; }
+ #game-container { max-width: none; min-height: 100dvh; gap: 6px; padding: max(4px,env(safe-area-inset-top)) max(4px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(4px,env(safe-area-inset-left)); }
+ #gameCanvas { order: 1; border: 0; min-width: 0; width: min(100%, calc((100dvh - 180px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .8)); }
+ #virtual-controller { order: 2; width: 100%; max-width: 460px; min-height: 166px; height: 166px; padding: 0 16px; }
+ #dpad { width: 156px; height: 160px; gap: 3px; flex: none; }
+ #btn-up, #btn-down { width: 140px; height: 41px; flex: none; }
+ .dpad-middle { gap: 4px; }
+ #btn-left, #btn-right { width: 72px; height: 72px; }
+ .dpad-btn { font-size: 25px; border-radius: 7px; }
+ #btn-action { width: 88px; height: 88px; font-size: 16px; white-space: nowrap; }
+ #game-container[data-screen="title"] #gameCanvas { width: min(100%, calc((100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .8)); }
+ #stage-select { bottom: max(12px,env(safe-area-inset-bottom)); }
+ #stage-select button { min-height: 42px; padding: 5px 8px; font-size: 12px; }
+}
+@media (orientation: landscape) and (any-pointer: coarse) {
+ #game-container { display: grid; grid-template-columns: 156px minmax(0,1fr) 96px; grid-template-rows: 1fr; column-gap: 6px; }
+ #gameCanvas { grid-column: 2; grid-row: 1; width: min(100%,calc((100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .8)); min-width: 0; }
+ #virtual-controller { display: contents; }
+ #dpad { grid-column: 1; grid-row: 1; }
+ #action-buttons { grid-column: 3; grid-row: 1; }
+ #game-container[data-screen="title"] #gameCanvas { grid-column: 1 / -1; }
+}

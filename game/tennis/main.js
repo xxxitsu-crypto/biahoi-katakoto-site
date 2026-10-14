@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261015-47';
+const ASSET_VERSION = '20261015-48';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -979,7 +979,15 @@ class ErinPlayer extends BoyPlayer {
  canHit(ball){
   if(ball.guaranteedWinner||ball.erinRecoveryMiss)return false;
   // 打球コマのラケット位置でのみ返球する。近接時のコマ飛ばしは行わない。
-  return CpuPlayer.prototype.canHit.call(this,ball);
+  return CpuPlayer.prototype.canHit.call(this,ball)&&this.contactAt(ball.x,ball.y,ball.z,this.racket(),this.x,this.y,ball.radius);
+ }
+ contactAt(x,y,z,r,actorX,actorY,radius=3){
+  const offset=r.x-this.x;
+  if(Math.hypot(x-actorX-offset,y-actorY)>=r.hitRadius||Math.abs(z-r.z)>=r.hitHeight)return false;
+  const p=projectCourt(actorX,actorY),b=projectCourt(x,y);
+  const dx=b.x-(p.x+offset*p.scale),dy=b.y-z*b.scale-(p.y-r.z*p.scale);
+  const rx=r.radiusX*p.scale+radius*b.scale+1,ry=r.radiusY*p.scale+radius*b.scale+1;
+  return (dx/rx)**2+(dy/ry)**2<=1;
  }
  predict(ball){
   let x=ball.x,y=ball.y,z=ball.z,vx=ball.vx,vz=ball.vz,g=ball.gravity;
@@ -1002,8 +1010,14 @@ class ErinPlayer extends BoyPlayer {
      if(n<windup+1)continue;}
     const r=this.racket(kind,phase.frame);
     if(Math.abs(z-r.z)>=r.hitHeight-2)continue;
-    const tx=Math.max(28,Math.min(228,x-(r.x-this.x))),ty=Math.max(36,Math.min(88,y));
-    if(Math.hypot(x-(tx+r.x-this.x),y-ty)>=r.hitRadius-2)continue;
+    // 遠近投影後のラケット面を未来のボール位置へ合わせる。
+    const bp=projectCourt(x,y),screenY=bp.y-z*bp.scale;
+    let low=36,high=88;
+    for(let i=0;i<12;i++){const mid=(low+high)/2,p=projectCourt(128,mid);
+     if(p.y-r.z*p.scale<screenY)low=mid;else high=mid;}
+    const ty=(low+high)/2,p=projectCourt(128,ty);
+    const tx=Math.max(28,Math.min(228,128+(bp.x-p.x)/p.scale-(r.x-this.x)));
+    if(!this.contactAt(x,y,z,r,tx,ty,ball.radius))continue;
     if(Math.hypot(tx-this.x,ty-this.y)<=2.2*n){return{x:tx,y:ty,n,kind,windup};}
    }
   }

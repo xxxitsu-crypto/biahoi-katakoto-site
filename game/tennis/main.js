@@ -782,8 +782,10 @@ class CpuPlayer {
   const aimX=Math.max(39,Math.min(217,128+contact*52+(this.targetX-this.x)*0.28));
   const profile=SHOT_PROFILES[quality]??SHOT_PROFILES.normal;
   // ステージ1の10ラリー後、5球分は移動速度だけでなく返球もゆっくりにする。
-  // 飛行時間を2倍にして水平速度を約半分にし、重力を1/4にして低い弾道を保つ。
-  ball.launch(aimX,176,tired?profile.ticks*2:profile.ticks,tired?0.0045:profile.gravity);
+  // 飛行時間を約1.25倍にして速度を通常の約80%にし、低い弾道を保つ。
+  const fatigueTicks = Math.round(profile.ticks / 0.8);
+  const fatigueGravity = 0.018 * Math.pow(profile.ticks / fatigueTicks, 2);
+  ball.launch(aimX,176,tired?fatigueTicks:profile.ticks,tired?fatigueGravity:profile.gravity);
   if(tired)this.fatigueShots--;
   ball.message=tired?'CPU息切れ：低い返球':quality==='smash'?'CPUスマッシュ':quality==='float'?'CPU浮き球':
    quality==='critical'?'CPUクリティカル':'CPU返球';

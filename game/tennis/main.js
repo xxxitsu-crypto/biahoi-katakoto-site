@@ -232,7 +232,8 @@ const referee = { text: '', ticks: 0, frame: 1,
     const image = judgeImages.referee;
     if (imageReady(image)) {
       const starts = [0, 48, 96], widths = [48, 48, 46];
-      context.drawImage(image, starts[this.frame], 0, widths[this.frame], 83, 452, 312, widths[this.frame], 83);
+      const width = widths[this.frame] * 1.5, height = 83 * 1.5;
+      context.drawImage(image, starts[this.frame], 0, widths[this.frame], 83, 476 - width / 2, 353.5 - height / 2, width, height);
     }
     if (!this.text || !imageReady(judgeImages.bubble)) return;
     context.drawImage(judgeImages.bubble, 444, 244, 63, 57);
@@ -290,6 +291,7 @@ class InputHandler {
     this.history = { up: [], down: [], left: [], right: [] };
     this.consumeQueue = [];
     this.shotQueue = [];
+    this.lobRequested = false;
     this.actionSources = new Set();
     this.pointerDirections = new Map();
     this.keys = new Set();
@@ -303,7 +305,8 @@ class InputHandler {
   }
   registerPress(dir, now = performance.now()) {
     if (dir === 'down' && this.action) {
-      this.shotQueue.push({ type: 'lob' });
+      // Shotを構えたまま下を何度押してもロブ指定を維持する。下移動にはしない。
+      this.lobRequested = true;
       return;
     }
     const h = this.history[dir];
@@ -323,13 +326,17 @@ class InputHandler {
   pressShot(source) {
     if(screen.phase==='continue'){ input.cancel(); resetPractice(); return; }
     if (this.actionSources.has(source)) return;
-    if (!this.action) this.shotQueue.push({ type: 'press' });
+    if (!this.action) {
+      this.lobRequested = false;
+      this.shotQueue.push({ type: 'press' });
+    }
     this.actionSources.add(source);
   }
   releaseShot(source) {
     if (!this.actionSources.delete(source)) return;
     if (!this.action) {
-      this.shotQueue.push({ type: 'release' });
+      this.shotQueue.push({ type: this.lobRequested ? 'lob' : 'release' });
+      this.lobRequested = false;
     }
   }
   releaseDirection(pointerId) {
@@ -339,6 +346,7 @@ class InputHandler {
     this.keys.clear();
     this.pointerDirections.clear();
     this.actionSources.clear();
+    this.lobRequested = false;
     this.consumeQueue.length = 0;
     this.shotQueue.length = 0;
     Object.keys(this.history).forEach(key => this.history[key] = []);
@@ -738,7 +746,7 @@ class CpuPlayer {
   }else if(!this.isSwinging||this.hasHit){this.targetX=ball.rallyHits===0?128:Math.max(36,Math.min(220,ball.x));this.targetY=ball.rallyHits===0?58:100;}
   const dx=this.targetX-this.x,dy=this.targetY-this.y,distance=Math.hypot(dx,dy);
   if(incoming&&distance>38&&!this.dashCooldown&&!this.isSwinging){this.dashTimer=18;this.dashCooldown=100;}
-  const speed=(this.dashTimer?1.3:CPU_SETTINGS.speed)*(dy<0?0.65:1)*(this.fatigueShots>0?0.7:1);
+  const speed=(this.dashTimer?1.3:CPU_SETTINGS.speed)*(dy<0?0.65:1)*(this.fatigueShots>0?0.6:1);
   if(distance>0.1){const step=Math.min(speed,distance);this.x+=dx/distance*step;this.y+=dy/distance*step;}
   this.moving=distance>0.1;
   if(Math.abs(dx)>0.1)this.visualFacing=Math.sign(dx);
@@ -759,7 +767,7 @@ class CpuPlayer {
   this.hasHit=true;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
   ball.lastShotQuality=quality;
   ball.recordReturn();
-  if(ball.rallyHits>=10&&!this.fatigueTriggered){this.fatigueTriggered=true;this.fatigueShots=3;}
+  if(campaign.stage===1&&ball.rallyHits>=10&&!this.fatigueTriggered){this.fatigueTriggered=true;this.fatigueShots=5;}
   const tired=this.fatigueShots>0;
   const r=this.racket();
   const contact=Math.max(-1,Math.min(1,(ball.x-r.x)/Math.max(1,r.hitRadius)));
@@ -843,7 +851,7 @@ class BoyPlayer extends CpuPlayer {
   // 前へ突進せず、後方から長いリーチで返球する。
   this.targetY=Math.max(46,Math.min(84,this.targetY));
   const dx=this.targetX-this.x,dy=this.targetY-this.y,d=Math.hypot(dx,dy);
-  if(d>.1){const speed=CPU_SETTINGS.speed*(this.fatigueShots>0?.7:1),step=Math.min(speed,d);this.x+=dx/d*step;this.y+=dy/d*step;}
+  if(d>.1){const speed=CPU_SETTINGS.speed*(this.fatigueShots>0?.6:1),step=Math.min(speed,d);this.x+=dx/d*step;this.y+=dy/d*step;}
   this.y=Math.min(84,this.y);this.moving=d>.1;this.animationTick=this.moving?this.animationTick+1:0;
   if(Math.abs(dx)>.1)this.visualFacing=Math.sign(dx);
   if(incoming&&!this.isSwinging&&this.plan&&this.plan.n<=this.plan.windup+1)this.startSwing(this.plan.kind);

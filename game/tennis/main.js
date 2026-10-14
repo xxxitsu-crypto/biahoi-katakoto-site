@@ -291,7 +291,6 @@ class InputHandler {
     this.history = { up: [], down: [], left: [], right: [] };
     this.consumeQueue = [];
     this.shotQueue = [];
-    this.lobRequested = false;
     this.actionSources = new Set();
     this.pointerDirections = new Map();
     this.keys = new Set();
@@ -301,12 +300,12 @@ class InputHandler {
   }
   get action() { return this.actionSources.size > 0; }
   get downHeld() {
-    return [...this.pointerDirections.values()].includes('down');
+    return [...this.pointerDirections.values()].includes('down') || this.keys.has('ArrowDown');
   }
   registerPress(dir, now = performance.now()) {
     if (dir === 'down' && this.action) {
-      // Shotを構えたまま下を何度押してもロブ指定を維持する。下移動にはしない。
-      this.lobRequested = true;
+      // ショットを構えた状態で下を押した瞬間にロブを開始する。下移動にはしない。
+      this.shotQueue.push({ type: 'lob' });
       return;
     }
     const h = this.history[dir];
@@ -327,16 +326,15 @@ class InputHandler {
     if(screen.phase==='continue'){ input.cancel(); resetPractice(); return; }
     if (this.actionSources.has(source)) return;
     if (!this.action) {
-      this.lobRequested = false;
-      this.shotQueue.push({ type: 'press' });
+      // 下を先に押している場合も、ショットを押した瞬間にロブを開始する。
+      this.shotQueue.push({ type: this.downHeld ? 'lob' : 'press' });
     }
     this.actionSources.add(source);
   }
   releaseShot(source) {
     if (!this.actionSources.delete(source)) return;
     if (!this.action) {
-      this.shotQueue.push({ type: this.lobRequested ? 'lob' : 'release' });
-      this.lobRequested = false;
+      this.shotQueue.push({ type: 'release' });
     }
   }
   releaseDirection(pointerId) {
@@ -346,7 +344,6 @@ class InputHandler {
     this.keys.clear();
     this.pointerDirections.clear();
     this.actionSources.clear();
-    this.lobRequested = false;
     this.consumeQueue.length = 0;
     this.shotQueue.length = 0;
     Object.keys(this.history).forEach(key => this.history[key] = []);
@@ -558,12 +555,23 @@ class SealPlayer {
         }
         continue;
       }
-      if (event.type === 'press') {
+      if (event.type === 'lob') {
+        if (!this.isSwinging) {
+          this.lobShot = true;
+          this.selectShot(ball, true);
+          this.isSwinging = true;
+          this.swingTimer = VOLLEY[this.shotType]?.totalTicks ?? SETTINGS.swingTicks;
+          this.swingElapsed = 0;
+          this.hasHit = false;
+          this.swingCount++;
+        }
+        this.isPreparing = false;
+      } else if (event.type === 'press') {
         this.isPreparing = true;
       } else {
         if (this.isPreparing && !this.isSwinging) {
-          this.lobShot = event.type === 'lob';
-          this.selectShot(ball, this.lobShot);
+          this.lobShot = false;
+          this.selectShot(ball);
           this.isSwinging = true;
           this.swingTimer = VOLLEY[this.shotType]?.totalTicks ?? SETTINGS.swingTicks;
           this.swingElapsed = 0;

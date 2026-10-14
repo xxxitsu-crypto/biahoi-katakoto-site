@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261014-46';
+const ASSET_VERSION = '20261015-47';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -952,9 +952,9 @@ for(const [key,file,frames,w,h] of [
  ['overhead','erin-serve.png',6,97,125],['moveLeft','erin-left.png',5,98,108],['moveRight','erin-right.png',5,98,108]
 ]){const image=new Image();image.src=assetUrl(file);ERIN_SPRITES[key]={image,frames,w,h};}
 const ERIN_SHOTS = {
- leftShot:{anchor:[44,99],centers:[[76,74],[12,36],[26,64],[64,44],[86,27]],phases:[{frame:1,ticks:7},{frame:2,ticks:7,quality:'critical'},{frame:3,ticks:6,quality:'float'},{frame:4,ticks:9}]},
- rightShot:{anchor:[44,93],centers:[[83,65],[74,30],[82,53],[35,43],[14,38]],phases:[{frame:1,ticks:7},{frame:2,ticks:7,quality:'critical'},{frame:3,ticks:6,quality:'float'},{frame:4,ticks:9}]},
- overhead:{anchor:[44,120],centers:[[75,87],[82,82],[82,63],[82,50],[79,16],[24,89]],phases:[{frame:1,ticks:7},{frame:2,ticks:7},{frame:3,ticks:7},{frame:4,ticks:8,quality:'smash'},{frame:5,ticks:14}]}
+ leftShot:{anchor:[44,99],centers:[[76.84,72.09],[13.69,37.58],[23.74,64.34],[64.68,42.17],[84.78,26.60]],radii:[[14,14],[14,14],[14,15],[10,16],[14,14]],phases:[{frame:1,ticks:3},{frame:2,ticks:5,quality:'critical'},{frame:3,ticks:3,quality:'float'},{frame:4,ticks:7}]},
+ rightShot:{anchor:[44,93],centers:[[83.84,64.09],[79.19,28.21],[83.86,52.35],[27.06,49.30],[13.84,37.54]],radii:[[14,14],[14,14],[14,13],[10,16],[12,13]],phases:[{frame:1,ticks:3},{frame:2,ticks:5,quality:'critical'},{frame:3,ticks:3,quality:'float'},{frame:4,ticks:7}]},
+ overhead:{anchor:[44,120],centers:[[76.84,89.09],[81.53,84.14],[81.24,61.87],[82.73,48.98],[78.93,20.99],[19.69,91.61]],radii:[[14,14],[14,12],[14,14],[15,14],[15,16],[14,12]],phases:[{frame:1,ticks:3},{frame:2,ticks:3},{frame:3,ticks:3},{frame:4,ticks:5,quality:'smash'},{frame:5,ticks:8}]}
 };
 function launchOverNet(ball,x,y,ticks,gravity=.06){
  const q=(120-ball.y)/(y-ball.y)*ticks;
@@ -968,36 +968,43 @@ class ErinPlayer extends BoyPlayer {
  reset(){super.reset();this.superUsed=false;this.lastMoveY=46;this.smashRecovery=0;this.lobCooldown=0;}
  racket(kind=this.shotKind,frame=this.phase()?.frame??0){
   const c=this.shots()[kind],[x,y]=c.centers[frame],[ax,ay]=c.anchor,scale=32/71;
-  return{x:this.x+(x-ax)*scale,y:this.y,z:Math.max(2,(ay-y)*scale),radiusX:7,radiusY:7,hitRadius:36,hitHeight:26};
+  const [rx,ry]=c.radii[frame];
+  return{x:this.x+(x-ax)*scale,y:this.y,z:Math.max(2,(ay-y)*scale),
+   radiusX:rx*scale,radiusY:ry*scale,hitRadius:rx*scale+6,hitHeight:ry*scale+6};
+ }
+ phaseAt(kind,elapsed){
+  for(const phase of this.shots()[kind].phases){if(elapsed<phase.ticks)return phase;elapsed-=phase.ticks;}
+  return null;
  }
  canHit(ball){
-  if(ball.guaranteedWinner||ball.erinRecoveryMiss||ball.servicePending||ball.lastHitter!=='player'||ball.vy>=0)return false;
-  if(CpuPlayer.prototype.canHit.call(this,ball))return true;
-  // 中央・左右とも、届く球は振り終わりでも次のスイングへつなげる。
-  // サーブのバウンド前、コート外、必殺技の確定カウンターは対象外。
-  if(ball.x>=24&&ball.x<=232&&ball.y>=24&&ball.y<=112&&ball.z>=0&&ball.z<=85&&
-     Math.hypot(ball.x-this.x,ball.y-this.y)<=48){
-   const kind=ball.z>=32?'overhead':ball.x<this.x?'leftShot':'rightShot';
-   this.startSwing(kind);this.swingElapsed=kind==='overhead'?21:7;
-   return true;
-  }
-  return false;
+  if(ball.guaranteedWinner||ball.erinRecoveryMiss)return false;
+  // 打球コマのラケット位置でのみ返球する。近接時のコマ飛ばしは行わない。
+  return CpuPlayer.prototype.canHit.call(this,ball);
  }
  predict(ball){
   let x=ball.x,y=ball.y,z=ball.z,vx=ball.vx,vz=ball.vz,g=ball.gravity;
   let bounces=ball.bouncesInCurrentCourt,curve=ball.curve,curveTicks=ball.curveTicks;
-  let nextBounce=ball.nextBounceFactor;
+  let nextBounce=ball.nextBounceFactor,nextBounceMaxVz=ball.nextBounceMaxVz;
   for(let n=1;n<=140;n++){
    if(curveTicks>0){vx+=curve;curve*=.985;curveTicks--;}
    const oldY=y;x+=vx;y+=ball.vy;z+=vz;vz-=g;
    if(oldY>120&&y<=120)bounces=0;
-   if(z<=0){z=0;vz*=-(nextBounce??Math.abs(ball.bounce));nextBounce=null;g=SETTINGS.gravity;if(++bounces>=2)break;}
+   if(z<=0){z=0;vz*=-(nextBounce??Math.abs(ball.bounce));
+    if(nextBounceMaxVz!==null&&nextBounceMaxVz!==undefined)vz=Math.min(vz,nextBounceMaxVz);
+    nextBounce=null;nextBounceMaxVz=null;g=SETTINGS.gravity;if(++bounces>=2)break;}
    if(y<24)break;
    if(y>108||x<24||x>232||z>85||(ball.servicePending&&bounces===0))continue;
-   const tx=Math.max(28,Math.min(228,x)),ty=Math.max(36,Math.min(88,y));
-   if(Math.hypot(tx-this.x,ty-this.y)<=2.2*n+32){
-    const kind=z>=32?'overhead':x<this.x?'leftShot':'rightShot';
-    return{x:tx,y:ty,n,kind,windup:kind==='overhead'?21:7};
+   const kinds=this.isSwinging?[this.shotKind]:z>=32?['overhead','leftShot','rightShot']:[x<this.x?'leftShot':'rightShot',x<this.x?'rightShot':'leftShot'];
+   for(const kind of kinds){
+    let windup=0,phase;
+    if(this.isSwinging){phase=this.phaseAt(kind,this.swingElapsed+n-1);if(this.hasHit||!phase?.quality)continue;}
+    else{for(const p of this.shots()[kind].phases){if(p.quality){phase=p;break;}windup+=p.ticks;}
+     if(n<windup+1)continue;}
+    const r=this.racket(kind,phase.frame);
+    if(Math.abs(z-r.z)>=r.hitHeight-2)continue;
+    const tx=Math.max(28,Math.min(228,x-(r.x-this.x))),ty=Math.max(36,Math.min(88,y));
+    if(Math.hypot(x-(tx+r.x-this.x),y-ty)>=r.hitRadius-2)continue;
+    if(Math.hypot(tx-this.x,ty-this.y)<=2.2*n){return{x:tx,y:ty,n,kind,windup};}
    }
   }
   return null;
@@ -1038,12 +1045,12 @@ class ErinPlayer extends BoyPlayer {
    // 曲がり終わった後もカーブだったことを覚え、必ずチャンスの浮き玉を返す。
    launchOverNet(ball,128,174,72,.08);ball.lastShotQuality='float';ball.erinSmashOpening=true;ball.nextBounceMaxVz=2;
   }else if(ball.rallyHits>=20&&!this.superUsed){
-   this.superUsed=true;this.shotKind='overhead';this.swingElapsed=21;ball.z=Math.max(ball.z,this.racket('overhead',4).z);
+   this.superUsed=true; // 接触時の姿勢・打球位置を維持して必殺返球へ切り替える。
    this.launchShot(ball,targetX,176,24,.10);ball.erinSuper=true;ball.bodyAim=true;ball.lastShotQuality='smash';
   }else if(serveReturn){
    launchOverNet(ball,128,166,60,.045);ball.nextBounceMaxVz=1.45;ball.lastShotQuality='normal';
   }else if(punishFloat&&!recovering){
-   this.smashRecovery=1;this.shotKind='overhead';this.swingElapsed=21;ball.z=Math.max(ball.z,this.racket('overhead',4).z);
+   this.smashRecovery=1;
    this.launchShot(ball,targetX,176,36,.08);ball.bodyAim=true;ball.lastShotQuality='smash';
   }else if(player.y<145&&canLob&&!recovering){
    this.lobCooldown=2;
@@ -1056,10 +1063,21 @@ class ErinPlayer extends BoyPlayer {
  updateServe(ball){
   this.serveAge++;this.shotKind='overhead';
   if(this.serveAge<=30){Object.assign(ball,{x:this.x+8,y:this.y,z:23,vx:0,vy:0,vz:2.7});return;}
-  ball.z+=ball.vz;ball.vz-=ball.gravity;if(this.serveAge===40)this.startSwing('overhead');
-  if(this.isSwinging&&!this.hasHit&&this.phase()?.frame===4){
-   const r=this.racket();Object.assign(ball,{x:r.x,y:r.y,z:r.z});this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
-   ball.serviceTargetX=128;launchOverNet(ball,128,150,45,.14);ball.nextBounceFactor=.65;ball.nextBounceMaxVz=1.6;ball.startService();return;
+  if(this.serveAge===31){
+   const phases=this.shots().overhead.phases,hitIndex=phases.findIndex(p=>p.quality==='smash');
+   const windup=phases.slice(0,hitIndex).reduce((sum,p)=>sum+p.ticks,0);
+   const ticks=40+windup-30,r=this.racket('overhead',phases[hitIndex].frame);
+   ball.vx=(r.x-ball.x)/ticks;
+   ball.vz=(r.z-ball.z+0.5*ball.gravity*ticks*(ticks-1))/ticks;
+  }
+  ball.x+=ball.vx;ball.z+=ball.vz;ball.vz-=ball.gravity;
+  if(this.serveAge===40)this.startSwing('overhead');
+  if(this.isSwinging&&!this.hasHit&&this.phase()?.quality==='smash'){
+   const r=this.racket();
+   if(Math.hypot(ball.x-r.x,ball.y-r.y)<r.hitRadius&&Math.abs(ball.z-r.z)<r.hitHeight){
+    this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
+    ball.serviceTargetX=128;launchOverNet(ball,128,150,45,.14);ball.nextBounceFactor=.65;ball.nextBounceMaxVz=1.6;ball.startService();return;
+   }
   }
   if(ball.z<=0)ball.fault();
  }
@@ -1343,16 +1361,14 @@ class Ball {
     if (quality && this.lastHitter === 'cpu' && this.y > 120) {
       const r = player.getRacketPosition();
       const distance = Math.hypot(this.x - r.x, this.y - r.y);
-      const lobAssist=campaign.stage===3&&player.lobShot;
-      const radiusScale=lobAssist?1.6:1,heightScale=lobAssist?1.7:1;
-      if (distance < r.hitRadius*radiusScale && Math.abs(this.z - r.z) < r.hitHeight*heightScale) {
+      if (distance < r.hitRadius && Math.abs(this.z - r.z) < r.hitHeight) {
         const superCounter=this.erinSuper;
         const openingSmash=campaign.stage===3&&this.erinSmashOpening&&quality==='smash'&&!player.lobShot;
         if (this.servicePending) { this.endRally('サーブはバウンド後', 'cpu'); return; }
         player.hasHit = true;
-        // 狙い撃ちスマッシュは芯とタイミングの両方が必要。ロブなら広く拾える。
+        // 狙い撃ちスマッシュは芯とタイミングの両方が必要。判定範囲はロブも通常と同じ。
         const solidContact=(quality==='critical'||quality==='smash')&&distance<r.hitRadius*.7&&Math.abs(this.z-r.z)<r.hitHeight*.7;
-        const counterQuality=campaign.stage===3&&this.bodyAim&&!lobAssist&&!solidContact?'float':quality;
+        const counterQuality=campaign.stage===3&&this.bodyAim&&!player.lobShot&&!solidContact?'float':quality;
         const counteringSmash = this.lastShotQuality === 'smash';
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;

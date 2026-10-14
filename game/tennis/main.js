@@ -773,7 +773,9 @@ class CpuPlayer {
   const contact=Math.max(-1,Math.min(1,(ball.x-r.x)/Math.max(1,r.hitRadius)));
   const aimX=Math.max(39,Math.min(217,128+contact*52+(this.targetX-this.x)*0.28));
   const profile=SHOT_PROFILES[quality]??SHOT_PROFILES.normal;
-  ball.launch(aimX,176,profile.ticks,tired?0.018:profile.gravity);
+  // ステージ1の10ラリー後、5球分は移動速度だけでなく返球もゆっくりにする。
+  // 飛行時間を2倍にして水平速度を約半分にし、重力を1/4にして低い弾道を保つ。
+  ball.launch(aimX,176,tired?profile.ticks*2:profile.ticks,tired?0.0045:profile.gravity);
   if(tired)this.fatigueShots--;
   ball.message=tired?'CPU息切れ：低い返球':quality==='smash'?'CPUスマッシュ':quality==='float'?'CPU浮き球':
    quality==='critical'?'CPUクリティカル':'CPU返球';
@@ -1135,9 +1137,9 @@ class Ball {
     if(referee.text==='・・・'){referee.text='';referee.ticks=0;}
     const contact = Math.max(-1, Math.min(1,
       (this.x - racket.x) / Math.max(1, racket.hitRadius)));
-    // ラケット面の打点が左右へずれるほど角度が付き、横移動も狙いに少し加わる。
+    // ラケット面の打点に加え、横移動も狙いに強く反映する。
     const movementAim = Math.max(-1, Math.min(1, player.vx / SETTINGS.dashImpulse));
-    const targetX = Math.max(39, Math.min(217, 128 + contact * 56 + movementAim * 28));
+    const targetX = Math.max(39, Math.min(217, 128 + contact * 56 + movementAim * 42));
     const targetY = player.lobShot ? 50 : 60;
     // CPUスマッシュへの返球はプレイヤー側の打点タイミングで難度を付ける。
     const counteringSmash = player.incomingWasSmash === true;

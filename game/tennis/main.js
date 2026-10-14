@@ -2,6 +2,8 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
+const ASSET_VERSION = '20261014-46';
+function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
   moveImpulse: 1.2,
@@ -107,7 +109,7 @@ window.addEventListener('pointerdown', () => sound.unlock(), { capture: true });
 window.addEventListener('keydown', () => sound.unlock(), { capture: true });
 
 const sealImage = new Image();
-sealImage.src = 'assets/move_01.png';
+sealImage.src = assetUrl('move_01.png');
 // コマ寸法は提供データの実寸。画像は加工・反転せず読み込む。
 const SPRITE_CONFIG = {
   frameWidth: 71, frameHeight: 76,
@@ -124,7 +126,7 @@ for (const [key, file, frames] of [
   ['dashVertical', 'dash_y_seet.png', 2],
 ]) {
   const image = new Image();
-  image.src = `assets/${file}`;
+  image.src = assetUrl(file);
   sprites[key] = { image, frames };
 }
 // スイングのコマと判定は別管理。戻りで同じ絵を使っても再ヒットしない。
@@ -157,7 +159,7 @@ const VOLLEY = {
 // 提供PNGの黄色いラケット面を測定。半径は輪郭を含めた元画像上の値。
 VOLLEY.forehand.racketCenters = [[13.41, 22.04], [22.89, 47.05], [39.54, 51.57], [56.29, 52.85], [56.35, 30.49], [30.44, 12.45], [56.35, 30.49], [39.54, 51.57]];
 VOLLEY.forehand.racketRadii = [[12.41, 15.04], [12.11, 12.05], [9.54, 12.57], [12.29, 11.15], [12.65, 12.49], [11.56, 12.55], [12.65, 12.49], [9.54, 12.57]];
-VOLLEY.backhand.racketCenters = [[61.68, 22.57], [49.57, 42.45], [13.91, 49.98], [11.74, 37.69], [20.75, 10.49]];
+VOLLEY.backhand.racketCenters = [[65.72, 22.60], [53.53, 42.42], [17.84, 50.01], [15.57, 37.74], [24.69, 10.51]];
 VOLLEY.backhand.racketRadii = [[13.68, 15.57], [12.43, 13.45], [13.09, 13.02], [14.26, 14.69], [12.25, 11.51]];
 // サーブ・スマッシュ共通：03/04で打球、05は0.3秒の振り下ろし。
 for (const kind of ['smash', 'serve']) {
@@ -183,12 +185,12 @@ const campaign = { stage: [2,3].includes(window.SEAL_START_STAGE) ? window.SEAL_
 const score = { player: 0, cpu: 0 };
 const openingImages = {};
 for (const [key, file] of Object.entries({ background: 'openning.png', logo: 'logo.png' })) {
-  const image = new Image(); image.src = `assets/${file}`; openingImages[key] = image;
+  const image = new Image(); image.src = assetUrl(file); openingImages[key] = image;
 }
 const screen = { phase: 'title', ticks: 0 };
 const stageIntros = [null,...[1,2,3].map((stage)=>{
- const card=new Image();card.src=`assets/intro-stage${stage}.png`;
- const portrait=new Image();portrait.src=`assets/intro-${['cha','ich','erin'][stage-1]}.png`;
+ const card=new Image();card.src=assetUrl(`intro-stage${stage}.png`);
+ const portrait=new Image();portrait.src=assetUrl(`intro-${['cha','ich','erin'][stage-1]}.png`);
  return{card,portrait};
 })];
 function drawStageIntro(context){
@@ -216,7 +218,7 @@ function drawOpening(context, now) {
 }
 const judgeImages = {};
 for (const [key, file] of Object.entries({ referee: 'sinpan.png', bubble: 'fukidasi.png', win: 'WIN.png', lose: 'gameover.png' })) {
-  const image = new Image(); image.src = `assets/${file}`; judgeImages[key] = image;
+  const image = new Image(); image.src = assetUrl(file); judgeImages[key] = image;
 }
 const referee = { text: '', ticks: 0, frame: 1,
   call(text, ticks = 90) {
@@ -282,7 +284,7 @@ for (const config of Object.values(VOLLEY)) {
   }));
   config.totalTicks = config.phases.reduce((total, phase) => total + phase.ticks, 0);
   config.image = new Image();
-  config.image.src = `assets/${config.file}`;
+  config.image.src = assetUrl(config.file);
 }
 let showGuide = false;
 
@@ -327,7 +329,7 @@ class InputHandler {
     if (this.actionSources.has(source)) return;
     if (!this.action) {
       // 下を先に押している場合も、ショットを押した瞬間にロブを開始する。
-      this.shotQueue.push({ type: this.downHeld ? 'lob' : 'press' });
+      this.shotQueue.push({ type: this.downHeld ? 'lob' : 'press', shotPress: true });
     }
     this.actionSources.add(source);
   }
@@ -538,7 +540,7 @@ class SealPlayer {
     for (const event of input.shotQueue.splice(0)) {
       if (ball.serveWaiting || ball.serving || (this.isSwinging && this.shotType === 'serve')) {
         // サーブ専用：離す操作では振らない。最初の押下で準備→トス、次の押下で振る。
-        if (event.type === 'press' && !this.isSwinging) {
+        if ((event.type === 'press' || event.shotPress) && !this.isSwinging) {
           if (ball.servePhase === 'waiting') {
             this.shotType = 'serve';
             this.isPreparing = true;
@@ -663,7 +665,7 @@ for (const [key,file,frames,w,h] of [
  ['rightShot','2p_bolay_L.png',7,100,100],
  ['overhead','2p_sarv.png',6,100,100],
 ]) {
- const image = new Image(); image.src = `assets/${file}`;
+ const image = new Image(); image.src = assetUrl(file);
  CPU_SPRITES[key] = { image, frames, w, h };
 }
 const CPU_SHOTS = {
@@ -690,7 +692,7 @@ class CpuPlayer {
   this.shotKind='leftShot';this.swingElapsed=0;this.isSwinging=false;this.hasHit=false;
   this.reactionTimer=0;this.dashTimer=0;this.dashCooldown=0;
   this.serveAge=0;this.plan=null;
-  this.fatigueShots=0;this.fatigueTriggered=false;this.observedHits=-1;
+  this.fatigueShots=0;this.fatigueMoveShots=0;this.fatigueTriggered=false;this.observedHits=-1;
  }
  phase() {
   if(!this.isSwinging)return null;
@@ -754,7 +756,7 @@ class CpuPlayer {
   }else if(!this.isSwinging||this.hasHit){this.targetX=ball.rallyHits===0?128:Math.max(36,Math.min(220,ball.x));this.targetY=ball.rallyHits===0?58:100;}
   const dx=this.targetX-this.x,dy=this.targetY-this.y,distance=Math.hypot(dx,dy);
   if(incoming&&distance>38&&!this.dashCooldown&&!this.isSwinging){this.dashTimer=18;this.dashCooldown=100;}
-  const speed=(this.dashTimer?1.3:CPU_SETTINGS.speed)*(dy<0?0.65:1)*(this.fatigueShots>0?0.6:1);
+  const speed=(this.dashTimer?1.3:CPU_SETTINGS.speed)*(dy<0?0.65:1)*(this.fatigueMoveShots>0?0.6:1);
   if(distance>0.1){const step=Math.min(speed,distance);this.x+=dx/distance*step;this.y+=dy/distance*step;}
   this.moving=distance>0.1;
   if(Math.abs(dx)>0.1)this.visualFacing=Math.sign(dx);
@@ -775,7 +777,8 @@ class CpuPlayer {
   this.hasHit=true;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
   ball.lastShotQuality=quality;
   ball.recordReturn();
-  if(campaign.stage===1&&ball.rallyHits>=10&&!this.fatigueTriggered){this.fatigueTriggered=true;this.fatigueShots=5;}
+  if(this.fatigueMoveShots>0)this.fatigueMoveShots--;
+  if(campaign.stage===1&&ball.rallyHits>=10&&!this.fatigueTriggered){this.fatigueTriggered=true;this.fatigueShots=5;this.fatigueMoveShots=5;}
   const tired=this.fatigueShots>0;
   const r=this.racket();
   const contact=Math.max(-1,Math.min(1,(ball.x-r.x)/Math.max(1,r.hitRadius)));
@@ -838,7 +841,7 @@ for (const [key,file,cuts,h] of [
  ['rightShot','boy-fore.png',[0,110,220,330,440,550,660],99],
  ['overhead','boy-serve.png',[0,126,251,377,503,629,754,880],130],
  ['walk','boy-walk.png',[0,126,252,378,503],111]
-]) { const image=new Image();image.src=`assets/${file}`; BOY_SPRITES[key]={image,cuts,h}; }
+]) { const image=new Image();image.src=assetUrl(file); BOY_SPRITES[key]={image,cuts,h}; }
 const BOY_SHOTS = {
  leftShot: { centers:[[10,33],[64,18],[98,32],[98,61],[10,33]], anchor:[40,92], phases:[
   {frame:1,ticks:7},{frame:2,ticks:6,quality:'float'},{frame:3,ticks:7,quality:'critical'},{frame:4,ticks:8}] },
@@ -863,7 +866,7 @@ class BoyPlayer extends CpuPlayer {
   // 前へ突進せず、後方から長いリーチで返球する。
   this.targetY=Math.max(46,Math.min(84,this.targetY));
   const dx=this.targetX-this.x,dy=this.targetY-this.y,d=Math.hypot(dx,dy);
-  if(d>.1){const speed=CPU_SETTINGS.speed*(this.fatigueShots>0?.6:1),step=Math.min(speed,d);this.x+=dx/d*step;this.y+=dy/d*step;}
+  if(d>.1){const speed=CPU_SETTINGS.speed*(this.fatigueMoveShots>0?.6:1),step=Math.min(speed,d);this.x+=dx/d*step;this.y+=dy/d*step;}
   this.y=Math.min(84,this.y);this.moving=d>.1;this.animationTick=this.moving?this.animationTick+1:0;
   if(Math.abs(dx)>.1)this.visualFacing=Math.sign(dx);
   if(incoming&&!this.isSwinging&&this.plan&&this.plan.n<=this.plan.windup+1)this.startSwing(this.plan.kind);
@@ -947,7 +950,7 @@ const ERIN_SPRITES = {};
 for(const [key,file,frames,w,h] of [
  ['leftShot','erin-back.png',5,98,108],['rightShot','erin-fore.png',5,98,100],
  ['overhead','erin-serve.png',6,97,125],['moveLeft','erin-left.png',5,98,108],['moveRight','erin-right.png',5,98,108]
-]){const image=new Image();image.src=`assets/${file}`;ERIN_SPRITES[key]={image,frames,w,h};}
+]){const image=new Image();image.src=assetUrl(file);ERIN_SPRITES[key]={image,frames,w,h};}
 const ERIN_SHOTS = {
  leftShot:{anchor:[44,99],centers:[[76,74],[12,36],[26,64],[64,44],[86,27]],phases:[{frame:1,ticks:7},{frame:2,ticks:7,quality:'critical'},{frame:3,ticks:6,quality:'float'},{frame:4,ticks:9}]},
  rightShot:{anchor:[44,93],centers:[[83,65],[74,30],[82,53],[35,43],[14,38]],phases:[{frame:1,ticks:7},{frame:2,ticks:7,quality:'critical'},{frame:3,ticks:6,quality:'float'},{frame:4,ticks:9}]},
@@ -1303,6 +1306,7 @@ class Ball {
       const netHeight = campaign.stage === 3 ? 27/projectCourt(128,120).scale : campaign.stage === 2 ? 25 / projectCourt(128, 120).scale : 12;
       if (crossingHeight - this.radius < netHeight && !this.netTouched) {
         this.hitNet = true; this.netTouched = true;
+        sound.play('net');
         // ステージ3のサーブはネット接触もフォルトに数え、2回目で失点。
         if(campaign.stage===3&&this.servicePending){this.fault();return;}
         sound.tune('sad');
@@ -1387,66 +1391,38 @@ class Ball {
   }
 }
 
-function drawCourt(context) {
-  context.fillStyle = '#1c7a31';
-  context.fillRect(24, 36, 208, 178);
-  context.strokeStyle = '#ffffff'; context.lineWidth = 1;
-  context.strokeRect(36, 46, 184, 158);
-  context.beginPath();
-  context.moveTo(36, 84); context.lineTo(220, 84);
-  context.moveTo(36, 166); context.lineTo(220, 166);
-  context.moveTo(128, 84); context.lineTo(128, 166);
-  context.stroke();
-  context.fillStyle = 'rgba(230,230,230,0.5)';
-  context.fillRect(24, 108, 208, 12);
-  context.strokeStyle = '#eeeeee';
-  context.beginPath();
-  context.moveTo(24, 108); context.lineTo(232, 108);
-  context.moveTo(24, 120); context.lineTo(232, 120);
-  context.stroke();
-}
-
 // 表示だけを512×640へ投影。移動・打球の計算座標は従来の256×240を維持。
 const VIEW = { width: 512, height: 640 };
-// 提供された3枚を別レイヤーとして読み込む。
+// 各ステージ画像はコートとネットを含む完成背景。
 const sceneImages = {};
 const sceneLoadErrors = new Set();
-for (const name of ['background', 'court', 'net']) {
+for (const name of ['background']) {
   const image = new Image();
-  image.onerror = () => sceneLoadErrors.add(name);
-  image.onload = () => sceneLoadErrors.delete(name);
-  image.src = `assets/${name}.png`;
+  image.onerror = () => { sceneLoadErrors.add(name); };
+  image.onload = () => { sceneLoadErrors.delete(name); };
+  image.src = assetUrl(`${name}.png`);
   sceneImages[name] = image;
 }
-const COURT_ART = { x: 59, y: 199, width: 394, height: 406, sourceHeight: 396 };
-// 白線の奥・サービスライン・ネット・サービスライン・手前に対応。
-const COURT_Y = [[46,18], [84,67], [120,172.5], [166,278], [204,370]];
-const stage2Image = new Image(); stage2Image.src = 'assets/stage2.png';
-const stage3Image = new Image();stage3Image.src='assets/stage3.png';
-const continueImage = new Image();continueImage.src='assets/contenu.png';
+// 背景のシングルスラインとネットの接地位置へ計算座標を投影する。
+const STAGE_COURTS = {
+  1: { rows: [[46,226],[84,277],[120,389],[166,485],[204,578]], left: [143,89], right: [370,429], net: [83,364,347,28] },
+  2: { rows: [[46,225],[84,277],[120,390],[166,486],[204,578]], left: [144,85], right: [369,428], net: [83,365,348,25] },
+  3: { rows: [[46,242],[84,286],[120,390],[166,475],[204,557]], left: [144,89], right: [368,423], net: [86,363,338,31] }
+};
+const stage2Image = new Image(); stage2Image.src = assetUrl('stage2.png');
+const stage3Image = new Image();stage3Image.src = assetUrl('stage3.png');
+const continueImage = new Image();continueImage.src = assetUrl('contenu.png');
 function projectCourt(x, y) {
-  if(campaign.stage===3){
-   const rows=[[46,266],[84,311],[120,415],[166,500],[204,582]];let i=0;
-   while(i<rows.length-2&&y>rows[i+1][0])i++;
-   const [wa,sa]=rows[i],[wb,sb]=rows[i+1],sy=sa+(y-wa)/(wb-wa)*(sb-sa),t=(sy-266)/316;
-   const left=144-55*t,right=367+58*t,scale=(right-left)/184;return{x:left+(x-36)*scale,y:sy,scale};
-  }
-  if (campaign.stage === 2) {
-    const rows=[[46,225],[84,277],[120,390],[166,486],[204,578]];let i=0;
-    while(i<rows.length-2&&y>rows[i+1][0])i++;
-    const [wa,sa]=rows[i],[wb,sb]=rows[i+1], sy=sa+(y-wa)/(wb-wa)*(sb-sa);
-    const t=(sy-225)/(578-225),left=144-59*t,right=369+59*t,scale=(right-left)/184;
-    return{x:left+(x-36)*scale,y:sy,scale};
-  }
+  const court = STAGE_COURTS[campaign.stage], rows = court.rows;
   let i = 0;
-  while (i < COURT_Y.length - 2 && y > COURT_Y[i + 1][0]) i++;
-  const [wa, sa] = COURT_Y[i], [wb, sb] = COURT_Y[i + 1];
+  while (i < rows.length - 2 && y > rows[i + 1][0]) i++;
+  const [wa,sa] = rows[i], [wb,sb] = rows[i + 1];
   const sy = sa + (y - wa) / (wb - wa) * (sb - sa);
-  const t = (sy - 18) / 352;
-  const left = 81 - 54 * t, right = 310 + 56 * t;
+  const t = (sy - rows[0][1]) / (rows[rows.length - 1][1] - rows[0][1]);
+  const left = court.left[0] + (court.left[1] - court.left[0]) * t;
+  const right = court.right[0] + (court.right[1] - court.right[0]) * t;
   const scale = (right - left) / 184;
-  return { x: COURT_ART.x + left + (x - 36) * scale,
-    y: COURT_ART.y + sy * COURT_ART.height / COURT_ART.sourceHeight, scale };
+  return { x: left + (x - 36) * scale, y: sy, scale };
 }
 function imageReady(image) { return image.complete && image.naturalWidth > 0; }
 function drawProjected(context, object, x, y) {
@@ -1459,25 +1435,16 @@ function drawProjected(context, object, x, y) {
   context.restore();
 }
 function drawProjectedNet(context) {
-  if(campaign.stage===3){if(imageReady(stage3Image))context.drawImage(stage3Image,87,389,336,27,87,389,336,27);return;}
-  if (campaign.stage === 2) {
-    // 背景内ネットを同じ画像から前景に重ね、奥の球・人物を隠す。
-    if(imageReady(stage2Image))context.drawImage(stage2Image,83,365,348,25,83,365,348,25);
-    return;
-  }
-  const a = projectCourt(24, 120), b = projectCourt(232, 120);
-  // 上端を従来の衝突判定（高さ12）に合わせる。
-  const height = 12 * a.scale;
-  if (imageReady(sceneImages.net))
-    context.drawImage(sceneImages.net, a.x, a.y - height, b.x - a.x, height);
+  const image = campaign.stage === 1 ? sceneImages.background : campaign.stage === 2 ? stage2Image : stage3Image;
+  const [x,y,width,height] = STAGE_COURTS[campaign.stage].net;
+  // 背景内ネットを前景に重ね、奥側の球・人物との前後関係を保つ。
+  if (imageReady(image)) context.drawImage(image,x,y,width,height,x,y,width,height);
 }
 function drawScene(context) {
   context.fillStyle = '#10171a'; context.fillRect(0,0,VIEW.width,VIEW.height);
   if(campaign.stage===3&&imageReady(stage3Image))context.drawImage(stage3Image,0,0,512,640);
   if (campaign.stage === 2 && imageReady(stage2Image)) context.drawImage(stage2Image,0,0,512,640);
   if (campaign.stage === 1 && imageReady(sceneImages.background)) context.drawImage(sceneImages.background,0,0,VIEW.width,VIEW.height);
-  if (campaign.stage === 1 && imageReady(sceneImages.court)) context.drawImage(sceneImages.court,
-    COURT_ART.x, COURT_ART.y, COURT_ART.width, COURT_ART.height);
   if(screen.phase==='continue'){drawContinue(context);return;}
   drawProjected(context,cpu,cpu.x,cpu.y);
   if(ball.y < 120) drawProjected(context,ball,ball.x,ball.y);
@@ -1650,9 +1617,6 @@ function gameLoop(now) {
   if (!paused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
   if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
-  const names = { forehand: 'フォア', backhand: 'バック', smash: 'スマッシュ', serve: 'サーブ' };
-  const qualityNames = { normal: '通常打点', critical: 'ジャスト', float: '浮き球', smash: 'スマッシュ', serve_fast: '速いサーブ', serve_safe: '安定サーブ' };
-  const activeQuality = player.getHitQuality();
   const guideButton = document.getElementById('guide-toggle');
   guideButton?.setAttribute('aria-pressed', String(showGuide));
   const modeButton = document.getElementById('serve-mode');

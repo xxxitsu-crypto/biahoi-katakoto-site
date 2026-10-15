@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261015-50';
+const ASSET_VERSION = '20261015-51';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -508,7 +508,7 @@ class SealPlayer {
     this.isSwinging = this.swingTimer > 0;
     if (!this.isSwinging) this.selectShot(ball);
     const servePositioning = ball.serveWaiting || ball.serving;
-    const serveLocked = servePositioning && ball.servePhase !== 'waiting';
+    const serveLocked = servePositioning && !['waiting', 'toss'].includes(ball.servePhase);
     const previousX = this.x, previousY = this.y;
     // 構え・スイングとは独立して移動する。長押しの自動移動は追加しない。
     let act;
@@ -1285,7 +1285,9 @@ class Ball {
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
         const profile = SERVE_PROFILES[serveQuality];
-        // サーブの狙いはトス開始前に固定済み。
+        // トスの位置を固定したまま、ラケット面の左右の当たり方でコースを調整。
+        const contact = Math.max(-1, Math.min(1, (this.x - r.x) / r.hitRadius));
+        this.serviceTargetX = Math.max(96, Math.min(160, this.serviceTargetX + contact * 24));
         if(campaign.stage===3)launchOverNet(this,this.serviceTargetX,102,profile.ticks,profile.gravity);
         else this.launch(this.serviceTargetX,102,profile.ticks,profile.gravity);
         this.startService();

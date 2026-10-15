@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261015-48';
+const ASSET_VERSION = '20261015-49';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -54,17 +54,19 @@ const sound = {
     if (!this.enabled || !this.context || this.context.state !== 'running' || document.hidden) return;
     try {
       const audio = this.context, now = audio.currentTime;
-      const duration = kind === 'net' ? 0.12 : kind === 'hit' ? 0.075 : 0.09;
+      const duration = kind === 'net' ? 0.085 : kind === 'hit' ? 0.075 : 0.09;
       const gain = audio.createGain();
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(kind === 'net' ? 0.30 : 0.22, now + 0.003);
+      gain.gain.linearRampToValueAtTime(kind === 'net' ? 0.24 : 0.22, now + 0.003);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
       gain.connect(this.master);
       let source, filter;
       if (kind === 'net') {
-        source = audio.createBufferSource(); source.buffer = this.noise;
-        filter = audio.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 850;
-        source.connect(filter); filter.connect(gain);
+        // 丸く短い「ポコ」。ラケットの矩形波・バウンドの三角波と区別する。
+        source = audio.createOscillator(); source.type = 'sine';
+        source.frequency.setValueAtTime(520, now);
+        source.frequency.exponentialRampToValueAtTime(180, now + duration);
+        source.connect(gain);
       } else {
         source = audio.createOscillator(); source.type = kind === 'hit' ? 'square' : 'triangle';
         source.frequency.setValueAtTime(kind === 'hit' ? 760 : 240, now);
@@ -1302,7 +1304,7 @@ class Ball {
     this.message = message;
     referee.call(['取り逃し', '2バウンド'].includes(message) ? 'インッ' : 'アウト');
     if (winner) match.award(winner);
-    if (!match.winner && (!this.netTouched || ['取り逃し', '2バウンド'].includes(message))) sound.tune(['取り逃し', '2バウンド'].includes(message) ? 'in' : 'sad');
+    if (!match.winner) sound.tune(['取り逃し', '2バウンド'].includes(message) ? 'in' : 'sad');
     this.resetTimer = Math.max(90, match.boardTicks);
   }
   update(player, opponent) {
@@ -1339,13 +1341,9 @@ class Ball {
       if (crossingHeight - this.radius < netHeight && !this.netTouched) {
         this.hitNet = true; this.netTouched = true;
         sound.play('net');
-        // ステージ3のサーブはネット接触もフォルトに数え、2回目で失点。
-        if(campaign.stage===3&&this.servicePending){this.fault();return;}
-        sound.tune('sad');
-        // ネット接触は最終判定だけ宣言する。
-        this.vx *= 0.65;
-        if (crossingHeight >= netHeight - 2) { this.vy *= 0.65; this.vz *= 0.55; }
-        else { this.y = oldY < 120 ? 119 : 121; this.vy *= -0.12; this.vz = Math.min(this.vz, 0); }
+        // 得失点とサーブのワンモアは着地で判定する。
+        if (crossingHeight >= netHeight - 2) { this.vx *= 0.8; this.vy *= 0.8; this.vz *= 0.55; }
+        else { this.vx *= 0.65; this.y = oldY < 120 ? 119 : 121; this.vy *= -0.12; this.vz = Math.min(this.vz, 0); }
       }
       this.bouncesInCurrentCourt = 0;
     }

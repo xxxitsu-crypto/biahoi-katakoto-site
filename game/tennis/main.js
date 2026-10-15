@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261015-49';
+const ASSET_VERSION = '20261015-50';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -1342,7 +1342,7 @@ class Ball {
         this.hitNet = true; this.netTouched = true;
         sound.play('net');
         // 得失点とサーブのワンモアは着地で判定する。
-        if (crossingHeight >= netHeight - 2) { this.vx *= 0.8; this.vy *= 0.8; this.vz *= 0.55; }
+        if (crossingHeight >= netHeight - 2) { this.vx *= 0.6; this.vy *= 0.6; this.vz *= 0.55; }
         else { this.vx *= 0.65; this.y = oldY < 120 ? 119 : 121; this.vy *= -0.12; this.vz = Math.min(this.vz, 0); }
       }
       this.bouncesInCurrentCourt = 0;

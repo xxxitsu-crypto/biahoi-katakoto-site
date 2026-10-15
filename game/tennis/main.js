@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261015-51';
+const ASSET_VERSION = '20261015-52';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -521,6 +521,7 @@ class SealPlayer {
       if (act.isRhythmJump) {
         this.isDashing = true;
         this.dashDirection = act.dir;
+        if (ball.servePhase === 'toss' && ['left', 'right'].includes(act.dir)) ball.serveDashDirection = act.dir;
         this.animationKey = ''; // 再度ダッシュしたら先頭コマから再生。
       }
       if (act.dir === 'left') this.vx -= speed;
@@ -1228,6 +1229,7 @@ class Ball {
       quality === 'float' ? '浮き球' : 'ナイスショット';
   }
   resetPlayerServe() {
+    this.serveDashDirection = null;
     this.servePhase = 'waiting';
     this.serveWaiting = true;
     this.serving = false;
@@ -1236,6 +1238,7 @@ class Ball {
     this.message = '1回押すと構え→トス';
   }
   beginServePreparation() {
+    this.serveDashDirection = null;
     this.serviceTargetX=serveAimX(player);
     this.servePhase = 'preparing';
     this.servePrepareTicks = 12; // 左手に乗った球と構えを0.2秒見せてからトス。
@@ -1288,7 +1291,22 @@ class Ball {
         // トスの位置を固定したまま、ラケット面の左右の当たり方でコースを調整。
         const contact = Math.max(-1, Math.min(1, (this.x - r.x) / r.hitRadius));
         this.serviceTargetX = Math.max(96, Math.min(160, this.serviceTargetX + contact * 24));
-        if(campaign.stage===3)launchOverNet(this,this.serviceTargetX,102,profile.ticks,profile.gravity);
+        const dashCurve = player.isDashing && this.serveDashDirection === player.dashDirection &&
+          ['left', 'right'].includes(this.serveDashDirection);
+        if (dashCurve) {
+          // サービスエリアの内側を狙い、カーブの横ずれを初速で補正する。
+          this.serviceTargetX = this.serviceTargetX < 128 ? Math.min(116, this.serviceTargetX) : Math.max(140, this.serviceTargetX);
+          launchOverNet(this, this.serviceTargetX, 102, profile.ticks, profile.gravity);
+          this.curve = (this.serveDashDirection === 'right' ? 1 : -1) * SETTINGS.curveAcceleration;
+          this.curveTicks = SETTINGS.curveTicks;
+          let acceleration = this.curve, displacement = 0;
+          for (let n = 0; n < Math.min(this.curveTicks, profile.ticks); n++) {
+            displacement += acceleration * (profile.ticks - n);
+            acceleration *= 0.985;
+          }
+          this.vx -= displacement / profile.ticks;
+          this.wasCurveShot = true;
+        } else if(campaign.stage===3)launchOverNet(this,this.serviceTargetX,102,profile.ticks,profile.gravity);
         else this.launch(this.serviceTargetX,102,profile.ticks,profile.gravity);
         this.startService();
         this.message = serveQuality === 'serve_fast' ? '速いサーブネット注意' : '安定サーブ';

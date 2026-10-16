@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261015-52';
+const ASSET_VERSION = '20261016-53';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -186,10 +186,55 @@ let practiceMode = 'rally'; // CPUサーブ／プレイヤーサーブの切替�
 const campaign = { stage: [2,3].includes(window.SEAL_START_STAGE) ? window.SEAL_START_STAGE : 1, selectedStage: [2,3].includes(window.SEAL_START_STAGE) ? window.SEAL_START_STAGE : 1, transitionTicks: 0 };
 const score = { player: 0, cpu: 0 };
 const openingImages = {};
-for (const [key, file] of Object.entries({ background: 'openning.png', logo: 'logo.png' })) {
+for (const [key, file] of Object.entries({ background: 'openning.png', logo: 'logo.png', selection: 'court_choice.jpg', cursor: 'choice-ball.png' })) {
   const image = new Image(); image.src = assetUrl(file); openingImages[key] = image;
 }
 const screen = { phase: 'title', ticks: 0 };
+const stageMenu = { sequence: [], selected: 1 };
+const STAGE_COMMAND = ['up','up','down','down','left','right','left','right'];
+const MENU_PHASES = ['title', 'stage-reveal', 'stage-choice'];
+function menuDirection(dir) {
+  if (!MENU_PHASES.includes(screen.phase)) return false;
+  if (screen.phase === 'title') {
+    stageMenu.sequence.push(dir);
+    while (stageMenu.sequence.length && !stageMenu.sequence.every((value, i) => value === STAGE_COMMAND[i])) stageMenu.sequence.shift();
+  } else if (screen.phase === 'stage-choice' && ['left','right'].includes(dir)) {
+    stageMenu.selected = (stageMenu.selected + (dir === 'right' ? 1 : -1) + 2) % 3 + 1;
+    updateStageMenuLabel();
+  }
+  return true;
+}
+function updateStageMenuLabel() {
+  canvas.setAttribute('aria-label', 'ステージ選択 ST0' + stageMenu.selected + '。左右で選択、ショットで決定');
+}
+function menuShot() {
+  if (!MENU_PHASES.includes(screen.phase)) return false;
+  if (screen.phase === 'title') {
+    if (stageMenu.sequence.length === STAGE_COMMAND.length) {
+      stageMenu.sequence = []; stageMenu.selected = 1;
+      input.cancel(); sound.unlock(); sound.play('hit');
+      screen.phase = 'stage-reveal'; screen.ticks = 48;
+      document.getElementById('game-container').dataset.screen = 'stage-choice';
+      updateStageMenuLabel();
+    } else { campaign.selectedStage = 1; startOpening(); }
+  } else if (screen.phase === 'stage-choice') {
+    campaign.selectedStage = stageMenu.selected;
+    screen.phase = 'title'; startOpening();
+  }
+  return true;
+}
+function drawStageChoice(context, now) {
+  context.fillStyle = '#5bdcf4'; context.fillRect(0, 0, 512, 640);
+  if (imageReady(openingImages.selection)) context.drawImage(openingImages.selection, 0, 0, 512, 640);
+  if (imageReady(openingImages.logo)) context.drawImage(openingImages.logo, 53, 39, 406, 143);
+  if (imageReady(openingImages.cursor)) context.drawImage(openingImages.cursor, [138,253,369][stageMenu.selected-1]-12, 446+Math.round(Math.sin(now/180)*3), 24, 24);
+}
+function drawStageReveal(context, now) {
+  drawStageChoice(context, now);
+  const progress = 1 - screen.ticks / 48;
+  const offset = Math.round(640 * (1 - Math.pow(1 - progress, 3)));
+  context.save(); context.translate(0, offset); drawOpening(context, now); context.restore();
+}
 const stageIntros = [null,...[1,2,3].map((stage)=>{
  const card=new Image();card.src=assetUrl(`intro-stage${stage}.png`);
  const portrait=new Image();portrait.src=assetUrl(`intro-${['cha','ich','erin'][stage-1]}.png`);
@@ -205,7 +250,6 @@ function drawStageIntro(context){
 function beginStageIntro(){
  input.cancel();screen.phase='intro';screen.ticks=60;
  document.getElementById('game-container').dataset.screen='intro';
- const select=document.getElementById('stage-select');if(select)select.hidden=true;
  canvas.setAttribute('aria-label','ステージ'+campaign.stage+' キャラクター紹介');
 }
 function drawOpening(context, now) {
@@ -307,6 +351,7 @@ class InputHandler {
     return [...this.pointerDirections.values()].includes('down') || this.keys.has('ArrowDown');
   }
   registerPress(dir, now = performance.now()) {
+    if (menuDirection(dir)) return;
     if (dir === 'down' && this.action) {
       // ショットを構えた状態で下を押した瞬間にロブを開始する。下移動にはしない。
       this.shotQueue.push({ type: 'lob' });
@@ -327,6 +372,7 @@ class InputHandler {
     this.consumeQueue.push({ dir, isRhythmJump });
   }
   pressShot(source) {
+    if (menuShot()) return;
     if(screen.phase==='continue'){ input.cancel(); resetPractice(); return; }
     if (this.actionSources.has(source)) return;
     if (!this.action) {
@@ -356,6 +402,7 @@ class InputHandler {
   initKeyboard() {
     const map = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
     window.addEventListener('keydown', e => {
+      if (MENU_PHASES.includes(screen.phase)) return;
       const shot = e.code === 'KeyZ' || e.code === 'Space';
       if (map[e.code] || shot) e.preventDefault();
       if (e.repeat || this.keys.has(e.code)) return;
@@ -1568,7 +1615,8 @@ const ball = new Ball();
 let cpu = createOpponent();
 cpu.x = 128; cpu.targetX = 128;
 const clock = new FixedClock(() => {
-  if (screen.phase === 'title') { input.cancel(); return; }
+  if (screen.phase === 'title' || screen.phase === 'stage-choice') { input.cancel(); return; }
+  if (screen.phase === 'stage-reveal') { input.cancel(); if (--screen.ticks === 0) screen.phase = 'stage-choice'; return; }
   if (screen.phase === 'confirming') {
     input.cancel(); if (--screen.ticks === 0) beginStageIntro(); return;
   }
@@ -1604,7 +1652,6 @@ function toggleServePractice() {
 function resetPractice() {
   screen.phase = 'starting'; screen.ticks = 120;
   document.getElementById('game-container').dataset.screen = 'playing';
-  const select=document.getElementById('stage-select');if(select)select.hidden=true;
   input.cancel();
   Object.assign(player, new SealPlayer(CANVAS_WIDTH / 2 - 8, 180));
   player.cancelVersion = input.cancelVersion;
@@ -1626,27 +1673,35 @@ function returnToOpening() {
   input.cancel();campaign.transitionTicks=0;match.reset('cpu');cpu.reset();ball.resetServe();
   screen.phase='title';screen.ticks=0;referee.text='';referee.ticks=0;
   document.getElementById('game-container').dataset.screen='title';
-  const select=document.getElementById('stage-select');if(select)select.hidden=false;
+  stageMenu.sequence=[];stageMenu.selected=1;campaign.selectedStage=1;
   canvas.setAttribute('role','button');canvas.setAttribute('aria-label','push to play');clock.reset();
 }
 function startOpening() {
   if (screen.phase !== 'title') return;
+  stageMenu.sequence=[];
   campaign.stage=campaign.selectedStage;campaign.transitionTicks=0;cpu=createOpponent();
   sound.unlock(); sound.tune('start');
   screen.phase = 'confirming'; screen.ticks = 72;
   canvas.removeAttribute('role'); canvas.setAttribute('aria-label', 'アザラシテニス');
 }
 canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'push to play'); canvas.tabIndex = 0;
-canvas.addEventListener('click', startOpening);
-for(const stage of [1,2,3])document.getElementById('stage-'+stage)?.addEventListener('click',()=>{
- if(screen.phase!=='title')return;campaign.selectedStage=stage;
- for(const n of [1,2,3])document.getElementById('stage-'+n)?.setAttribute('aria-pressed',String(n===stage));
+canvas.addEventListener('click', event => {
+  if (screen.phase === 'title') { menuShot(); return; }
+  if (screen.phase !== 'stage-choice') return;
+  const bounds=canvas.getBoundingClientRect();
+  const x=(event.clientX-bounds.left)*512/bounds.width, y=(event.clientY-bounds.top)*640/bounds.height;
+  if (y>=244 && y<=430) {
+    const column=[[85,191],[200,306],[316,422]].findIndex(([left,right])=>x>=left&&x<=right);
+    if(column>=0){stageMenu.selected=column+1;updateStageMenuLabel();}
+  }
 });
-for(const stage of [1,2,3])document.getElementById('stage-'+stage)?.setAttribute('aria-pressed',String(stage===campaign.selectedStage));
-document.getElementById('btn-action')?.addEventListener('click', startOpening);
 window.addEventListener('keydown', event => {
-  if (screen.phase === 'title' && ['Enter', 'Space', 'KeyZ'].includes(event.code)) {
-    event.preventDefault(); event.stopImmediatePropagation(); startOpening();
+  if (!MENU_PHASES.includes(screen.phase)) return;
+  const directions={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+  if (directions[event.code] || ['Enter','Space','KeyZ'].includes(event.code)) {
+    event.preventDefault(); event.stopImmediatePropagation();
+    if(event.repeat)return;
+    if(directions[event.code])menuDirection(directions[event.code]);else menuShot();
   }
 }, { capture: true });
 window.addEventListener('blur', () => { paused = true; clock.reset(); });
@@ -1664,7 +1719,7 @@ window.addEventListener('pagehide', () => { input.cancel(); clock.reset(); });
 function gameLoop(now) {
   if (!paused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
-  if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
+  if(screen.phase==='stage-reveal')drawStageReveal(ctx,now);else if(screen.phase==='stage-choice')drawStageChoice(ctx,now);else if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
   const guideButton = document.getElementById('guide-toggle');
   guideButton?.setAttribute('aria-pressed', String(showGuide));
   const modeButton = document.getElementById('serve-mode');

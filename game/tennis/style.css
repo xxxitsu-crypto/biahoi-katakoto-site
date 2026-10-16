@@ -59,9 +59,6 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
  #btn-left, #btn-right { width: 72px; height: 72px; }
  .dpad-btn { font-size: 25px; border-radius: 7px; }
  #btn-action { width: 88px; height: 88px; font-size: 16px; white-space: nowrap; }
- #game-container[data-screen="title"] #gameCanvas { width: min(100%, calc((100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .8)); }
- #stage-select { bottom: max(12px,env(safe-area-inset-bottom)); }
- #stage-select button { min-height: 42px; padding: 5px 8px; font-size: 12px; }
 }
 @media (orientation: landscape) and (any-pointer: coarse) {
  #game-container { display: grid; grid-template-columns: 156px minmax(0,1fr) 96px; grid-template-rows: 1fr; column-gap: 6px; }
@@ -69,7 +66,9 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
  #virtual-controller { display: contents; }
  #dpad { grid-column: 1; grid-row: 1; }
  #action-buttons { grid-column: 3; grid-row: 1; }
- #game-container[data-screen="title"] #gameCanvas { grid-column: 1 / -1; }
 }
 
 #game-container[data-screen="intro"] #virtual-controller { visibility: hidden; }
+
+#game-container[data-screen="stage-choice"] .toolbar,
+#game-container[data-screen="stage-choice"] #status { display: none; }

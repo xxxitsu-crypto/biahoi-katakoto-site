@@ -4,27 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SEAL TENNIS</title>
-  <link rel="stylesheet" href="style.css?v=20261014-mobile-32">
+  <link rel="stylesheet" href="style.css?v=20261016-stage-select-53">
   <style>
     #game-container[data-screen="title"] .toolbar,
-    #game-container[data-screen="title"] #status,
-    #game-container[data-screen="title"] #virtual-controller { display: none; }
+    #game-container[data-screen="title"] #status { display: none; }
     #game-container[data-screen="title"] #gameCanvas { cursor: pointer; }
-  #stage-select { position: fixed; bottom: max(16px,env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 5; max-width: 95vw; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
-    #stage-select[hidden] { display: none; }
-    #stage-select button[aria-pressed="true"] { border-color: #fff; background: #444; }
   </style>
 </head>
 <body>
   <div id="game-container" data-screen="title">
-    <p class="version">SEAL TENNIS · ステージ3確認版 52</p>
+    <p class="version">SEAL TENNIS · ステージ3確認版 53</p>
     <canvas id="gameCanvas" width="512" height="640"></canvas>
     
-    <div id="stage-select" aria-label="テスト用ステージ選択">
-      <button id="stage-1" type="button" aria-pressed="true">STAGE 1：茶色アザラシ</button>
-      <button id="stage-2" type="button" aria-pressed="false">STAGE 2：男の子</button>
-      <button id="stage-3" type="button" aria-pressed="false">STAGE 3：女の子</button>
-    </div>
     <p id="status" role="status">読み込み中</p>
     <div class="toolbar">
       <button id="sound-toggle" type="button" aria-pressed="true">音：オン</button>
@@ -49,7 +40,7 @@
   </div>
 
   <script>window.SEAL_START_STAGE = 3;</script>
-  <script defer src="main.js?v=20261015-stage3-52"></script>
+  <script defer src="main.js?v=20261016-stage3-53"></script>
 </body>
 </html>
 

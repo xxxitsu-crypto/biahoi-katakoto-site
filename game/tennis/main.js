@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261016-53';
+const ASSET_VERSION = '20261016-54';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -186,7 +186,7 @@ let practiceMode = 'rally'; // CPUサーブ／プレイヤーサーブの切替�
 const campaign = { stage: [2,3].includes(window.SEAL_START_STAGE) ? window.SEAL_START_STAGE : 1, selectedStage: [2,3].includes(window.SEAL_START_STAGE) ? window.SEAL_START_STAGE : 1, transitionTicks: 0 };
 const score = { player: 0, cpu: 0 };
 const openingImages = {};
-for (const [key, file] of Object.entries({ background: 'openning.png', logo: 'logo.png', selection: 'court_choice.jpg', cursor: 'choice-ball.png' })) {
+for (const [key, file] of Object.entries({ background: 'opening-scroll.jpg', logo: 'logo.png', cursor: 'choice-ball.png' })) {
   const image = new Image(); image.src = assetUrl(file); openingImages[key] = image;
 }
 const screen = { phase: 'title', ticks: 0 };
@@ -223,17 +223,30 @@ function menuShot() {
   }
   return true;
 }
-function drawStageChoice(context, now) {
+function drawOpeningBackground(context, progress = 0) {
   context.fillStyle = '#5bdcf4'; context.fillRect(0, 0, 512, 640);
-  if (imageReady(openingImages.selection)) context.drawImage(openingImages.selection, 0, 0, 512, 640);
-  if (imageReady(openingImages.logo)) context.drawImage(openingImages.logo, 53, 39, 406, 143);
-  if (imageReady(openingImages.cursor)) context.drawImage(openingImages.cursor, [138,253,369][stageMenu.selected-1]-12, 446+Math.round(Math.sin(now/180)*3), 24, 24);
+  if (!imageReady(openingImages.background)) return;
+  const image = openingImages.background;
+  // 同じ縦長画像の下640pxから上640pxへ、切り出し位置だけを移動する。
+  const sourceY = Math.round(Math.max(0, image.height - 640) * (1 - progress));
+  context.drawImage(image, 0, sourceY, 512, 640, 0, 0, 512, 640);
+}
+function drawOpeningLogo(context) {
+  if (imageReady(openingImages.logo)) context.drawImage(openingImages.logo, 121, 60, 270, 95);
+}
+function drawStageChoice(context, now) {
+  drawOpeningBackground(context, 1);
+  drawOpeningLogo(context);
+  context.save(); context.fillStyle = '#fff'; context.textAlign = 'center';
+  context.font = 'italic 26px Georgia, serif';
+  for (let n = 0; n < 3; n++) context.fillText('ST0' + (n + 1), [140,255,370][n], 370);
+  context.restore();
+  if (imageReady(openingImages.cursor)) context.drawImage(openingImages.cursor, [140,255,370][stageMenu.selected-1]-12, 400+Math.round(Math.sin(now/180)*3), 24, 24);
 }
 function drawStageReveal(context, now) {
-  drawStageChoice(context, now);
   const progress = 1 - screen.ticks / 48;
-  const offset = Math.round(640 * (1 - Math.pow(1 - progress, 3)));
-  context.save(); context.translate(0, offset); drawOpening(context, now); context.restore();
+  drawOpeningBackground(context, 1 - Math.pow(1 - progress, 3));
+  drawOpeningLogo(context);
 }
 const stageIntros = [null,...[1,2,3].map((stage)=>{
  const card=new Image();card.src=assetUrl(`intro-stage${stage}.png`);
@@ -253,9 +266,8 @@ function beginStageIntro(){
  canvas.setAttribute('aria-label','ステージ'+campaign.stage+' キャラクター紹介');
 }
 function drawOpening(context, now) {
-  context.fillStyle = '#00cde4'; context.fillRect(0, 0, 512, 640);
-  if (imageReady(openingImages.background)) context.drawImage(openingImages.background, 0, 0, 512, 640);
-  if (imageReady(openingImages.logo)) context.drawImage(openingImages.logo, 53, 39, 406, 143);
+  drawOpeningBackground(context);
+  drawOpeningLogo(context);
   if (Math.floor(now / (screen.phase === 'confirming' ? 80 : 650)) % 2 === 0) {
     context.save(); context.fillStyle = '#fff'; context.textAlign = 'center';
     context.font = 'bold italic 26px Georgia, serif';
@@ -1690,8 +1702,8 @@ canvas.addEventListener('click', event => {
   if (screen.phase !== 'stage-choice') return;
   const bounds=canvas.getBoundingClientRect();
   const x=(event.clientX-bounds.left)*512/bounds.width, y=(event.clientY-bounds.top)*640/bounds.height;
-  if (y>=244 && y<=430) {
-    const column=[[85,191],[200,306],[316,422]].findIndex(([left,right])=>x>=left&&x<=right);
+  if (y>=218 && y<=380) {
+    const column=[[97,184],[212,299],[327,414]].findIndex(([left,right])=>x>=left&&x<=right);
     if(column>=0){stageMenu.selected=column+1;updateStageMenuLabel();}
   }
 });

@@ -72,3 +72,14 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 
 #game-container[data-screen="stage-choice"] .toolbar,
 #game-container[data-screen="stage-choice"] #status { display: none; }
+
+#game-container[data-screen="ending"] .toolbar,
+#game-container[data-screen="ending"] #status,
+#game-container[data-screen="ending"] #virtual-controller { display: none; }
+#game-container[data-screen="ending"] #gameCanvas { cursor: pointer; }
+@media (any-pointer: coarse), (max-width: 600px) {
+ #game-container[data-screen="ending"] #gameCanvas { width: min(100%,calc((100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .8)); }
+}
+@media (orientation: landscape) and (any-pointer: coarse) {
+ #game-container[data-screen="ending"] #gameCanvas { grid-column: 1 / -1; }
+}

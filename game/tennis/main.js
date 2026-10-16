@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261016-54';
+const ASSET_VERSION = '20261016-55';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -48,6 +48,7 @@ const sound = {
         }
       }
       if (this.context.state === 'suspended') this.context.resume().catch(() => {});
+      endingMusic.prepare(this.context);
     } catch (_) { /* 音声非対応でもゲームは続行する。 */ }
   },
   play(kind) {
@@ -103,6 +104,7 @@ const sound = {
     this.enabled = !this.enabled;
     if (this.master) this.master.gain.setValueAtTime(this.enabled ? 0.35 : 0, this.context.currentTime);
     if (this.enabled) this.unlock();
+    endingMusic.sync();
     const button = document.getElementById('sound-toggle');
     if (button) { button.textContent = this.enabled ? '音：オン' : '音：オフ'; button.setAttribute('aria-pressed', String(this.enabled)); }
   }
@@ -192,7 +194,7 @@ for (const [key, file] of Object.entries({ background: 'opening-scroll.jpg', log
 const screen = { phase: 'title', ticks: 0 };
 const stageMenu = { sequence: [], selected: 1 };
 const STAGE_COMMAND = ['up','up','down','down','left','right','left','right'];
-const MENU_PHASES = ['title', 'stage-reveal', 'stage-choice'];
+const MENU_PHASES = ['title', 'stage-reveal', 'stage-choice', 'ending-win', 'ending'];
 function menuDirection(dir) {
   if (!MENU_PHASES.includes(screen.phase)) return false;
   if (screen.phase === 'title') {
@@ -209,7 +211,9 @@ function updateStageMenuLabel() {
 }
 function menuShot() {
   if (!MENU_PHASES.includes(screen.phase)) return false;
-  if (screen.phase === 'title') {
+  if (screen.phase === 'ending') {
+    if (screen.ticks >= 120) returnToOpening();
+  } else if (screen.phase === 'title') {
     if (stageMenu.sequence.length === STAGE_COMMAND.length) {
       stageMenu.sequence = []; stageMenu.selected = 1;
       input.cancel(); sound.unlock(); sound.play('hit');
@@ -247,6 +251,50 @@ function drawStageReveal(context, now) {
   const progress = 1 - screen.ticks / 48;
   drawOpeningBackground(context, 1 - Math.pow(1 - progress, 3));
   drawOpeningLogo(context);
+}
+const endingImage = new Image(); endingImage.src = assetUrl('ending.jpg');
+const ENDING_MESSAGE = 'congratulations !　you are No.1  Azarashi.';
+const endingMusic = {
+  buffer: null, loading: null, source: null, offset: 0, startedAt: 0, finished: false,
+  prepare(context) {
+    if (this.buffer || this.loading || !context || typeof fetch !== 'function') return;
+    this.loading = fetch(assetUrl('ending.mp3'))
+      .then(response => { if (!response.ok) throw new Error('ending audio'); return response.arrayBuffer(); })
+      .then(data => context.decodeAudioData(data))
+      .then(buffer => { this.buffer = buffer; this.sync(); })
+      .catch(() => { this.loading = null; });
+  },
+  pause() {
+    if (!this.source) return;
+    this.offset = Math.min(this.buffer.duration, this.offset + sound.context.currentTime - this.startedAt);
+    const source = this.source; this.source = null; source.onended = null;
+    source.stop(); source.disconnect();
+  },
+  reset() { this.pause(); this.offset = 0; this.finished = false; },
+  sync() {
+    const active = screen.phase === 'ending' && screen.ticks >= 120 && sound.enabled && !paused && !document.hidden;
+    if (!active) { this.pause(); return; }
+    if (this.source || this.finished || !this.buffer || sound.context?.state !== 'running') return;
+    if (this.offset >= this.buffer.duration) { this.finished = true; return; }
+    const source = sound.context.createBufferSource(); source.buffer = this.buffer;
+    source.connect(sound.master); this.source = source; this.startedAt = sound.context.currentTime;
+    source.onended = () => { if (this.source === source) { this.source = null; this.finished = true; source.disconnect(); } };
+    source.start(0, this.offset);
+  }
+};
+function beginEnding() {
+  input.cancel(); endingMusic.reset(); screen.phase = 'ending'; screen.ticks = 0;
+  document.getElementById('game-container').dataset.screen = 'ending';
+  canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'エンディング。ショットでオープニングへ');
+}
+function drawEnding(context) {
+  context.fillStyle = '#5bdcf4'; context.fillRect(0, 0, 512, 640);
+  if (imageReady(endingImage)) context.drawImage(endingImage, 0, 0, 512, 640);
+  context.save(); context.beginPath(); context.rect(0, 32, 512, 150); context.clip();
+  context.fillStyle = '#fff'; context.textAlign = 'left'; context.font = '24px Georgia, serif';
+  const width = context.measureText(ENDING_MESSAGE).width;
+  const x = 512 - (screen.ticks * 1.1) % (512 + width + 80);
+  context.fillText(ENDING_MESSAGE, x, 112); context.restore();
 }
 const stageIntros = [null,...[1,2,3].map((stage)=>{
  const card=new Image();card.src=assetUrl(`intro-stage${stage}.png`);
@@ -312,7 +360,7 @@ const match = {
     if (score[winner] >= 4 && score[winner] - score[other] >= 2) {
       this.games[winner]++; score.player = score.cpu = 0;
       referee.call('GAME', 150); this.boardTicks = 150;
-      if (this.games[winner] >= 3) { this.winner = winner; sound.tune(winner === 'player' ? 'win' : 'lose'); if (winner === 'player' && campaign.stage < 3) campaign.transitionTicks = 150; if (winner === 'cpu' && campaign.stage >= 2) { screen.phase='gameover'; screen.ticks=120; } }
+      if (this.games[winner] >= 3) { this.winner = winner; sound.tune(winner === 'player' ? 'win' : 'lose'); if (winner === 'player' && campaign.stage < 3) campaign.transitionTicks = 150; if (winner === 'player' && campaign.stage === 3) { screen.phase='ending-win'; screen.ticks=180; } if (winner === 'cpu') { screen.phase='gameover'; screen.ticks=120; } }
       else this.server = this.server === 'player' ? 'cpu' : 'player';
     }
   },
@@ -1627,6 +1675,8 @@ const ball = new Ball();
 let cpu = createOpponent();
 cpu.x = 128; cpu.targetX = 128;
 const clock = new FixedClock(() => {
+  if (screen.phase === 'ending-win') { input.cancel(); if (--screen.ticks === 0) beginEnding(); return; }
+  if (screen.phase === 'ending') { input.cancel(); screen.ticks++; endingMusic.sync(); return; }
   if (screen.phase === 'title' || screen.phase === 'stage-choice') { input.cancel(); return; }
   if (screen.phase === 'stage-reveal') { input.cancel(); if (--screen.ticks === 0) screen.phase = 'stage-choice'; return; }
   if (screen.phase === 'confirming') {
@@ -1662,6 +1712,7 @@ function toggleServePractice() {
   resetPractice();
 }
 function resetPractice() {
+  endingMusic.reset();
   screen.phase = 'starting'; screen.ticks = 120;
   document.getElementById('game-container').dataset.screen = 'playing';
   input.cancel();
@@ -1682,6 +1733,7 @@ function resetPractice() {
   clock.reset();
 }
 function returnToOpening() {
+  endingMusic.reset();
   input.cancel();campaign.transitionTicks=0;match.reset('cpu');cpu.reset();ball.resetServe();
   screen.phase='title';screen.ticks=0;referee.text='';referee.ticks=0;
   document.getElementById('game-container').dataset.screen='title';
@@ -1698,7 +1750,7 @@ function startOpening() {
 }
 canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'push to play'); canvas.tabIndex = 0;
 canvas.addEventListener('click', event => {
-  if (screen.phase === 'title') { menuShot(); return; }
+  if (screen.phase === 'title' || screen.phase === 'ending') { menuShot(); return; }
   if (screen.phase !== 'stage-choice') return;
   const bounds=canvas.getBoundingClientRect();
   const x=(event.clientX-bounds.left)*512/bounds.width, y=(event.clientY-bounds.top)*640/bounds.height;
@@ -1716,22 +1768,22 @@ window.addEventListener('keydown', event => {
     if(directions[event.code])menuDirection(directions[event.code]);else menuShot();
   }
 }, { capture: true });
-window.addEventListener('blur', () => { paused = true; clock.reset(); });
-window.addEventListener('focus', () => { paused = document.hidden; clock.reset(); });
+window.addEventListener('blur', () => { paused = true; endingMusic.pause(); clock.reset(); });
+window.addEventListener('focus', () => { paused = document.hidden; endingMusic.sync(); clock.reset(); });
 document.addEventListener('visibilitychange', () => {
   paused = document.hidden || !document.hasFocus();
-  clock.reset();
+  endingMusic.sync(); clock.reset();
 });
 document.getElementById('sound-toggle')?.addEventListener('click', () => sound.toggle());
 function resetCampaign() { campaign.stage = campaign.selectedStage; campaign.transitionTicks = 0; cpu = createOpponent(); resetPractice(); }
 document.getElementById('restart')?.addEventListener('click', resetCampaign);
 document.getElementById('serve-mode')?.addEventListener('click', toggleServePractice);
 document.getElementById('guide-toggle')?.addEventListener('click', () => { showGuide = !showGuide; });
-window.addEventListener('pagehide', () => { input.cancel(); clock.reset(); });
+window.addEventListener('pagehide', () => { input.cancel(); endingMusic.pause(); clock.reset(); });
 function gameLoop(now) {
   if (!paused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
-  if(screen.phase==='stage-reveal')drawStageReveal(ctx,now);else if(screen.phase==='stage-choice')drawStageChoice(ctx,now);else if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
+  if(screen.phase==='ending')drawEnding(ctx);else if(screen.phase==='stage-reveal')drawStageReveal(ctx,now);else if(screen.phase==='stage-choice')drawStageChoice(ctx,now);else if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
   const guideButton = document.getElementById('guide-toggle');
   guideButton?.setAttribute('aria-pressed', String(showGuide));
   const modeButton = document.getElementById('serve-mode');

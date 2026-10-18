@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261016-55';
+const ASSET_VERSION = '20261018-60';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -140,11 +140,11 @@ const VOLLEY = {
     sourceWidth: 70, sourceHeight: 75,
     cropX: 0, cropY: 0, drawOffsetX: -7,
     phases: [
-      { frame: 1, ticks: 2, quality: 'normal' }, { frame: 2, ticks: 2, quality: 'normal' },
-      { frame: 3, ticks: 4, quality: 'critical' },
-      { frame: 4, ticks: 4, quality: 'float' },
-      { frame: 5, ticks: 3, quality: 'normal' }, { frame: 6, ticks: 3, quality: 'normal' },
-      { frame: 7, ticks: 3, quality: 'normal' },
+      { frame: 1, ticks: 4 },
+      { frame: 2, ticks: 4, quality: 'normal', aim: 1 },
+      { frame: 3, ticks: 4, quality: 'critical', aim: 0 },
+      { frame: 4, ticks: 4, quality: 'normal', aim: -1, smashFloat: true },
+      { frame: 5, ticks: 3 }, { frame: 6, ticks: 3 }, { frame: 7, ticks: 3 },
     ],
   },
   backhand: {
@@ -152,19 +152,19 @@ const VOLLEY = {
     cropX: 0, cropY: 0, sourceWidth: 96, sourceHeight: 76,
     drawWidth: 96 * 32 / 71, drawHeight: 34, drawOffsetX: -12,
     phases: [
-      { frame: 1, ticks: 4, quality: 'normal' },
-      { frame: 2, ticks: 4, quality: 'float' },
-      { frame: 3, ticks: 4, quality: 'critical' },
-      { frame: 4, ticks: 4, quality: 'float' },
-      { frame: 3, ticks: 3, quality: 'normal' }, { frame: 2, ticks: 3, quality: 'normal' }, { frame: 1, ticks: 3, quality: 'normal' },
+      { frame: 1, ticks: 4 },
+      { frame: 2, ticks: 4, quality: 'normal', aim: -1 },
+      { frame: 3, ticks: 4, quality: 'critical', aim: 0 },
+      { frame: 4, ticks: 4, quality: 'normal', aim: 1, smashFloat: true },
+      { frame: 3, ticks: 3 }, { frame: 2, ticks: 3 }, { frame: 1, ticks: 3 },
     ],
   },
 };
 // 提供PNGの黄色いラケット面を測定。半径は輪郭を含めた元画像上の値。
 VOLLEY.forehand.racketCenters = [[13.41, 22.04], [22.89, 47.05], [39.54, 51.57], [56.29, 52.85], [56.35, 30.49], [30.44, 12.45], [56.35, 30.49], [39.54, 51.57]];
 VOLLEY.forehand.racketRadii = [[12.41, 15.04], [12.11, 12.05], [9.54, 12.57], [12.29, 11.15], [12.65, 12.49], [11.56, 12.55], [12.65, 12.49], [9.54, 12.57]];
-VOLLEY.backhand.racketCenters = [[65.72, 22.60], [53.53, 42.42], [17.84, 50.01], [15.57, 37.74], [24.69, 10.51]];
-VOLLEY.backhand.racketRadii = [[13.68, 15.57], [12.43, 13.45], [13.09, 13.02], [14.26, 14.69], [12.25, 11.51]];
+VOLLEY.backhand.racketCenters = [[61.5, 22.5], [50, 42], [14, 50], [12, 37.5], [21, 10.5]];
+VOLLEY.backhand.racketRadii = [[13.5, 15.5], [12, 13], [13, 13], [14, 14.5], [12, 11.5]];
 // サーブ・スマッシュ共通：03/04で打球、05は0.3秒の振り下ろし。
 for (const kind of ['smash', 'serve']) {
   VOLLEY[kind] = {
@@ -407,6 +407,12 @@ class InputHandler {
     this.initTouch();
   }
   get action() { return this.actionSources.size > 0; }
+  get horizontalAim() {
+    const directions = [...this.pointerDirections.values()];
+    const left = this.keys.has('ArrowLeft') || directions.includes('left');
+    const right = this.keys.has('ArrowRight') || directions.includes('right');
+    return Number(right) - Number(left);
+  }
   get downHeld() {
     return [...this.pointerDirections.values()].includes('down') || this.keys.has('ArrowDown');
   }
@@ -444,7 +450,7 @@ class InputHandler {
   releaseShot(source) {
     if (!this.actionSources.delete(source)) return;
     if (!this.action) {
-      this.shotQueue.push({ type: 'release' });
+      this.shotQueue.push({ type: 'release', aim: this.horizontalAim });
     }
   }
   releaseDirection(pointerId) {
@@ -534,6 +540,8 @@ class SealPlayer {
     this.hasHit = false;
     this.cancelVersion = 0;
     this.swingCount = 0;
+    this.swingAim = 0;
+    this.swingDashDirection = null;
     this.swingElapsed = 0;
     this.visualFacing = 1; // 移動画像の左右。自動打球選択のfacingとは独立。
     this.dashDirection = null;
@@ -544,9 +552,21 @@ class SealPlayer {
   }
   selectShot(ball, forceVolley = false) {
     if (ball.serveWaiting || ball.serving) { this.shotType = 'serve'; return; }
-    const dx = ball.x - (this.x + this.width / 2);
-    const dy = ball.y - (this.y + 6);
-    if (!forceVolley && ball.z >= 22 && Math.abs(dx) <= 14 && Math.abs(dy) <= 24) {
+    // Predict the ball at the first active frame, including its first bounce.
+    let x=ball.x,y=ball.y,z=ball.z,vz=ball.vz,g=ball.gravity;
+    let bounceFactor=ball.nextBounceFactor,bounceCap=ball.nextBounceMaxVz;
+    let vx=ball.vx,curve=ball.curve||0;
+    const lead=VOLLEY.smash.phases[0].ticks;
+    for(let i=0;i<lead;i++){
+      if(i<(ball.curveTicks||0)){vx+=curve;curve*=.985;}
+      x+=vx;y+=ball.vy;z+=vz;vz-=g;
+      if(z<0){z=0;vz*=- (bounceFactor??Math.abs(ball.bounce));
+        if(bounceCap!=null)vz=Math.min(vz,bounceCap);
+        bounceFactor=null;bounceCap=null;g=SETTINGS.gravity;}
+    }
+    const dx = x - (this.x + this.width / 2);
+    const dy = y - (this.y + 6);
+    if (!forceVolley && z >= 22 && Math.abs(dx) <= 14 && Math.abs(dy) <= 24) {
       this.shotType = 'smash';
     } else {
       // 中心付近で左右が細かく切り替わらないように幅を持たせる。
@@ -669,6 +689,8 @@ class SealPlayer {
       }
       if (event.type === 'lob') {
         if (!this.isSwinging) {
+          this.swingDashDirection = this.isDashing && ['left','right'].includes(this.dashDirection) ? this.dashDirection : null;
+          this.swingAim = event.aim ?? input.horizontalAim;
           this.lobShot = true;
           this.selectShot(ball, true);
           this.isSwinging = true;
@@ -682,6 +704,8 @@ class SealPlayer {
         this.isPreparing = true;
       } else {
         if (this.isPreparing && !this.isSwinging) {
+          this.swingDashDirection = this.isDashing && ['left','right'].includes(this.dashDirection) ? this.dashDirection : null;
+          this.swingAim = event.aim ?? input.horizontalAim;
           this.lobShot = false;
           this.selectShot(ball);
           this.isSwinging = true;
@@ -800,7 +824,7 @@ class CpuPlayer {
   this.x=128;this.y=46;this.targetX=128;this.targetY=46;
   this.visualFacing=1;this.animationTick=0;this.moving=false;
   this.shotKind='leftShot';this.swingElapsed=0;this.isSwinging=false;this.hasHit=false;
-  this.reactionTimer=0;this.dashTimer=0;this.dashCooldown=0;
+  this.reactionTimer=0;this.dashTimer=0;this.dashCooldown=0;this.dashSpeed=1.3;
   this.serveAge=0;this.plan=null;
   this.fatigueShots=0;this.fatigueMoveShots=0;this.fatigueTriggered=false;this.observedHits=-1;
  }
@@ -835,7 +859,14 @@ class CpuPlayer {
     const tx=Math.max(24,Math.min(232,x-(r.x-this.x)));
     const ty=Math.max(34,Math.min(108,y));
     const distance=Math.hypot(tx-this.x,ty-this.y);
-    if(distance<=CPU_SETTINGS.speed*n+4)return {x:tx,y:ty,n,kind,windup};
+    // Right-side coverage includes the dash that can actually be used.
+    const rightWide=tx>160&&tx-this.x>18;
+    const dashFrames=this.dashTimer>0?Math.min(n,this.dashTimer):
+      rightWide&&!this.dashCooldown?Math.min(n,26):0;
+    const dashSpeed=this.dashTimer>0?this.dashSpeed:rightWide?2.1:1.3;
+    const reach=(CPU_SETTINGS.speed*n+(dashSpeed-CPU_SETTINGS.speed)*dashFrames)*
+      (ty<this.y?.65:1)*(this.fatigueMoveShots>0?.6:1);
+    if(distance<=reach+4)return {x:tx,y:ty,n,kind,windup};
    }
   }
   return null;
@@ -865,8 +896,12 @@ class CpuPlayer {
    else {this.targetX=Math.max(24,Math.min(232,ball.x));this.targetY=ball.rallyHits===0?58:100;}
   }else if(!this.isSwinging||this.hasHit){this.targetX=ball.rallyHits===0?128:Math.max(36,Math.min(220,ball.x));this.targetY=ball.rallyHits===0?58:100;}
   const dx=this.targetX-this.x,dy=this.targetY-this.y,distance=Math.hypot(dx,dy);
-  if(incoming&&distance>38&&!this.dashCooldown&&!this.isSwinging){this.dashTimer=18;this.dashCooldown=100;}
-  const speed=(this.dashTimer?1.3:CPU_SETTINGS.speed)*(dy<0?0.65:1)*(this.fatigueMoveShots>0?0.6:1);
+  const rightWide=this.targetX>160&&dx>18;
+  if(incoming&&distance>(rightWide?22:38)&&!this.dashCooldown&&!this.isSwinging){
+   this.dashTimer=rightWide?26:18;this.dashCooldown=rightWide?45:100;
+   this.dashSpeed=rightWide?2.1:1.3;
+  }
+  const speed=(this.dashTimer?this.dashSpeed:CPU_SETTINGS.speed)*(dy<0?0.65:1)*(this.fatigueMoveShots>0?0.6:1);
   if(distance>0.1){const step=Math.min(speed,distance);this.x+=dx/distance*step;this.y+=dy/distance*step;}
   this.moving=distance>0.1;
   if(Math.abs(dx)>0.1)this.visualFacing=Math.sign(dx);
@@ -920,6 +955,7 @@ class CpuPlayer {
     this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
     const profile=SERVE_PROFILES[serveQuality];
     ball.launch(ball.serviceTargetX,144,profile.ticks,profile.gravity);
+    ball.nextBounceMaxVz=1.45;
     ball.startService();
     ball.message=serveQuality==='serve_fast'?'CPU速いサーブ':'CPU安定サーブ';return;
    }
@@ -1042,7 +1078,11 @@ class BoyPlayer extends CpuPlayer {
    this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
    // サーブは低い弾道と小さなバウンド。左右差は中心から8だけ。
    ball.serviceTargetX=128+(match.games.player+match.games.cpu+score.player+score.cpu+match.faults)%2*16-8;
-   ball.launch(ball.serviceTargetX,144,90,.035);ball.nextBounceFactor=.72;ball.startService();return;
+   const serveSpeed=1.3;
+   // Increase horizontal speed by 30%, retaining the low flight arc and bounce.
+   ball.launch(ball.serviceTargetX,144,90/serveSpeed,.035*serveSpeed*serveSpeed);
+   ball.nextBounceFactor=.72/serveSpeed;ball.nextBounceMaxVz=1.53;
+   ball.startService();return;
   }
   if(ball.z<=0)ball.fault();
  }
@@ -1167,7 +1207,7 @@ class ErinPlayer extends BoyPlayer {
   const targetX=Math.max(42,Math.min(214,player.x+player.width/2));
   if(curveReturn){
    // 曲がり終わった後もカーブだったことを覚え、必ずチャンスの浮き玉を返す。
-   launchOverNet(ball,128,174,72,.08);ball.lastShotQuality='float';ball.erinSmashOpening=true;ball.nextBounceMaxVz=2;
+   launchOverNet(ball,targetX,Math.max(180,Math.min(198,player.y+28)),78,.10);ball.lastShotQuality='float';ball.erinSmashOpening=true;ball.nextBounceMaxVz=2;
   }else if(ball.rallyHits>=20&&!this.superUsed){
    this.superUsed=true; // 接触時の姿勢・打球位置を維持して必殺返球へ切り替える。
    this.launchShot(ball,targetX,176,24,.10);ball.erinSuper=true;ball.bodyAim=true;ball.lastShotQuality='smash';
@@ -1200,7 +1240,7 @@ class ErinPlayer extends BoyPlayer {
    const r=this.racket();
    if(Math.hypot(ball.x-r.x,ball.y-r.y)<r.hitRadius&&Math.abs(ball.z-r.z)<r.hitHeight){
     this.hasHit=true;ball.cpuServing=false;ball.lastHitter='cpu';ball.bouncesInCurrentCourt=0;
-    ball.serviceTargetX=128;launchOverNet(ball,128,150,45,.14);ball.nextBounceFactor=.65;ball.nextBounceMaxVz=1.6;ball.startService();return;
+    ball.serviceTargetX=128;launchOverNet(ball,128,150,45,.14);ball.nextBounceFactor=.65;ball.nextBounceMaxVz=1.3;ball.startService();return;
    }
   }
   if(ball.z<=0)ball.fault();
@@ -1292,12 +1332,17 @@ class Ball {
     if(referee.text==='・・・'){referee.text='';referee.ticks=0;}
     const contact = Math.max(-1, Math.min(1,
       (this.x - racket.x) / Math.max(1, racket.hitRadius)));
-    // ラケット面の打点に加え、横移動も狙いに強く反映する。
+    // 押している横方向を優先。無入力なら、フォア／バックの打球コマで打ち分ける。
     const movementAim = Math.max(-1, Math.min(1, player.vx / SETTINGS.dashImpulse));
-    const targetX = Math.max(39, Math.min(217, 128 + contact * 56 + movementAim * 42));
+    const timingAim = !player.lobShot ? (player.getShotPhase()?.aim ?? 0) : 0;
+    const heldAim = input.horizontalAim || player.swingAim || 0;
+    const aimOffset = heldAim ? heldAim * (player.shotType === 'smash' ? 78 : 64) + contact * 8 : timingAim * 52 + contact * 20 + movementAim * 12;
+    let targetX = Math.max(39, Math.min(217, 128 + aimOffset));
     const targetY = player.lobShot ? 50 : 60;
     // CPUスマッシュへの返球はプレイヤー側の打点タイミングで難度を付ける。
     const counteringSmash = player.incomingWasSmash === true;
+    const serveReception = this.lastHitter === 'cpu' && this.rallyHits === 0;
+    if (serveReception && player.shotType === 'smash') quality = counterQuality = 'normal';
     const profile = player.lobShot
       ? { ticks: 78, gravity: 0.095 }
       : counteringSmash
@@ -1312,20 +1357,38 @@ class Ball {
     this.bouncesInCurrentCourt = 0;
     this.recordReturn();
     let curve = 0, curveTicks = 0;
-    if (!player.lobShot && player.isDashing && ['forehand', 'backhand'].includes(player.shotType)) {
-      // カーブ方向はダッシュ方向ではなく、打つ側（フォア／バック）で決める。
-      const dir = player.shotType === 'forehand' ? 1 : -1;
+    const dashDirection = player.swingDashDirection || (player.isDashing ? player.dashDirection : null);
+    if (!player.lobShot && ['left','right'].includes(dashDirection) && ['forehand', 'backhand'].includes(player.shotType)) {
+      // Right-dash forehand bends left; left-dash backhand bends right.
+      // The two opposite-hand combinations retain their existing directions.
+      const dir = dashDirection === 'right' ? -1 : 1;
       curve = dir * SETTINGS.curveAcceleration;
       curveTicks = SETTINGS.curveTicks;
+      targetX = Math.max(54, Math.min(202, targetX));
     }
     // 通常・ジャストのカウンターは、前後の位置に合わせてネット通過高さを補う。
     const fraction = (this.y - 120) / (this.y - targetY);
     const clearanceGravity = counteringSmash && counterQuality !== 'float' && fraction > 0 && fraction < 1
       ? Math.max(0, (18 - this.z * (1 - fraction)) / (0.5 * profile.ticks * profile.ticks * fraction * (1 - fraction)))
       : 0;
-    if(campaign.stage===3&&(player.lobShot||counteringSmash))
+    if(curveTicks || campaign.stage===3&&(player.lobShot||counteringSmash))
       launchOverNet(this,targetX,targetY,profile.ticks,Math.max(profile.gravity,clearanceGravity));
     else this.launch(targetX, targetY, profile.ticks, Math.max(profile.gravity, clearanceGravity));
+    if(curveTicks){
+      // Compensate acceleration so the arc lands on its intended target.
+      // Cap the bow to 24 world units, avoiding extreme sideways excursions.
+      const ticks=profile.ticks;
+      let acceleration=curve,velocity=0,displacement=0;
+      const offsets=[];
+      for(let n=0;n<ticks;n++){
+        if(n<curveTicks){velocity+=acceleration;acceleration*=.985;}
+        displacement+=velocity;offsets.push(displacement);
+      }
+      let bow=0;
+      for(let n=0;n<ticks;n++)bow=Math.max(bow,Math.abs(offsets[n]-displacement*(n+1)/ticks));
+      const scale=Math.min(1,24/Math.max(1,bow));
+      curve*=scale;this.vx-=displacement*scale/ticks;
+    }
     this.curve = curve;
     this.curveTicks = curveTicks;
     this.wasCurveShot=curveTicks>0;
@@ -1507,9 +1570,11 @@ class Ball {
         player.hasHit = true;
         // 狙い撃ちスマッシュは芯とタイミングの両方が必要。判定範囲はロブも通常と同じ。
         const solidContact=(quality==='critical'||quality==='smash')&&distance<r.hitRadius*.7&&Math.abs(this.z-r.z)<r.hitHeight*.7;
-        const counterQuality=campaign.stage===3&&this.bodyAim&&!player.lobShot&&!solidContact?'float':quality;
         const counteringSmash = this.lastShotQuality === 'smash';
-        this.lastHitter = 'player';
+        const volley = ['forehand', 'backhand'].includes(player.shotType) && !player.lobShot;
+        const fifthFrameFloat = volley && counteringSmash && player.getShotPhase()?.smashFloat === true;
+        const bodyMiss = !volley && campaign.stage === 3 && this.bodyAim && !player.lobShot && !solidContact;
+        const counterQuality = fifthFrameFloat || bodyMiss ? 'float' : quality;
         this.bouncesInCurrentCourt = 0;
         player.incomingWasSmash = counteringSmash;
         this.launchFromPlayer(player, r, counterQuality, counterQuality);

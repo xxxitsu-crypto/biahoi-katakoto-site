@@ -83,3 +83,17 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 @media (orientation: landscape) and (any-pointer: coarse) {
  #game-container[data-screen="ending"] #gameCanvas { grid-column: 1 / -1; }
 }
+
+#btn-pause { flex: none; width: 76px; height: 36px; font-size: 12px; touch-action: manipulation; }
+@media (any-pointer: coarse), (max-width: 600px) {
+ #virtual-controller { gap: 6px; padding-left: 6px; padding-right: 6px; }
+}
+@media (max-width: 360px) {
+ #dpad { width: 140px; }
+ #btn-left, #btn-right { width: 66px; }
+ #btn-action { width: 76px; height: 76px; }
+ #btn-pause { width: 66px; }
+}
+@media (orientation: landscape) and (any-pointer: coarse) {
+ #btn-pause { grid-column: 2; grid-row: 1; align-self: end; z-index: 1; margin-bottom: 8px; }
+}

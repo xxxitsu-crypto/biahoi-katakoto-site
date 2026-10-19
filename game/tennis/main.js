@@ -2,7 +2,7 @@
 // 数値は60回/秒の固定更新を前提とする。描画回数とは切り離す。
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
-const ASSET_VERSION = '20261018-60';
+const ASSET_VERSION = '20261019-63';
 function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
@@ -196,8 +196,11 @@ const stageMenu = { sequence: [], selected: 1 };
 const STAGE_COMMAND = ['up','up','down','down','left','right','left','right'];
 const MENU_PHASES = ['title', 'stage-reveal', 'stage-choice', 'ending-win', 'ending'];
 function menuDirection(dir) {
+  if(manualPaused)return true;
   if (!MENU_PHASES.includes(screen.phase)) return false;
-  if (screen.phase === 'title') {
+  if (screen.phase === 'ending') {
+    if(endingExit.open && ['left','right'].includes(dir)) endingExit.selected=dir==='right'?1:0;
+  } else if (screen.phase === 'title') {
     stageMenu.sequence.push(dir);
     while (stageMenu.sequence.length && !stageMenu.sequence.every((value, i) => value === STAGE_COMMAND[i])) stageMenu.sequence.shift();
   } else if (screen.phase === 'stage-choice' && ['left','right'].includes(dir)) {
@@ -210,10 +213,14 @@ function updateStageMenuLabel() {
   canvas.setAttribute('aria-label', 'ステージ選択 ST0' + stageMenu.selected + '。左右で選択、ショットで決定');
 }
 function menuShot() {
+  if(manualPaused)return true;
   if (!MENU_PHASES.includes(screen.phase)) return false;
   if (screen.phase === 'ending') {
-    if (screen.ticks >= 120) returnToOpening();
+    if(!endingExit.open){endingExit.open=true;endingExit.selected=0;}
+    else if(endingExit.selected===0){endingExit.open=false;returnToOpening();}
+    else endingExit.open=false;
   } else if (screen.phase === 'title') {
+    if(window.SEAL_ENDING_TEST){sound.unlock();beginEnding();return true;}
     if (stageMenu.sequence.length === STAGE_COMMAND.length) {
       stageMenu.sequence = []; stageMenu.selected = 1;
       input.cancel(); sound.unlock(); sound.play('hit');
@@ -253,7 +260,13 @@ function drawStageReveal(context, now) {
   drawOpeningLogo(context);
 }
 const endingImage = new Image(); endingImage.src = assetUrl('ending.jpg');
-const ENDING_MESSAGE = 'congratulations !　you are No.1  Azarashi.';
+const endingExit={open:false,selected:0};
+const endingArt={};
+for(const [key,file] of Object.entries({congratulations:'ending-congratulations.png',zoom:'ending-zoom.jpg',stage2:'ending-stage2.png',sponsors:'ending-sponsors.png',title:'ending-title.png',thanks:'ending-thanks.png',confirm:'ending-confirm.png',...Object.fromEntries(Array.from({length:6},(_,i)=>['neon'+i,'ending-neon-'+i+'.png']))})){
+ const im=new Image();im.src=assetUrl(file);endingArt[key]=im;
+}
+function endingSceneAt(t){return t<14?'opening':t<18?'zoom':t<35?'stage2':t<69?'neon':t<88?'sponsors':t<98?'title':'thanks';}
+
 const endingMusic = {
   buffer: null, loading: null, source: null, offset: 0, startedAt: 0, finished: false,
   prepare(context) {
@@ -270,31 +283,50 @@ const endingMusic = {
     const source = this.source; this.source = null; source.onended = null;
     source.stop(); source.disconnect();
   },
+  position(){return this.source?Math.min(this.buffer.duration,this.offset+sound.context.currentTime-this.startedAt):this.offset;},
   reset() { this.pause(); this.offset = 0; this.finished = false; },
   sync() {
-    const active = screen.phase === 'ending' && screen.ticks >= 120 && sound.enabled && !paused && !document.hidden;
+    const active = screen.phase === 'ending' && screen.ticks >= 120 && sound.enabled && !paused && !manualPaused && !document.hidden;
     if (!active) { this.pause(); return; }
     if (this.source || this.finished || !this.buffer || sound.context?.state !== 'running') return;
     if (this.offset >= this.buffer.duration) { this.finished = true; return; }
     const source = sound.context.createBufferSource(); source.buffer = this.buffer;
     source.connect(sound.master); this.source = source; this.startedAt = sound.context.currentTime;
-    source.onended = () => { if (this.source === source) { this.source = null; this.finished = true; source.disconnect(); } };
+    source.onended = () => { if (this.source === source) { this.source = null; this.offset=this.buffer.duration; this.finished = true; source.disconnect(); } };
     source.start(0, this.offset);
   }
 };
 function beginEnding() {
+  endingExit.open=false;endingExit.selected=0;
   input.cancel(); endingMusic.reset(); screen.phase = 'ending'; screen.ticks = 0;
   document.getElementById('game-container').dataset.screen = 'ending';
-  canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'エンディング。ショットでオープニングへ');
+  canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'エンディング。ショットで終了確認、左右でYES／NOを選択、ショットで決定');
 }
 function drawEnding(context) {
-  context.fillStyle = '#5bdcf4'; context.fillRect(0, 0, 512, 640);
-  if (imageReady(endingImage)) context.drawImage(endingImage, 0, 0, 512, 640);
-  context.save(); context.beginPath(); context.rect(0, 32, 512, 150); context.clip();
-  context.fillStyle = '#fff'; context.textAlign = 'left'; context.font = '24px Georgia, serif';
-  const width = context.measureText(ENDING_MESSAGE).width;
-  const x = 512 - (screen.ticks * 1.1) % (512 + width + 80);
-  context.fillText(ENDING_MESSAGE, x, 112); context.restore();
+  const t=endingMusic.position(),scene=endingSceneAt(t);
+  context.fillStyle='#5bdcf4';context.fillRect(0,0,512,640);
+  const full=im=>{if(imageReady(im))context.drawImage(im,0,0,512,640);};
+  if(scene==='neon'){
+    const elapsed=t-35,im=endingArt['neon'+Math.floor(elapsed/.5)%6];
+    // 256x320 crop matches the supplied close-up; pan right after a one-second hold.
+    const progress=Math.max(0,Math.min(1,(elapsed-1)/15));
+    if(imageReady(im))context.drawImage(im,256*progress,0,256,320,0,0,512,640);
+  }else if(['zoom','stage2','sponsors'].includes(scene))full(endingArt[scene]);
+  else{
+    full(endingImage);
+    const im=endingArt[scene==='opening'?'congratulations':scene];
+    if(imageReady(im)){
+      if(scene==='opening'){
+        context.save();context.beginPath();context.rect(0,32,512,150);context.clip();
+        const x=512-(screen.ticks*1.1)%(512+im.naturalWidth+80);
+        context.drawImage(im,x,92);context.restore();
+      }else context.drawImage(im,(512-im.naturalWidth)/2,(270-im.naturalHeight)/2);
+    }
+  }
+  if(endingExit.open){
+    if(imageReady(endingArt.confirm))context.drawImage(endingArt.confirm,149,246,214,85);
+    if(imageReady(openingImages.cursor))context.drawImage(openingImages.cursor,endingExit.selected?262:174,296,16,16);
+  }
 }
 const stageIntros = [null,...[1,2,3].map((stage)=>{
  const card=new Image();card.src=assetUrl(`intro-stage${stage}.png`);
@@ -417,6 +449,7 @@ class InputHandler {
     return [...this.pointerDirections.values()].includes('down') || this.keys.has('ArrowDown');
   }
   registerPress(dir, now = performance.now()) {
+    if(manualPaused)return;
     if (menuDirection(dir)) return;
     if (dir === 'down' && this.action) {
       // ショットを構えた状態で下を押した瞬間にロブを開始する。下移動にはしない。
@@ -438,6 +471,7 @@ class InputHandler {
     this.consumeQueue.push({ dir, isRhythmJump });
   }
   pressShot(source) {
+    if(manualPaused)return;
     if (menuShot()) return;
     if(screen.phase==='continue'){ input.cancel(); resetPractice(); return; }
     if (this.actionSources.has(source)) return;
@@ -448,6 +482,7 @@ class InputHandler {
     this.actionSources.add(source);
   }
   releaseShot(source) {
+    if(manualPaused)return;
     if (!this.actionSources.delete(source)) return;
     if (!this.action) {
       this.shotQueue.push({ type: 'release', aim: this.horizontalAim });
@@ -1772,11 +1807,29 @@ const clock = new FixedClock(() => {
   ball.update(player, cpu);
 });
 let paused = false;
+let manualPaused = false;
+function clearPauseInput(){
+ input.cancel();player.cancelVersion=input.cancelVersion;
+ player.isPreparing=false;
+}
+function toggleManualPause(){
+ if(!['playing','starting','gameover','continue','intro','ending-win','ending'].includes(screen.phase))return;
+ manualPaused=!manualPaused;clearPauseInput();clock.reset();endingMusic.sync();
+ const button=document.getElementById('btn-pause');
+ button.textContent=manualPaused?'再開':'ポーズ';button.setAttribute('aria-pressed',String(manualPaused));
+}
+document.getElementById('btn-pause').addEventListener('click',toggleManualPause);
+window.addEventListener('keydown',event=>{
+ if(event.code==='KeyP'){event.preventDefault();event.stopImmediatePropagation();if(!event.repeat)toggleManualPause();}
+ else if(manualPaused){event.preventDefault();event.stopImmediatePropagation();}
+},{capture:true});
+
 function toggleServePractice() {
   practiceMode = practiceMode === 'serve' ? 'rally' : 'serve';
   resetPractice();
 }
 function resetPractice() {
+  manualPaused=false;
   endingMusic.reset();
   screen.phase = 'starting'; screen.ticks = 120;
   document.getElementById('game-container').dataset.screen = 'playing';
@@ -1798,6 +1851,7 @@ function resetPractice() {
   clock.reset();
 }
 function returnToOpening() {
+  manualPaused=false;
   endingMusic.reset();
   input.cancel();campaign.transitionTicks=0;match.reset('cpu');cpu.reset();ball.resetServe();
   screen.phase='title';screen.ticks=0;referee.text='';referee.ticks=0;
@@ -1815,7 +1869,14 @@ function startOpening() {
 }
 canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'push to play'); canvas.tabIndex = 0;
 canvas.addEventListener('click', event => {
-  if (screen.phase === 'title' || screen.phase === 'ending') { menuShot(); return; }
+  if(screen.phase==='ending'){
+    if(!endingExit.open){menuShot();return;}
+    const bounds=canvas.getBoundingClientRect();
+    const x=(event.clientX-bounds.left)*512/bounds.width,y=(event.clientY-bounds.top)*640/bounds.height;
+    if(y>=286&&y<=331&&x>=165&&x<=330){endingExit.selected=x<250?0:1;menuShot();}
+    return;
+  }
+  if (screen.phase === 'title') { menuShot(); return; }
   if (screen.phase !== 'stage-choice') return;
   const bounds=canvas.getBoundingClientRect();
   const x=(event.clientX-bounds.left)*512/bounds.width, y=(event.clientY-bounds.top)*640/bounds.height;
@@ -1846,9 +1907,13 @@ document.getElementById('serve-mode')?.addEventListener('click', toggleServePrac
 document.getElementById('guide-toggle')?.addEventListener('click', () => { showGuide = !showGuide; });
 window.addEventListener('pagehide', () => { input.cancel(); endingMusic.pause(); clock.reset(); });
 function gameLoop(now) {
-  if (!paused && !document.hidden) clock.advance(now);
+  if (!paused && !manualPaused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
   if(screen.phase==='ending')drawEnding(ctx);else if(screen.phase==='stage-reveal')drawStageReveal(ctx,now);else if(screen.phase==='stage-choice')drawStageChoice(ctx,now);else if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
+  if(manualPaused){
+    ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,0,512,640);
+    ctx.fillStyle='#fff';ctx.font='bold 30px monospace';ctx.textAlign='center';ctx.fillText('PAUSE',256,320);
+  }
   const guideButton = document.getElementById('guide-toggle');
   guideButton?.setAttribute('aria-pressed', String(showGuide));
   const modeButton = document.getElementById('serve-mode');

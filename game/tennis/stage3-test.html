@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>SEAL TENNIS</title>
-  <link rel="stylesheet" href="style.css?v=20261016-ending-55">
+  <meta name="apple-mobile-web-app-title" content="AZARASHI TENNIS">
+  <meta name="application-name" content="AZARASHI TENNIS">
+  <link rel="apple-touch-icon" href="assets/icon.png?v=62">
+  <link rel="icon" type="image/png" href="assets/icon.png?v=62">
+  <link rel="manifest" href="manifest.webmanifest?v=62">
+  <title>AZARASHI TENNIS</title>
+  <link rel="stylesheet" href="style.css?v=20261019-pause-62">
   <style>
     #game-container[data-screen="title"] .toolbar,
     #game-container[data-screen="title"] #status { display: none; }
@@ -13,14 +18,12 @@
 </head>
 <body>
   <div id="game-container" data-screen="title">
-    <p class="version">SEAL TENNIS · Version 60</p>
+    <p class="version">AZARASHI TENNIS · Version 63</p>
     <canvas id="gameCanvas" width="512" height="640"></canvas>
     
     <p id="status" role="status">読み込み中</p>
     <div class="toolbar">
       <button id="sound-toggle" type="button" aria-pressed="true">音：オン</button>
-      <button id="restart" type="button">やり直す</button>
-      <button id="serve-mode" type="button">サーブ切替</button>
       <button id="guide-toggle" type="button" aria-pressed="false">打点ガイド</button>
     </div>
     <!-- コートと操作領域を分離。縦持ちは下、横持ちは左右へ配置。 -->
@@ -33,6 +36,7 @@
         </div>
         <button type="button" class="dpad-btn" id="btn-down" aria-label="下">▼</button>
       </div>
+      <button type="button" id="btn-pause" aria-label="ポーズ" aria-pressed="false">ポーズ</button>
       <div id="action-buttons">
         <button type="button" class="act-btn" id="btn-action" aria-label="ショット">ショット</button>
       </div>
@@ -40,7 +44,7 @@
   </div>
 
   <script>window.SEAL_START_STAGE = 3;</script>
-  <script defer src="main.js?v=20261018-60"></script>
+  <script defer src="main.js?v=20261019-63"></script>
 </body>
 </html>
 

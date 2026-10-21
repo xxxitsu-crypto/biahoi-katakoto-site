@@ -3,7 +3,7 @@
 const CANVAS_WIDTH = 256;
 const CANVAS_HEIGHT = 240;
 const ASSET_VERSION = '20261019-63';
-function assetUrl(file) { return `assets/${file}?v=${ASSET_VERSION}`; }
+function assetUrl(file) { return `assets/${file}?v=${file === 'volley_left.png' ? '20261021-left-64' : ASSET_VERSION}`; }
 const SETTINGS = {
   stepMs: 1000 / 60,
   moveImpulse: 1.2,

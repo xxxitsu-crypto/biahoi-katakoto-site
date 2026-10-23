@@ -519,9 +519,9 @@ class InputHandler {
       if (map[e.code] || e.code === 'KeyZ' || e.code === 'Space') e.preventDefault();
       this.releaseShot(e.code);
     });
-    window.addEventListener('blur', () => this.cancel());
+    window.addEventListener('blur', () => clearPauseInput());
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) this.cancel();
+      if (document.hidden) clearPauseInput();
     });
   }
   // 複数指で移動と構えを同時操作。長押しの自動移動・連打はしない。
@@ -853,6 +853,16 @@ CPU_SHOTS.overhead.phases = [
  {frame:1,ticks:4},{frame:2,ticks:4},{frame:3,ticks:4,quality:'smash'},
  {frame:4,ticks:4,quality:'smash'},{frame:5,ticks:18},
 ];
+// Read-only first landing estimate, including sideways acceleration.
+function predictLandingX(ball) {
+ let x=ball.x,z=ball.z,vx=ball.vx,vz=ball.vz,curve=ball.curve,ticks=ball.curveTicks;
+ for(let n=0;n<180;n++){
+  if(ticks>0){vx+=curve;curve*=.985;ticks--;}
+  x+=vx;z+=vz;vz-=ball.gravity;
+  if(z<=0)return x;
+ }
+ return x;
+}
 class CpuPlayer {
  constructor() { this.reset(); }
  reset() {
@@ -860,7 +870,7 @@ class CpuPlayer {
   this.visualFacing=1;this.animationTick=0;this.moving=false;
   this.shotKind='leftShot';this.swingElapsed=0;this.isSwinging=false;this.hasHit=false;
   this.reactionTimer=0;this.dashTimer=0;this.dashCooldown=0;this.dashSpeed=1.3;
-  this.serveAge=0;this.plan=null;
+  this.serveAge=0;this.plan=null;this.openingDefense=null;
   this.fatigueShots=0;this.fatigueMoveShots=0;this.fatigueTriggered=false;this.observedHits=-1;
  }
  phase() {
@@ -879,10 +889,12 @@ class CpuPlayer {
  // 予測は打ち始めるために使用。実際の返球にはコマ・位置・高さの接触が必要。
  predict(ball) {
   let x=ball.x,y=ball.y,z=ball.z,vz=ball.vz,bounces=ball.bouncesInCurrentCourt,g=ball.gravity;
+  let vx=ball.vx,curve=ball.curve,curveTicks=ball.curveTicks,cap=ball.nextBounceMaxVz,factor=ball.nextBounceFactor;
   for(let n=1;n<=100;n++) {
-   const oldY=y;x+=ball.vx;y+=ball.vy;z+=vz;vz-=g;
+   if(curveTicks>0){vx+=curve;curve*=.985;curveTicks--;}
+   const oldY=y;x+=vx;y+=ball.vy;z+=vz;vz-=g;
    if(oldY>120&&y<=120)bounces=0;
-   if(z<=0){z=0;vz*=ball.bounce;g=SETTINGS.gravity;if(++bounces>=2)break;}
+   if(z<=0){z=0;vz*=-(factor??Math.abs(ball.bounce));if(cap!=null)vz=Math.min(vz,cap);factor=cap=null;g=SETTINGS.gravity;if(++bounces>=2)break;}
    if(y<30)break;
    if(y>(ball.rallyHits===0?90:108))continue;
    const kinds=z>=24?['overhead','leftShot','rightShot']:['leftShot','rightShot'];
@@ -895,10 +907,10 @@ class CpuPlayer {
     const ty=Math.max(34,Math.min(108,y));
     const distance=Math.hypot(tx-this.x,ty-this.y);
     // Right-side coverage includes the dash that can actually be used.
-    const rightWide=tx>160&&tx-this.x>18;
+    const rightWide=this.openingDefense===true?Math.abs(tx-this.x)>18:tx>160&&tx-this.x>18;
     const dashFrames=this.dashTimer>0?Math.min(n,this.dashTimer):
-      rightWide&&!this.dashCooldown?Math.min(n,26):0;
-    const dashSpeed=this.dashTimer>0?this.dashSpeed:rightWide?2.1:1.3;
+      rightWide&&(!this.dashCooldown||this.openingDefense===true)?Math.min(n,this.openingDefense===true?36:26):0;
+    const dashSpeed=this.dashTimer>0?this.dashSpeed:rightWide?(this.openingDefense===true?2.6:2.1):1.3;
     const reach=(CPU_SETTINGS.speed*n+(dashSpeed-CPU_SETTINGS.speed)*dashFrames)*
       (ty<this.y?.65:1)*(this.fatigueMoveShots>0?.6:1);
     if(distance<=reach+4)return {x:tx,y:ty,n,kind,windup};
@@ -924,17 +936,27 @@ class CpuPlayer {
   }
   const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
   if(incoming&&!this.isSwinging){
-   if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=6;this.plan=null;}
+   if(this.observedHits!==ball.rallyHits){
+    this.observedHits=ball.rallyHits;this.plan=null;
+    // One decision per service return; subsequent rallies retain the rush style.
+    const landingX=predictLandingX(ball);
+    const openingWide=ball.rallyHits===1&&match.server==='cpu'&&(landingX<104||landingX>152);
+    // Normal movement already covers some left returns. Calibrate the extra
+    // dash opportunity by side so measured total coverage approaches 60%.
+    this.openingDefense=openingWide?Math.random()<(landingX<104?.43:.60):null;
+    this.reactionTimer=this.openingDefense===true?0:this.openingDefense===false?18:6;
+   }
    if(this.reactionTimer>0)this.reactionTimer--;
    else this.plan=this.predict(ball);
    if(this.plan){this.targetX=this.plan.x;this.targetY=this.plan.y;}
-   else {this.targetX=Math.max(24,Math.min(232,ball.x));this.targetY=ball.rallyHits===0?58:100;}
+   else {this.targetX=Math.max(24,Math.min(232,ball.x));this.targetY=this.openingDefense!==null?58:ball.rallyHits===0?58:100;}
   }else if(!this.isSwinging||this.hasHit){this.targetX=ball.rallyHits===0?128:Math.max(36,Math.min(220,ball.x));this.targetY=ball.rallyHits===0?58:100;}
   const dx=this.targetX-this.x,dy=this.targetY-this.y,distance=Math.hypot(dx,dy);
-  const rightWide=this.targetX>160&&dx>18;
-  if(incoming&&distance>(rightWide?22:38)&&!this.dashCooldown&&!this.isSwinging){
-   this.dashTimer=rightWide?26:18;this.dashCooldown=rightWide?45:100;
-   this.dashSpeed=rightWide?2.1:1.3;
+  const rightWide=this.openingDefense===true?Math.abs(dx)>18:this.targetX>160&&dx>18;
+  if(incoming&&this.plan&&this.openingDefense!==false&&distance>(rightWide?(this.openingDefense===true?18:22):38)&&
+    (!this.dashCooldown||(this.openingDefense===true&&this.dashSpeed<2.6))&&!this.isSwinging){
+   this.dashTimer=this.openingDefense===true?36:rightWide?26:18;this.dashCooldown=rightWide?45:100;
+   this.dashSpeed=this.openingDefense===true?2.6:rightWide?2.1:1.3;
   }
   const speed=(this.dashTimer?this.dashSpeed:CPU_SETTINGS.speed)*(dy<0?0.65:1)*(this.fatigueMoveShots>0?0.6:1);
   if(distance>0.1){const step=Math.min(speed,distance);this.x+=dx/distance*step;this.y+=dy/distance*step;}
@@ -1040,7 +1062,7 @@ class BoyPlayer extends CpuPlayer {
   const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
   if(ball.serveWaiting||ball.serving){this.targetX=ball.servePhase==='waiting'?serveAimX(player):ball.serviceTargetX;this.targetY=58;}
   else if(incoming&&!this.isSwinging){
-   if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=ball.x>128?11:6;this.plan=null;}
+   if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=predictLandingX(ball)>128?11:6;this.plan=null;}
    if(this.reactionTimer>0)this.reactionTimer--;else this.plan=this.predict(ball);
    this.targetX=this.plan?.x??Math.max(24,Math.min(232,ball.x));this.targetY=this.plan?.y??58;
   }else if(!this.isSwinging||this.hasHit){this.targetX=128;this.targetY=58;}
@@ -1087,18 +1109,20 @@ class BoyPlayer extends CpuPlayer {
  }
  predict(ball) {
   let x=ball.x,y=ball.y,z=ball.z,vz=ball.vz,bounces=ball.bouncesInCurrentCourt,g=ball.gravity;
+  let vx=ball.vx,curve=ball.curve,curveTicks=ball.curveTicks,cap=ball.nextBounceMaxVz,factor=ball.nextBounceFactor;
   for(let n=1;n<=110;n++){
-   const oldY=y;x+=ball.vx;y+=ball.vy;z+=vz;vz-=g;
+   if(curveTicks>0){vx+=curve;curve*=.985;curveTicks--;}
+   const oldY=y;x+=vx;y+=ball.vy;z+=vz;vz-=g;
    if(oldY>120&&y<=120)bounces=0;
-   if(z<=0){z=0;vz*=ball.bounce;g=SETTINGS.gravity;if(++bounces>=2)break;}
+   if(z<=0){z=0;vz*=-(factor??Math.abs(ball.bounce));if(cap!=null)vz=Math.min(vz,cap);factor=cap=null;g=SETTINGS.gravity;if(++bounces>=2)break;}
    if(y<30)break;if(y>98)continue;
    for(const kind of z>=36?['overhead',x>128?'leftShot':'rightShot']:[x>128?'leftShot':'rightShot']){
     const phases=this.shots()[kind].phases, target=phases.find(p=>p.quality==='critical'||p.quality==='smash');
     const windup=phases.slice(0,phases.indexOf(target)).reduce((v,p)=>v+p.ticks,0);
     if(n<windup)continue;const r=this.racket(kind,target.frame);
     if(Math.abs(z-r.z)>r.hitHeight-2)continue;
-    const tx=Math.max(24,Math.min(232,x-(r.x-this.x))),ty=Math.max(34,Math.min(84,y));
-    if(Math.hypot(tx-this.x,ty-this.y)<=CPU_SETTINGS.speed*n+4)return{x:tx,y:ty,n,kind,windup};
+    const tx=Math.max(24,Math.min(232,x-(r.x-this.x))),ty=Math.max(46,Math.min(84,y));
+    if(Math.abs(y-ty)<r.hitRadius-4&&Math.hypot(tx-this.x,ty-this.y)<=CPU_SETTINGS.speed*n+(kind==='leftShot'?4:r.hitRadius-5))return{x:tx,y:ty,n,kind,windup};
    }
   }return null;
  }
@@ -1905,7 +1929,7 @@ function resetCampaign() { campaign.stage = campaign.selectedStage; campaign.tra
 document.getElementById('restart')?.addEventListener('click', resetCampaign);
 document.getElementById('serve-mode')?.addEventListener('click', toggleServePractice);
 document.getElementById('guide-toggle')?.addEventListener('click', () => { showGuide = !showGuide; });
-window.addEventListener('pagehide', () => { input.cancel(); endingMusic.pause(); clock.reset(); });
+window.addEventListener('pagehide', () => { clearPauseInput(); endingMusic.pause(); clock.reset(); });
 function gameLoop(now) {
   if (!paused && !manualPaused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
@@ -1922,4 +1946,5 @@ function gameLoop(now) {
   requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);
+
 

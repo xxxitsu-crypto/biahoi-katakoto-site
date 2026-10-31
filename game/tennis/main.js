@@ -362,11 +362,12 @@ const referee = { text: '', ticks: 0, frame: 1,
   call(text, ticks = 90) {
     if (!['インッ', 'アウト', 'フォルト', 'Wフォルト', 'ワンモア', 'GAME', 'プレイッ'].includes(text)) return;
     this.text = text; this.ticks = ticks;
+    if (text === 'プレイッ') this.frame = 0;
   },
   update() {
     if (this.ticks > 0 && --this.ticks === 0) this.text = '';
-    // 奥・ネット付近・手前の球を、提供された顔の3コマで追う。
-    this.frame = ball.y < 100 ? 2 : ball.y > 145 ? 0 : 1;
+    // プレイッのコール中は手前のプレーヤーを向き、それ以外は球を追う。
+    this.frame = this.text === 'プレイッ' ? 0 : ball.y < 100 ? 2 : ball.y > 145 ? 0 : 1;
   },
   draw(context) {
     const image = judgeImages.referee;

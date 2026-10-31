@@ -477,7 +477,7 @@ class InputHandler {
     if (this.actionSources.has(source)) return;
     if (!this.action) {
       // 下を先に押している場合も、ショットを押した瞬間にロブを開始する。
-      this.shotQueue.push({ type: this.downHeld ? 'lob' : 'press', shotPress: true });
+      this.shotQueue.push({ type: this.downHeld ? 'lob' : 'press', shotPress: true, serveAim: this.horizontalAim });
     }
     this.actionSources.add(source);
   }
@@ -576,6 +576,7 @@ class SealPlayer {
     this.cancelVersion = 0;
     this.swingCount = 0;
     this.swingAim = 0;
+    this.serveAim = 0;
     this.swingDashDirection = null;
     this.swingElapsed = 0;
     this.visualFacing = 1; // 移動画像の左右。自動打球選択のfacingとは独立。
@@ -707,10 +708,12 @@ class SealPlayer {
         // サーブ専用：離す操作では振らない。最初の押下で準備→トス、次の押下で振る。
         if ((event.type === 'press' || event.shotPress) && !this.isSwinging) {
           if (ball.servePhase === 'waiting') {
+            this.serveAim = 0;
             this.shotType = 'serve';
             this.isPreparing = true;
             ball.beginServePreparation();
           } else if (ball.servePhase === 'toss') {
+            this.serveAim = event.serveAim ?? input.horizontalAim;
             this.shotType = 'serve';
             this.isPreparing = false;
             this.isSwinging = true;
@@ -1055,11 +1058,17 @@ const BOY_SHOTS = {
 };
 class BoyPlayer extends CpuPlayer {
  shots() { return BOY_SHOTS; }
- reset() { super.reset(); this.curveBlunderUsed=false; }
+ reset() { super.reset(); this.curveBlunderUsed=false; this.centerObservedHits=-1; this.centerWhiff=false; }
  update(ball) {
   if(this.isSwinging){this.swingElapsed++;if(!this.phase())this.isSwinging=false;}
   if(ball.resetTimer||ball.cpuServing){this.moving=false;return;}
   const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
+  if(incoming&&this.centerObservedHits!==ball.rallyHits){
+   this.centerObservedHits=ball.rallyHits;
+   // One roll per incoming ball. Central lane: court center +/-16 world units.
+   // Keep tracking and swinging normally; only suppress contact on a whiff.
+   this.centerWhiff=campaign.stage===2&&Math.abs(predictLandingX(ball)-128)<=16&&Math.random()<.50;
+  }
   if(ball.serveWaiting||ball.serving){this.targetX=ball.servePhase==='waiting'?serveAimX(player):ball.serviceTargetX;this.targetY=58;}
   else if(incoming&&!this.isSwinging){
    if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=predictLandingX(ball)>128?11:6;this.plan=null;}
@@ -1075,7 +1084,7 @@ class BoyPlayer extends CpuPlayer {
   if(incoming&&!this.isSwinging&&this.plan&&this.plan.n<=this.plan.windup+1)this.startSwing(this.plan.kind);
  }
  canHit(ball) {
-  if(!super.canHit(ball))return false;
+  if(this.centerWhiff||!super.canHit(ball))return false;
   // 苦手なバックのジャスト打点は短い。浮きのコマはそのまま使う。
   if(this.shotKind==='leftShot'&&this.phase()?.quality==='critical')return this.swingElapsed<17;
   return true;
@@ -1517,9 +1526,11 @@ class Ball {
         this.lastHitter = 'player';
         this.bouncesInCurrentCourt = 0;
         const profile = SERVE_PROFILES[serveQuality];
-        // トスの位置を固定したまま、ラケット面の左右の当たり方でコースを調整。
+        // 左右入力を優先。無入力なら従来のラケットとの位置関係で狙う。
         const contact = Math.max(-1, Math.min(1, (this.x - r.x) / r.hitRadius));
-        this.serviceTargetX = Math.max(96, Math.min(160, this.serviceTargetX + contact * 24));
+        const serveAim = input.horizontalAim || player.serveAim || 0;
+        this.serviceTargetX = serveAim ? 128 + serveAim * 24 :
+          Math.max(96, Math.min(160, this.serviceTargetX + contact * 24));
         const dashCurve = player.isDashing && this.serveDashDirection === player.dashDirection &&
           ['left', 'right'].includes(this.serveDashDirection);
         if (dashCurve) {

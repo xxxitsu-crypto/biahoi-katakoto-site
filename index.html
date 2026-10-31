@@ -1074,8 +1074,10 @@
         let scheduleMonth = null;
         function parseScheduleDate(value) {
             const match = String(value ?? '').trim().match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:$|T|\s)/);
-            if (!match) return null;
-            const y = Number(match[1]), m = Number(match[2]), d = Number(match[3]);
+            const short = !match && String(value ?? '').trim().match(/^(\d{1,2})\/(\d{1,2})(?:$|\s|[（(])/);
+            if (!match && !short) return null;
+            const y = match ? Number(match[1]) : scheduleToday().y;
+            const m = Number(match ? match[2] : short[1]), d = Number(match ? match[3] : short[2]);
             const date = new Date(y, m - 1, d);
             return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? { y, m, d } : null;
         }

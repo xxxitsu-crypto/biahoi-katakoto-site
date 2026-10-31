@@ -679,6 +679,24 @@
                 padding: 10px;
             }
         }
+
+        .schedule-calendar { border:2px solid var(--main-blue); padding:8px; background:#000; text-align:left; }
+        .schedule-nav { display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:10px; }
+        .schedule-nav h3 { margin:0; color:var(--main-yellow); font-size:1.1rem; }
+        .schedule-nav button { background:#111; color:var(--main-yellow); border:1px solid var(--main-blue); font:inherit; min-width:44px; min-height:44px; cursor:pointer; }
+        .schedule-grid { width:100%; table-layout:fixed; border-collapse:collapse; font-size:.8rem; }
+        .schedule-grid th { padding:6px 0; color:var(--text-white); font-weight:normal; }
+        .schedule-grid td { border:1px solid var(--main-blue); height:64px; padding:4px 2px; vertical-align:top; }
+        .schedule-grid .schedule-sun { color:#ff7058; }
+        .schedule-grid .schedule-sat { color:#75a5ff; }
+        .schedule-grid .schedule-today { outline:2px solid var(--main-yellow); outline-offset:-2px; }
+        .schedule-note { display:block; margin-top:6px; color:var(--main-yellow); font-size:.65rem; overflow-wrap:anywhere; }
+        .schedule-note.holiday { color:#ff7058; }
+        .schedule-events { margin:12px 0 0; padding:0; list-style:none; font-size:.8rem; line-height:1.6; }
+        .schedule-events li { padding:5px 0; border-bottom:1px dotted #555; overflow-wrap:anywhere; }
+        .schedule-events time { color:var(--main-yellow); }
+        .schedule-events .holiday { color:#ff7058; }
+
     </style>
 </head>
 
@@ -1051,6 +1069,67 @@
             }
         }
 
+
+        // Schedule dates are calendar dates; preserve the written day without timezone conversion.
+        let scheduleMonth = null;
+        function parseScheduleDate(value) {
+            const match = String(value ?? '').trim().match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:$|T|\s)/);
+            if (!match) return null;
+            const y = Number(match[1]), m = Number(match[2]), d = Number(match[3]);
+            const date = new Date(y, m - 1, d);
+            return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? { y, m, d } : null;
+        }
+        function scheduleToday() {
+            const parts = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Tokyo',year:'numeric',month:'numeric',day:'numeric'}).formatToParts(new Date());
+            const get = type => Number(parts.find(p => p.type === type).value);
+            return { y:get('year'), m:get('month'), d:get('day') };
+        }
+        function changeScheduleMonth(delta) {
+            const date = new Date(scheduleMonth.y, scheduleMonth.m - 1 + delta, 1);
+            scheduleMonth = { y:date.getFullYear(), m:date.getMonth() + 1 };
+            const root = document.getElementById('schedule-calendar');
+            if (root) root.innerHTML = renderScheduleCalendar();
+        }
+        function renderScheduleCalendar() {
+            const today = scheduleToday();
+            if (!scheduleMonth) scheduleMonth = { y:today.y, m:today.m };
+            const { y, m } = scheduleMonth;
+            const entries = (Array.isArray(menuData.schedule) ? menuData.schedule : []).map(item => ({
+                date:parseScheduleDate(item.date), info:String(item.info ?? '')
+            }));
+            const monthEntries = entries.filter(e => e.date && e.date.y === y && e.date.m === m).sort((a,b) => a.date.d - b.date.d);
+            const isHoliday = info => /休/.test(info);
+            const offset = new Date(y,m-1,1).getDay();
+            const days = new Date(y,m,0).getDate();
+            const weekdays = currentLang === 'ja' ? ['日','月','火','水','木','金','土'] : ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+            let html = '<div class="schedule-nav"><button type="button" aria-label="前月" onclick="changeScheduleMonth(-1)">◀</button><h3 aria-live="polite">' + y + ' / ' + String(m).padStart(2,'0') + '</h3><button type="button" aria-label="翌月" onclick="changeScheduleMonth(1)">▶</button></div>';
+            html += '<table class="schedule-grid" aria-label="営業日程"><thead><tr>' + weekdays.map((day,i) => '<th scope="col" class="' + (i===0?'schedule-sun':i===6?'schedule-sat':'') + '">' + day + '</th>').join('') + '</tr></thead><tbody>';
+            const cells = Math.ceil((offset + days) / 7) * 7;
+            for (let i=0; i<cells; i++) {
+                if (i%7 === 0) html += '<tr>';
+                const d = i-offset+1;
+                if (d<1 || d>days) html += '<td></td>';
+                else {
+                    const events = monthEntries.filter(e => e.date.d === d);
+                    const classes = [i%7===0?'schedule-sun':i%7===6?'schedule-sat':'', today.y===y && today.m===m && today.d===d?'schedule-today':''].join(' ');
+                    html += '<td class="' + classes + '"><span>' + d + '</span>';
+                    if (events.length) {
+                        const holiday = events.every(e => isHoliday(e.info));
+                        html += '<span class="schedule-note ' + (holiday?'holiday':'') + '">' + (holiday?'休み':'予定あり') + '</span>';
+                    }
+                    html += '</td>';
+                }
+                if (i%7===6) html += '</tr>';
+            }
+            html += '</tbody></table><ul class="schedule-events">';
+            monthEntries.forEach(e => {
+                html += '<li class="' + (isHoliday(e.info)?'holiday':'') + '"><time>' + m + '/' + e.date.d + '</time>　' + escapeHtml(e.info) + '</li>';
+            });
+            html += '</ul>';
+            if (!monthEntries.length) html += '<p style="color:#aaa;font-size:.8rem;">この月の予定は未登録です。</p>';
+            return html;
+        }
+
         function showContent(type) {
             playClick();
 
@@ -1099,22 +1178,7 @@
             } else if (type === 'sns') {
                 title = 'INFO ・ SNS';
 
-                // スプレッドシートの schedule シートから取得したデータをリスト化
-                let scheduleHtml = '';
-                if (menuData.schedule && menuData.schedule.length > 0) {
-                    scheduleHtml = '<div style="text-align:left; font-size:0.85rem; color:var(--text-white); border:2px solid var(--main-blue); padding:10px; background:#111;">';
-                    scheduleHtml += '<p style="color:var(--main-yellow); font-size:1.4rem; margin-top:0; text-align:center;">--- 営業日程 ---</p>';
-                    menuData.schedule.forEach(item => {
-                        const isHoliday = item.info.includes('休');
-                        const color = isHoliday ? 'var(--main-red)' : 'var(--text-white)';
-                        scheduleHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:4px; border-bottom:1px dotted #333; color:${color};">
-                            <span>${item.date}</span>
-                            <span>${item.info}</span>
-                        </div>`;
-                    });
-                    scheduleHtml += '</div>';
-                }
-
+                const scheduleHtml = '<div id="schedule-calendar" class="schedule-calendar">' + renderScheduleCalendar() + '</div>';
                 content = `
                     <div style="padding:15px 10px;">
                         <div style="display:flex; justify-content:center; gap:40px; margin-bottom:25

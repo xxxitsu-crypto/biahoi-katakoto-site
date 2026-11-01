@@ -697,6 +697,14 @@
         .schedule-events time { color:var(--main-yellow); }
         .schedule-events .holiday { color:#ff7058; }
 
+
+        .event-announcements { margin-top:24px; text-transform:none; }
+        .event-announcements > h3 { color:var(--main-yellow); font-size:1rem; border-bottom:1px solid var(--main-blue); padding-bottom:8px; }
+        .event-announcement { margin-top:20px; }
+        .event-announcement h4 { color:var(--main-yellow); margin:0 0 8px; font-size:1rem; }
+        .event-announcement p { font-size:.8rem; line-height:1.7; margin:0 0 10px; overflow-wrap:anywhere; }
+        .event-announcement a { display:block; }
+        .event-announcement img { display:block; width:100%; height:auto; }
     </style>
 </head>
 
@@ -1124,12 +1132,19 @@
                 }
                 if (i%7===6) html += '</tr>';
             }
-            html += '</tbody></table><ul class="schedule-events">';
-            monthEntries.forEach(e => {
-                html += '<li class="' + (isHoliday(e.info)?'holiday':'') + '"><time>' + m + '/' + e.date.d + '</time>　' + escapeHtml(e.info) + '</li>';
-            });
-            html += '</ul>';
-            if (!monthEntries.length) html += '<p style="color:#aaa;font-size:.8rem;">この月の予定は未登録です。</p>';
+            html += '</tbody></table>';
+            const announcements = [
+                { year:2026, month:11, title:'サロンタレ目 13周年', date:'2026/11/27（金）23:00〜翌6:00', venue:'MEDAMA at Precious Hall', image:'events/salon-tareme-2026.png', alt:'Salon Tareme 13th Anniversary 告知フライヤー' },
+                { year:2026, month:11, title:'Soul Cop 38周年', date:'2026/11/27（金）・28（土）', venue:'THE 38TH ANNIVERSARY SPECIAL NIGHT EDITION', image:'events/soulcop-2026.jpg', alt:'Bar Soul Cop 38周年 告知フライヤー' }
+            ].filter(event => event.year === y && event.month === m);
+            if (announcements.length) {
+                html += '<section class="event-announcements" aria-label="イベント告知"><h3>イベント告知</h3>';
+                announcements.forEach(event => {
+                    html += '<article class="event-announcement"><h4>' + escapeHtml(event.title) + '</h4><p>' + escapeHtml(event.date) + '<br>' + escapeHtml(event.venue) + '</p><a href="' + event.image + '" target="_blank" rel="noopener noreferrer" aria-label="' + escapeHtml(event.title) + 'のフライヤーを拡大"><img src="' + event.image + '" alt="' + escapeHtml(event.alt) + '" loading="lazy"></a></article>';
+                });
+                html += '</section>';
+            }
+            if (!monthEntries.length && !announcements.length) html += '<p style="color:#aaa;font-size:.8rem;">この月の予定は未登録です。</p>';
             return html;
         }
 

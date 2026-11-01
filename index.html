@@ -700,10 +700,18 @@
 
         .event-announcements { margin-top:24px; text-transform:none; }
         .event-announcements > h3 { color:var(--main-yellow); font-size:1rem; border-bottom:1px solid var(--main-blue); padding-bottom:8px; }
-        .event-announcement { margin-top:20px; }
+        .event-announcement { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:14px; margin-top:20px; padding:8px 0 20px; }
         .event-announcement h4 { color:var(--main-yellow); margin:0 0 8px; font-size:1rem; }
         .event-announcement p { font-size:.8rem; line-height:1.7; margin:0 0 10px; overflow-wrap:anywhere; }
-        .event-announcement a { display:block; }
+        .event-images { display:flex; justify-content:center; align-items:center; gap:8px; min-width:0; }
+        .event-images a { display:block; flex:0 1 calc(50% - 4px); min-width:0; max-width:130px; }
+        .event-announcement .event-live-note { margin-top:12px; color:var(--main-yellow); }
+        @media (max-width:400px) {
+            .event-announcement { gap:8px; }
+            .event-announcement h4 { font-size:.85rem; }
+            .event-announcement p { font-size:.7rem; }
+            .event-images { gap:4px; }
+        }
         .event-announcement img { display:block; width:100%; height:auto; }
     </style>
 </head>
@@ -1135,12 +1143,14 @@
             html += '</tbody></table>';
             const announcements = [
                 { year:2026, month:11, title:'サロンタレ目 13周年', date:'2026/11/27（金）23:00〜翌6:00', venue:'MEDAMA at Precious Hall', image:'events/salon-tareme-2026.png', alt:'Salon Tareme 13th Anniversary 告知フライヤー' },
-                { year:2026, month:11, title:'Soul Cop 38周年', date:'2026/11/27（金）・28（土）', venue:'THE 38TH ANNIVERSARY SPECIAL NIGHT EDITION', image:'events/soulcop-2026.jpg', alt:'Bar Soul Cop 38周年 告知フライヤー' }
+                { year:2026, month:11, title:'Soul Cop 38周年', date:'2026/11/27（金）・28（土）', venue:'THE 38TH ANNIVERSARY SPECIAL NIGHT EDITION', extraImage:'events/soulcop-2026-extra.jpg', note:'＊イッチーは、朝4時ごろLIVE', image:'events/soulcop-2026.jpg', alt:'Bar Soul Cop 38周年 告知フライヤー' }
             ].filter(event => event.year === y && event.month === m);
             if (announcements.length) {
                 html += '<section class="event-announcements" aria-label="イベント告知"><h3>イベント告知</h3>';
                 announcements.forEach(event => {
-                    html += '<article class="event-announcement"><h4>' + escapeHtml(event.title) + '</h4><p>' + escapeHtml(event.date) + '<br>' + escapeHtml(event.venue) + '</p><a href="' + event.image + '" target="_blank" rel="noopener noreferrer" aria-label="' + escapeHtml(event.title) + 'のフライヤーを拡大"><img src="' + event.image + '" alt="' + escapeHtml(event.alt) + '" loading="lazy"></a></article>';
+                    const images = [event.extraImage, event.image].filter(Boolean);
+                    const imageHtml = images.map((src, index) => '<a href="' + src + '" target="_blank" rel="noopener noreferrer" aria-label="' + escapeHtml(event.title) + 'の画像' + (index + 1) + 'を拡大"><img src="' + src + '" alt="' + escapeHtml(event.alt) + (images.length > 1 ? ' ' + (index + 1) : '') + '" loading="lazy"></a>').join('');
+                    html += '<article class="event-announcement"><div class="event-details"><h4>' + escapeHtml(event.title) + '</h4><p>' + escapeHtml(event.date) + '<br>' + escapeHtml(event.venue) + '</p>' + (event.note ? '<p class="event-live-note">' + escapeHtml(event.note) + '</p>' : '') + '</div><div class="event-images">' + imageHtml + '</div></article>';
                 });
                 html += '</section>';
             }

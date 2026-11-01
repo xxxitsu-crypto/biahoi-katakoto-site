@@ -690,7 +690,7 @@
         .schedule-grid .schedule-sun { color:#ff7058; }
         .schedule-grid .schedule-sat { color:#75a5ff; }
         .schedule-grid .schedule-today { outline:2px solid var(--main-yellow); outline-offset:-2px; }
-        .schedule-note { display:block; margin-top:6px; color:var(--main-yellow); font-size:.65rem; overflow-wrap:anywhere; }
+        .schedule-note { display:block; margin-top:6px; color:var(--main-yellow); font-size:.65rem; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; text-transform:none; }
         .schedule-note.holiday { color:#ff7058; }
         .schedule-events { margin:12px 0 0; padding:0; list-style:none; font-size:.8rem; line-height:1.6; }
         .schedule-events li { padding:5px 0; border-bottom:1px dotted #555; overflow-wrap:anywhere; }
@@ -1116,8 +1116,9 @@
                     const classes = [i%7===0?'schedule-sun':i%7===6?'schedule-sat':'', today.y===y && today.m===m && today.d===d?'schedule-today':''].join(' ');
                     html += '<td class="' + classes + '"><span>' + d + '</span>';
                     if (events.length) {
-                        const holiday = events.every(e => isHoliday(e.info));
-                        html += '<span class="schedule-note ' + (holiday?'holiday':'') + '">' + (holiday?'休み':'予定あり') + '</span>';
+                        events.forEach(e => {
+                            html += '<span class="schedule-note ' + (isHoliday(e.info)?'holiday':'') + '">' + escapeHtml(e.info) + '</span>';
+                        });
                     }
                     html += '</td>';
                 }

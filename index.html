@@ -1035,7 +1035,7 @@
 
             if (!game || !modal) return;
 
-            if (isChat) {
+            if (isChat || modal.classList.contains('info-mode')) {
                 modal.style.top = '0px';
                 modal.style.bottom = '0px';
                 return;
@@ -1166,6 +1166,7 @@
             playClick();
 
             const isChat = (type === 'chat');
+            modal.classList.toggle('info-mode', type === 'sns');
             applyModalTopBottom(isChat);
 
             modal.style.display = 'flex';

@@ -99,23 +99,38 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 }
 
 /* Ranking controls use real HTML inputs for PC, touch and Japanese IME. */
-#ranking-open { position: fixed; z-index: 2; background: #07131de6; color: #ffe66b; font-size: clamp(14px,2.5vw,22px); border-color: #ffe66b; border-radius: 0; }
-#ranking-open[hidden] { display: none; }
-#ranking-open.selected { outline: 3px solid white; }
-#ranking-dialog { width: min(94vw,512px); max-height: 90dvh; overflow: auto; padding: 24px 18px; color: #fff; background: #07131d; border: 3px solid #ffe66b; font-family: monospace,sans-serif; text-align: center; }
-#ranking-dialog::backdrop { background: #000d; }
-#ranking-dialog h1 { color: #ffe66b; font-size: 28px; letter-spacing: 3px; margin: 8px 0 20px; }
-#ranking-score { font-size: 26px; color: #ffe66b; }
-#ranking-form label { display: block; margin: 16px 0 8px; }
-#ranking-name { display: block; width: min(100%,280px); margin: 0 auto 16px; padding: 10px; font: 24px sans-serif; text-align: center; color: white; background: #132b3a; border: 2px solid #fff; border-radius: 0; }
-#ranking-dialog button { min-height: 44px; padding: 8px 18px; margin: 6px; }
-#ranking-dialog button:disabled { opacity: .5; }
-#ranking-message { min-height: 2.5em; line-height: 1.5; font: 14px sans-serif; }
-#ranking-table table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: clamp(14px,3vw,20px); }
-#ranking-table caption { font-size: 13px; color: #a9c8d8; margin-bottom: 12px; }
-#ranking-table th,#ranking-table td { padding: 8px 2px; border-bottom: 1px solid #294252; }
-#ranking-table th:first-child { width: 16%; }
-#ranking-table th:nth-child(2) { width: 51%; }
-#ranking-table td:nth-child(2) { overflow-wrap: anywhere; font-family: sans-serif; }
-#ranking-table .my-record { color: #ffe66b; background: #203a4a; }
-#game-container[data-screen="record"] #virtual-controller,#game-container[data-screen="ranking"] #virtual-controller { visibility: hidden; }
+
+/* The overlay uses the same 512×640 coordinate space as the court. */
+#ranking-dialog { position:fixed; inset:auto; margin:0; padding:0; border:0; max-width:none; max-height:none; background:transparent; color:white; overflow:auto; container-type:inline-size; font-family:monospace,sans-serif; text-align:center; }
+#ranking-dialog::backdrop { background:transparent; }
+#ranking-panel { position:absolute; left:13.3%; top:12.8%; width:75%; height:74%; background:rgba(55,83,255,.88); padding:5%; }
+#ranking-heading { margin:28% 0 5%; font-size:7.8cqw; letter-spacing:.12em; line-height:1.2; }
+#ranking-score { margin:0 0 9%; font-size:9cqw; font-weight:bold; line-height:1.2; }
+#ranking-form { position:absolute; top:9%; left:10%; width:80%; display:flex; align-items:center; gap:6%; font-size:4.8cqw; }
+#ranking-form[hidden],#ranking-dialog [hidden] { display:none !important; }
+#ranking-name { width:62%; min-width:0; border:0; border-radius:0; padding:2% 3%; background:white; color:#182448; font: max(16px,4.5cqw) monospace,sans-serif; }
+#ranking-breakdown { display:grid; gap:.5cqw; line-height:1.15; font-size:3.5cqw; font-weight:bold; }
+.score-detail { display:flex; justify-content:space-between; gap:2%; text-align:left; white-space:nowrap; }
+#ranking-dialog button { position:absolute; bottom:3%; left:27%; width:46%; min-height:30px; margin:0; padding:1.5% 0; font-size:3.2cqw; border:2px solid white; border-radius:2px; background:transparent; }
+#ranking-dialog button:disabled { opacity:.5; }
+#ranking-message { position:absolute; left:4%; top:102%; width:92%; margin:0; font:2.6cqw sans-serif; }
+#ranking-next { top:112%; bottom:auto !important; background:#2546b9 !important; }
+#ranking-dialog[data-mode="ranking"] #ranking-panel { left:20%; top:5.5%; width:60%; height:auto; padding:0; background:transparent; }
+#ranking-dialog[data-mode="ranking"] #ranking-heading { font-size:5cqw; margin:0 0 7%; letter-spacing:.08em; }
+#ranking-table table { width:100%; border-collapse:collapse; table-layout:fixed; line-height:1.2; font-size:4.8cqw; font-weight:bold; }
+#ranking-table td { padding:.3cqw 0; white-space:nowrap; }
+#ranking-table td:first-child { width:20%; font-style:italic; text-align:left; }
+#ranking-table td:nth-child(2) { width:52%; text-align:left; }
+#ranking-table td:last-child { width:28%; text-align:right; }
+#ranking-dialog[data-mode="ranking"] #ranking-message { position:static; margin-top:5%; width:100%; }
+#ranking-table .my-record { color:#fff8a6; }
+#game-container[data-screen="record"] #virtual-controller,#game-container[data-screen="ranking"] #virtual-controller,#game-container[data-screen="result"] #virtual-controller { visibility:hidden; }
+
+#ranking-message:not(:empty) { background:rgba(9,38,96,.8); padding:1%; }
+#ranking-dialog[data-mode="ranking"] #ranking-message { background:transparent; }
+@media (min-width:601px) and (pointer:fine) {
+ #virtual-controller { display:block; }
+ #virtual-controller #dpad,#virtual-controller #action-buttons { display:none; }
+ #btn-pause { position:fixed; right:16px; bottom:16px; }
+}
+#game-container[data-screen="title"] #btn-pause { visibility:hidden; }

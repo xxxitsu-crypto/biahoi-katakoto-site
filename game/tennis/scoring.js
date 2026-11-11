@@ -3,7 +3,7 @@
   class TennisScore {
     constructor() { this.reset(); }
     reset() { this.total=0; this.noContinue=0; this.continues=0; this.events=[]; this.startStage(); }
-    startStage() { this.checkpoint=this.total; this.retried=false; this.stageLostPoints=0; this.stageLostGames=0; this.gameStreak=0; this.gameLostPoints=0; this.gamePoints=0; this.games=0; }
+    startStage() { this.checkpoint=this.total; this.checkpointEvents=this.events.length; this.retried=false; this.stageLostPoints=0; this.stageLostGames=0; this.gameStreak=0; this.gameLostPoints=0; this.gamePoints=0; this.games=0; }
     add(points,label) { this.total+=points; this.events.push({points,label}); }
     point(winner) {
       if(winner==='cpu'){this.gameLostPoints++;this.stageLostPoints++;return;}
@@ -25,9 +25,13 @@
       if(!this.stageLostPoints)this.add(100,'SUPER PERFECT');
       if(!this.retried){this.noContinue++;this.add([20,30,40][Math.min(2,this.noContinue-1)],'NO CONTINUE');}
     }
+    breakdown() {
+      const groups=[['GAMEポイント',['ゲーム獲得','ゲーム先取']],['連続得点',['連続得点']],['連勝',['2ゲーム連続','3ゲーム連続']],['パーフェクト',['PERFECT','完封']],['スーパーパーフェクト',['SUPER PERFECT']],['ノーコンテニュー',['NO CONTINUE']]];
+      return groups.map(([label,labels])=>({label,points:this.events.filter(e=>labels.includes(e.label)).reduce((sum,e)=>sum+e.points,0)})).filter(row=>row.points>0);
+    }
     retry() {
       this.total=this.checkpoint;this.noContinue=0;this.continues++;
-      this.startStage();this.retried=true;this.events=[];
+      this.events.length=this.checkpointEvents;this.startStage();this.retried=true;
     }
   }
   if(typeof module!=='undefined')module.exports=TennisScore;

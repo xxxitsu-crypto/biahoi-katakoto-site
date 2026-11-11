@@ -190,7 +190,7 @@ const score = { player: 0, cpu: 0 };
 const arcade = new TennisScore();
 let scoreFlash=0, lastArcadeTotal=0;
 let titleIdle = 0;
-let titleRankingSelected = false;
+
 const openingImages = {};
 for (const [key, file] of Object.entries({ background: 'opening-scroll.jpg', logo: 'logo.png', cursor: 'choice-ball.png' })) {
   const image = new Image(); image.src = assetUrl(file); openingImages[key] = image;
@@ -206,8 +206,6 @@ function menuDirection(dir) {
     if(endingExit.open && ['left','right'].includes(dir)) endingExit.selected=dir==='right'?1:0;
   } else if (screen.phase === 'title') {
     titleIdle=0;
-    if(dir==='down')titleRankingSelected=true;
-    if(dir==='up')titleRankingSelected=false;
     stageMenu.sequence.push(dir);
     while (stageMenu.sequence.length && !stageMenu.sequence.every((value, i) => value === STAGE_COMMAND[i])) stageMenu.sequence.shift();
   } else if (screen.phase === 'stage-choice' && ['left','right'].includes(dir)) {
@@ -228,7 +226,6 @@ function menuShot() {
     else endingExit.open=false;
   } else if (screen.phase === 'title') {
     titleIdle=0;
-    if(titleRankingSelected){rankingUI.show(false);return true;}
     if(window.SEAL_ENDING_TEST){sound.unlock();beginEnding();return true;}
     if (stageMenu.sequence.length === STAGE_COMMAND.length) {
       stageMenu.sequence = []; stageMenu.selected = 1;
@@ -515,7 +512,7 @@ class InputHandler {
   initKeyboard() {
     const map = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
     window.addEventListener('keydown', e => {
-      if (MENU_PHASES.includes(screen.phase) || ['record','ranking'].includes(screen.phase)) return;
+      if (MENU_PHASES.includes(screen.phase) || ['record','ranking','result'].includes(screen.phase)) return;
       const shot = e.code === 'KeyZ' || e.code === 'Space';
       if (map[e.code] || shot) e.preventDefault();
       if (e.repeat || this.keys.has(e.code)) return;
@@ -527,7 +524,7 @@ class InputHandler {
       if (e.code === 'KeyS') toggleServePractice();
     });
     window.addEventListener('keyup', e => {
-      if(['record','ranking'].includes(screen.phase))return;
+      if(['record','ranking','result'].includes(screen.phase))return;
       this.keys.delete(e.code);
       if (map[e.code] || e.code === 'KeyZ' || e.code === 'Space') e.preventDefault();
       this.releaseShot(e.code);
@@ -1756,13 +1753,7 @@ function drawScene(context) {
   if(ball.y >= 120) drawProjected(context,ball,ball.x,ball.y);
   referee.draw(context);
   drawScoreboard(context);
-  context.save();context.fillStyle='#07131d';context.fillRect(8,8,230,42);
-  context.fillStyle='#ffe66b';context.font='bold 18px monospace';context.textAlign='left';
-  context.fillText('SCORE '+String(arcade.total).padStart(6,'0'),16,27);
-  const recent=arcade.events.slice(-1)[0];
-  if(recent && scoreFlash>0){context.font='12px sans-serif';context.fillText(recent.label+' +'+recent.points,16,44);}
-  context.restore();
-  if (match.winner && screen.phase !== 'continue') {
+  if (match.winner && !['continue','record','result'].includes(screen.phase)) {
     const image = judgeImages[match.winner === 'player' ? 'win' : 'lose'];
     if (imageReady(image)) {
       const width = 486, height = width * image.naturalHeight / image.naturalWidth;
@@ -1829,9 +1820,9 @@ const ball = new Ball();
 let cpu = createOpponent();
 cpu.x = 128; cpu.targetX = 128;
 const clock = new FixedClock(() => {
-  if (screen.phase === 'ending-win') { input.cancel(); if (--screen.ticks === 0) rankingUI.record(true); return; }
+  if (screen.phase === 'ending-win') { input.cancel(); if (--screen.ticks === 0) rankingUI.result(); return; }
   if (screen.phase === 'ending') { input.cancel(); screen.ticks++; endingMusic.sync(); return; }
-  if (screen.phase === 'record' || screen.phase === 'ranking') { input.cancel(); return; }
+  if (screen.phase === 'record' || screen.phase === 'ranking' || screen.phase === 'result') { input.cancel(); return; }
   if (screen.phase === 'title') { input.cancel(); if(++titleIdle>=480)rankingUI.show(true); return; }
   if (screen.phase === 'stage-choice') { input.cancel(); return; }
   if (screen.phase === 'stage-reveal') { input.cancel(); if (--screen.ticks === 0) screen.phase = 'stage-choice'; return; }
@@ -1872,11 +1863,11 @@ function toggleManualPause(){
  if(!['playing','starting','gameover','continue','intro','ending-win','ending'].includes(screen.phase))return;
  manualPaused=!manualPaused;clearPauseInput();clock.reset();endingMusic.sync();
  const button=document.getElementById('btn-pause');
- button.textContent=manualPaused?'再開':'ポーズ';button.setAttribute('aria-pressed',String(manualPaused));
+ button.textContent=manualPaused?'再開':'ポーズ';button.setAttribute('aria-label',manualPaused?'再開':'ポーズ');button.setAttribute('aria-pressed',String(manualPaused));
 }
 document.getElementById('btn-pause').addEventListener('click',toggleManualPause);
 window.addEventListener('keydown',event=>{
- if(['record','ranking'].includes(screen.phase))return;
+ if(['record','ranking','result'].includes(screen.phase))return;
  if(event.code==='KeyP'){event.preventDefault();event.stopImmediatePropagation();if(!event.repeat)toggleManualPause();}
  else if(manualPaused){event.preventDefault();event.stopImmediatePropagation();}
 },{capture:true});
@@ -1888,6 +1879,7 @@ function toggleServePractice() {
 }
 function resetPractice() {
   manualPaused=false;
+  const pauseButton=document.getElementById('btn-pause');pauseButton.textContent='ポーズ';pauseButton.setAttribute('aria-label','ポーズ');pauseButton.setAttribute('aria-pressed','false');
   endingMusic.reset();
   screen.phase = 'starting'; screen.ticks = 120;
   document.getElementById('game-container').dataset.screen = 'playing';
@@ -1910,18 +1902,19 @@ function resetPractice() {
 }
 function returnToOpening() {
   manualPaused=false;
+  const pauseButton=document.getElementById('btn-pause');pauseButton.textContent='ポーズ';pauseButton.setAttribute('aria-label','ポーズ');pauseButton.setAttribute('aria-pressed','false');
   endingMusic.reset();
   input.cancel();campaign.transitionTicks=0;match.reset('cpu');cpu.reset();ball.resetServe();
   screen.phase='title';screen.ticks=0;referee.text='';referee.ticks=0;
   document.getElementById('game-container').dataset.screen='title';
-  titleIdle=0;titleRankingSelected=false;
+  titleIdle=0;
   stageMenu.sequence=[];stageMenu.selected=1;campaign.selectedStage=1;
   canvas.setAttribute('role','button');canvas.setAttribute('aria-label','push to play');clock.reset();
 }
 function startOpening() {
   if (screen.phase !== 'title') return;
   arcade.reset();
-  titleIdle=0;titleRankingSelected=false;
+  titleIdle=0;
   stageMenu.sequence=[];
   campaign.stage=campaign.selectedStage;campaign.transitionTicks=0;cpu=createOpponent();
   sound.unlock(); sound.tune('start');
@@ -1969,13 +1962,16 @@ document.getElementById('guide-toggle')?.addEventListener('click', () => { showG
 window.addEventListener('pagehide', () => { clearPauseInput(); endingMusic.pause(); clock.reset(); });
 function gameLoop(now) {
   if(arcade.total!==lastArcadeTotal){scoreFlash=120;lastArcadeTotal=arcade.total;}else if(scoreFlash>0)scoreFlash--;
-  rankingUI.positionButton(screen.phase==='title',titleRankingSelected);
+  rankingUI.position();
   if (!paused && !manualPaused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
-  if(screen.phase==='ending')drawEnding(ctx);else if(screen.phase==='stage-reveal')drawStageReveal(ctx,now);else if(screen.phase==='stage-choice')drawStageChoice(ctx,now);else if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
+  if(screen.phase==='ranking')drawOpeningBackground(ctx);else if(screen.phase==='ending')drawEnding(ctx);else if(screen.phase==='stage-reveal')drawStageReveal(ctx,now);else if(screen.phase==='stage-choice')drawStageChoice(ctx,now);else if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
   if(manualPaused){
     ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,0,512,640);
-    ctx.fillStyle='#fff';ctx.font='bold 30px monospace';ctx.textAlign='center';ctx.fillText('PAUSE',256,320);
+    ctx.fillStyle='#fff';ctx.font='bold 30px monospace';ctx.textAlign='center';ctx.fillText('スコア',256,248);
+    ctx.font='bold 44px monospace';ctx.fillText(String(arcade.total),256,324);
+    ctx.font='bold 20px monospace';ctx.textAlign='left';
+    arcade.breakdown().forEach((row,i)=>{ctx.fillText(row.label,105,380+i*30);ctx.textAlign='right';ctx.fillText(String(row.points),405,380+i*30);ctx.textAlign='left';});
   }
   const guideButton = document.getElementById('guide-toggle');
   guideButton?.setAttribute('aria-pressed', String(showGuide));

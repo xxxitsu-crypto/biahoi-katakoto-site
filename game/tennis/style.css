@@ -97,3 +97,25 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 @media (orientation: landscape) and (any-pointer: coarse) {
  #btn-pause { grid-column: 2; grid-row: 1; align-self: end; z-index: 1; margin-bottom: 8px; }
 }
+
+/* Ranking controls use real HTML inputs for PC, touch and Japanese IME. */
+#ranking-open { position: fixed; z-index: 2; background: #07131de6; color: #ffe66b; font-size: clamp(14px,2.5vw,22px); border-color: #ffe66b; border-radius: 0; }
+#ranking-open[hidden] { display: none; }
+#ranking-open.selected { outline: 3px solid white; }
+#ranking-dialog { width: min(94vw,512px); max-height: 90dvh; overflow: auto; padding: 24px 18px; color: #fff; background: #07131d; border: 3px solid #ffe66b; font-family: monospace,sans-serif; text-align: center; }
+#ranking-dialog::backdrop { background: #000d; }
+#ranking-dialog h1 { color: #ffe66b; font-size: 28px; letter-spacing: 3px; margin: 8px 0 20px; }
+#ranking-score { font-size: 26px; color: #ffe66b; }
+#ranking-form label { display: block; margin: 16px 0 8px; }
+#ranking-name { display: block; width: min(100%,280px); margin: 0 auto 16px; padding: 10px; font: 24px sans-serif; text-align: center; color: white; background: #132b3a; border: 2px solid #fff; border-radius: 0; }
+#ranking-dialog button { min-height: 44px; padding: 8px 18px; margin: 6px; }
+#ranking-dialog button:disabled { opacity: .5; }
+#ranking-message { min-height: 2.5em; line-height: 1.5; font: 14px sans-serif; }
+#ranking-table table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: clamp(14px,3vw,20px); }
+#ranking-table caption { font-size: 13px; color: #a9c8d8; margin-bottom: 12px; }
+#ranking-table th,#ranking-table td { padding: 8px 2px; border-bottom: 1px solid #294252; }
+#ranking-table th:first-child { width: 16%; }
+#ranking-table th:nth-child(2) { width: 51%; }
+#ranking-table td:nth-child(2) { overflow-wrap: anywhere; font-family: sans-serif; }
+#ranking-table .my-record { color: #ffe66b; background: #203a4a; }
+#game-container[data-screen="record"] #virtual-controller,#game-container[data-screen="ranking"] #virtual-controller { visibility: hidden; }

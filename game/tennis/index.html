@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" href="assets/icon.png?v=62">
   <link rel="manifest" href="manifest.webmanifest?v=62">
   <title>AZARASHI TENNIS</title>
-  <link rel="stylesheet" href="style.css?v=20261019-pause-62">
+  <link rel="stylesheet" href="style.css?v=ranking-68">
   <style>
     #game-container[data-screen="title"] .toolbar,
     #game-container[data-screen="title"] #status { display: none; }
@@ -18,7 +18,7 @@
 </head>
 <body>
   <div id="game-container" data-screen="title">
-    <p class="version">AZARASHI TENNIS · Version 67</p>
+    <p class="version">AZARASHI TENNIS · Version 68</p>
     <canvas id="gameCanvas" width="512" height="640"></canvas>
     
     <p id="status" role="status">読み込み中</p>
@@ -43,7 +43,23 @@
     </div>
   </div>
 
-  <script defer src="main.js?v=20261031-67"></script>
+  <button id="ranking-open" type="button" hidden>ランキング</button>
+  <dialog id="ranking-dialog" aria-labelledby="ranking-heading">
+    <h1 id="ranking-heading"></h1>
+    <p id="ranking-score"></p>
+    <form id="ranking-form">
+      <label for="ranking-name">名前（最大6文字）</label>
+      <input id="ranking-name" type="text" autocomplete="nickname" enterkeyhint="done" aria-describedby="ranking-message">
+      <button id="ranking-submit" type="submit">登録</button>
+    </form>
+    <p id="ranking-message" role="status"></p>
+    <div id="ranking-table"></div>
+    <button id="ranking-next" type="button">戻る</button>
+  </dialog>
+  <script defer src="ranking-config.js?v=68"></script>
+  <script defer src="scoring.js?v=68"></script>
+  <script defer src="ranking.js?v=68"></script>
+  <script defer src="main.js?v=ranking-68"></script>
 </body>
 </html>
 

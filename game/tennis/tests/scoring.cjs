@@ -12,3 +12,5 @@ s.startStage();perfect(s);assert.equal(s.total,1825); // next stage starts again
 s=new Score();s.point('player');s.point('cpu');for(let n=0;n<3;n++)s.point('player');s.game('player');assert.equal(s.total,50); // 10 + basic20 + first20
 s=new Score();s.point('cpu');s.game('cpu');win(s);assert.equal(s.total,115); // opponent took first game
 console.log('Scoring: perfect run, retry rollback, streak restart, lost point, first-game bonus passed');
+
+s=new Score();perfect(s);s.startStage();win(s);s.retry();assert.equal(s.breakdown().reduce((n,r)=>n+r.points,0),s.total);perfect(s);assert.equal(s.breakdown().reduce((n,r)=>n+r.points,0),1210);s.retry();assert.equal(s.breakdown().reduce((n,r)=>n+r.points,0),615);

@@ -18,7 +18,7 @@ run('for(let n=0;n<480;n++)clock.update()');assert.equal(run('screen.phase'),'ra
 pending.at(-1)();assert.equal(run('screen.phase'),'title');
 run('returnToOpening();startOpening();resetPractice();for(let n=0;n<12;n++)match.award("player")');
 assert.equal(run('arcade.total'),615);assert.equal(run('match.winner'),'player');
-run('screen.phase="playing";campaign.transitionTicks=1;clock.update()');assert.equal(run('campaign.stage'),2);
+run('screen.phase="playing";screen.phase="playing";campaign.transitionTicks=1;clock.update()');assert.equal(run('campaign.stage'),1);assert.equal(run('screen.phase'),'result');assert.equal(element('ranking-stage-points').textContent,'今回 ＋615点 ／ 累計 615点');pending.at(-1)();assert.equal(run('campaign.stage'),2);assert.equal(run('screen.phase'),'intro');
 run('resetPractice();for(let n=0;n<4;n++)match.award("player");for(let n=0;n<12;n++)match.award("cpu");screen.phase="continue";input.pressShot("test")');
 assert.equal(run('arcade.total'),615);assert.equal(run('arcade.continues'),1);
 run('screen.phase="continue";screen.ticks=1;clock.update()');assert.equal(run('screen.phase'),'record');
@@ -26,3 +26,21 @@ assert.equal(element('ranking-form').hidden,false);
 run('returnToOpening();campaign.selectedStage=3;startOpening();resetPractice();for(let n=0;n<12;n++)match.award("player");screen.ticks=1;clock.update()');
 assert.equal(run('screen.phase'),'result');pending.at(-1)();assert.equal(run('screen.phase'),'record');assert.equal(element('ranking-submit').textContent,'エンディングへ');
 console.log('Integration: idle ranking, game scoring, stage transition, retry rollback, timeout record, clear record passed');
+
+// Match point on the player's serve: first fault keeps 0–40, second ends the match.
+for (const stage of [1,2,3]) {
+ run(`returnToOpening();campaign.selectedStage=${stage};startOpening();resetPractice();screen.phase='playing';
+ for(let n=0;n<11;n++)match.award('cpu');match.server='player';ball.resetServe();ball.playTicks=0;ball.fault();`);
+ assert.equal(run('match.games.cpu'),2);assert.equal(run('score.cpu'),3);assert.equal(run('match.faults'),1);
+ run('for(let n=0;n<90;n++)ball.update(player,cpu);ball.playTicks=0;ball.fault()');
+ assert.equal(run('match.games.cpu'),3);assert.equal(run('match.winner'),'cpu');assert.equal(run('screen.phase'),'gameover');
+ run('for(let n=0;n<120;n++)clock.update()');assert.equal(run('screen.phase'),'continue');assert.equal(run('match.games.cpu'),3);
+}
+// Stage 2 result shows only new points alongside the cumulative score.
+run('returnToOpening();startOpening();resetPractice();for(let n=0;n<12;n++)match.award("player");screen.phase="playing";campaign.transitionTicks=1;clock.update()');
+pending.at(-1)();
+run('resetPractice();for(let n=0;n<12;n++)match.award("player");screen.phase="playing";campaign.transitionTicks=1;clock.update()');
+assert.equal(run('campaign.stage'),2);assert.equal(element('ranking-stage-points').textContent,'今回 ＋625点 ／ 累計 1240点');
+assert.equal(run('arcade.breakdown(true).reduce((n,r)=>n+r.points,0)'),625);
+pending.at(-1)();assert.equal(run('campaign.stage'),3);assert.equal(run('screen.phase'),'intro');
+console.log('Stage results and match-point double faults on all three stages passed');

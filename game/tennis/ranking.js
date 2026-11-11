@@ -4,6 +4,8 @@ const rankingUI = (() => {
   const heading=document.getElementById('ranking-heading');
   const scoreText=document.getElementById('ranking-score');
   const breakdown=document.getElementById('ranking-breakdown');
+  const stageLabel=document.getElementById('ranking-stage');
+  const stagePoints=document.getElementById('ranking-stage-points');
   const form=document.getElementById('ranking-form');
   const name=document.getElementById('ranking-name');
   const submit=document.getElementById('ranking-submit');
@@ -34,15 +36,15 @@ const rankingUI = (() => {
     dialog.dataset.mode=phase;
     heading.textContent=phase==='ranking'?'ランキング':'スコア';
     table.replaceChildren();breakdown.replaceChildren();message.textContent='';scoreText.textContent='';
-    form.hidden=true;submit.hidden=true;next.hidden=true;submit.disabled=false;next.disabled=false;busy=false;
+    stageLabel.hidden=true;stagePoints.hidden=true;form.hidden=true;submit.hidden=true;next.hidden=true;submit.disabled=false;next.disabled=false;busy=false;
     if(!dialog.open)dialog.showModal();
     position();
   }
   function close() {clearTimeout(timer);generation++;dialog.close();input.cancel();}
   function finish() {close();if(completed)beginEnding();else returnToOpening();canvas.focus();}
-  function showScore() {
+  function showScore(stageOnly=false) {
     scoreText.textContent=String(arcade.total);
-    for(const row of arcade.breakdown()){
+    for(const row of arcade.breakdown(stageOnly)){
       const line=document.createElement('div');line.className='score-detail';
       const label=document.createElement('span');label.textContent=row.label;
       const value=document.createElement('span');value.textContent=String(row.points);
@@ -78,8 +80,13 @@ const rankingUI = (() => {
     submit.focus();
   }
   function result() {
-    completed=true;prepare('result');showScore();
-    timer=setTimeout(()=>record(true),8000);
+    completed=campaign.stage===3;prepare('result');showScore(true);
+    stageLabel.hidden=false;stageLabel.textContent='STAGE '+campaign.stage+' CLEAR';
+    stagePoints.hidden=false;stagePoints.textContent='今回 ＋'+(arcade.total-arcade.checkpoint)+'点 ／ 累計 '+arcade.total+'点';
+    timer=setTimeout(()=>{
+      if(completed){record(true);return;}
+      close();campaign.stage++;arcade.startStage();cpu=createOpponent();beginStageIntro();
+    },8000);
   }
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;

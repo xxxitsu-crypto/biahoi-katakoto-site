@@ -1844,7 +1844,7 @@ const clock = new FixedClock(() => {
   }
   referee.update(); if (match.boardTicks > 0) match.boardTicks--;
   if (match.winner) {
-    if (campaign.transitionTicks > 0 && --campaign.transitionTicks === 0) { campaign.stage++; arcade.startStage(); cpu = createOpponent(); beginStageIntro(); }
+    if (campaign.transitionTicks > 0 && --campaign.transitionTicks === 0) { rankingUI.result(); }
     return;
   }
   if (ball.playTicks > 0 && !ball.resetTimer) {

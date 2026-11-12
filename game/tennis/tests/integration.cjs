@@ -3,7 +3,7 @@ const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/st
 const root=path.join(__dirname,'..');
 const draw=new Proxy({}, {get:(_,key)=>key==='measureText'?()=>({width:100}):()=>{}});
 const elements=new Map();
-function element(id){if(!elements.has(id))elements.set(id,{dataset:{},style:{},classList:{toggle(){}},addEventListener(){},setAttribute(){},removeAttribute(){},getContext:()=>draw,getBoundingClientRect:()=>({left:0,top:0,width:512,height:640}),focus(){},replaceChildren(){},append(){},showModal(){this.open=true},close(){this.open=false},value:'',textContent:''});return elements.get(id);}
+function element(id){if(!elements.has(id))elements.set(id,{dataset:{},style:{},classList:{toggle(){}},addEventListener(type,fn){(this.listeners??={})[type]=fn;},setAttribute(){},removeAttribute(){},getContext:()=>draw,getBoundingClientRect:()=>({left:0,top:0,width:512,height:640}),focus(){},replaceChildren(){},append(){},showModal(){this.open=true},close(){this.open=false},value:'',textContent:''});return elements.get(id);}
 const pending=[];const w={addEventListener(){},SEAL_RANKING_API:''};
 const context={window:w,document:{getElementById:element,createElement:()=>element(Symbol()),addEventListener(){},querySelectorAll:()=>[],hidden:false,hasFocus:()=>true},Image:class{addEventListener(){}},console,performance:{now:()=>0},requestAnimationFrame(){},setTimeout:f=>{pending.push(f);return pending.length},clearTimeout(){},crypto:require('node:crypto').webcrypto,localStorage:{getItem:()=>'',setItem(){}},fetch:async()=>({ok:false}),Audio:class{addEventListener(){}},ResizeObserver:class{observe(){}},innerHeight:800,innerWidth:600};
 w.window=w;vm.createContext(context);
@@ -44,3 +44,13 @@ assert.equal(run('campaign.stage'),2);assert.equal(element('ranking-stage-points
 assert.equal(run('arcade.breakdown(true).reduce((n,r)=>n+r.points,0)'),625);
 pending.at(-1)();assert.equal(run('campaign.stage'),3);assert.equal(run('screen.phase'),'intro');
 console.log('Stage results and match-point double faults on all three stages passed');
+
+run('returnToOpening();startOpening();resetPractice();screen.phase="playing";for(let n=0;n<4;n++)match.award("player");toggleManualPause();giveUpConfirm.show()');
+assert.equal(element('giveup-confirm').open,true);assert.equal(run('arcade.total'),135);
+run('giveUpConfirm.direction("right");giveUpConfirm.choose()');
+assert.equal(element('giveup-confirm').open,false);assert.equal(run('manualPaused'),true);assert.equal(run('screen.phase'),'playing');
+run('giveUpConfirm.show();giveUpConfirm.choose()');
+assert.equal(run('manualPaused'),false);assert.equal(run('screen.phase'),'record');assert.equal(element('ranking-score').textContent,'135');
+element('ranking-name').value='';element('ranking-form').listeners.submit({preventDefault(){}});
+assert.equal(run('screen.phase'),'title');assert.equal(element('ranking-dialog').open,false);
+console.log('Give-up: NO preserves paused game and points; YES opens name entry and returns directly home');

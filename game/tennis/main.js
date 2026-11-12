@@ -458,6 +458,7 @@ class InputHandler {
     return [...this.pointerDirections.values()].includes('down') || this.keys.has('ArrowDown');
   }
   registerPress(dir, now = performance.now()) {
+    if(giveUpConfirm.open){giveUpConfirm.direction(dir);return;}
     if(manualPaused)return;
     if (menuDirection(dir)) return;
     if (dir === 'down' && this.action) {
@@ -480,6 +481,7 @@ class InputHandler {
     this.consumeQueue.push({ dir, isRhythmJump });
   }
   pressShot(source) {
+    if(giveUpConfirm.open){giveUpConfirm.choose();return;}
     if(manualPaused)return;
     if (menuShot()) return;
     if(screen.phase==='continue'){ arcade.retry(); input.cancel(); resetPractice(); return; }
@@ -1860,6 +1862,7 @@ function clearPauseInput(){
  player.isPreparing=false;
 }
 function toggleManualPause(){
+ if(giveUpConfirm.open)return;
  if(!['playing','starting','gameover','continue','intro','ending-win','ending'].includes(screen.phase))return;
  manualPaused=!manualPaused;clearPauseInput();clock.reset();endingMusic.sync();
  const button=document.getElementById('btn-pause');
@@ -1867,15 +1870,47 @@ function toggleManualPause(){
 }
 const giveUpButton=document.getElementById('btn-give-up');
 function positionGiveUpButton(){
- giveUpButton.hidden=!manualPaused;
+ giveUpButton.hidden=!manualPaused||giveUpConfirm.open;
  if(!manualPaused)return;
  const bounds=canvas.getBoundingClientRect();
  Object.assign(giveUpButton.style,{left:(bounds.left+bounds.width*.3)+'px',top:(bounds.top+bounds.height*.89)+'px',width:(bounds.width*.4)+'px',height:(bounds.height*.065)+'px',fontSize:(bounds.width*.035)+'px'});
 }
-giveUpButton.addEventListener('click',()=>{
- if(!manualPaused)return;
- giveUpButton.hidden=true;returnToOpening();canvas.focus();
-});
+const giveUpConfirm=(()=>{
+ const dialog=document.getElementById('giveup-confirm');
+ const ball=document.getElementById('giveup-ball');
+ const yes=document.getElementById('giveup-yes'),no=document.getElementById('giveup-no');
+ let selected=0;
+ function position(){
+  if(!dialog.open)return;
+  const b=canvas.getBoundingClientRect();
+  Object.assign(dialog.style,{left:b.left+'px',top:b.top+'px',width:b.width+'px',height:b.height+'px'});
+ }
+ function select(value){selected=value;ball.style.left=(selected?52.8:11.7)+'%';}
+ function cancel(){dialog.close();clearPauseInput();giveUpButton.hidden=false;giveUpButton.focus();}
+ function choose(){
+  if(!dialog.open)return;
+  if(selected===1){cancel();return;}
+  dialog.close();toggleManualPause();giveUpButton.hidden=true;rankingUI.record(false,true);
+ }
+ yes.addEventListener('focus',()=>select(0));no.addEventListener('focus',()=>select(1));
+ yes.addEventListener('click',()=>{select(0);choose();});no.addEventListener('click',()=>{select(1);choose();});
+ dialog.addEventListener('cancel',event=>{event.preventDefault();cancel();});
+ window.addEventListener('keydown',event=>{
+  if(!dialog.open)return;
+  event.stopImmediatePropagation();
+  if(['ArrowLeft','ArrowRight','Enter','Space','KeyZ','Escape'].includes(event.code)){
+   event.preventDefault();if(event.repeat)return;
+   if(event.code==='Escape')cancel();
+   else if(event.code==='ArrowLeft'||event.code==='ArrowRight'){select(event.code==='ArrowRight'?1:0);(selected?no:yes).focus();}
+   else choose();
+  }
+ },{capture:true});
+ return {get open(){return dialog.open;},position,
+  direction(dir){if(['left','right'].includes(dir)){select(dir==='right'?1:0);(selected?no:yes).focus();}},choose,
+  show(){if(!manualPaused)return;clearPauseInput();select(0);giveUpButton.hidden=true;dialog.showModal();position();yes.focus();}
+ };
+})();
+giveUpButton.addEventListener('click',()=>giveUpConfirm.show());
 document.getElementById('btn-pause').addEventListener('click',toggleManualPause);
 window.addEventListener('keydown',event=>{
  if(['record','ranking','result'].includes(screen.phase))return;
@@ -1977,6 +2012,7 @@ function gameLoop(now) {
   if(arcade.total!==lastArcadeTotal){scoreFlash=120;lastArcadeTotal=arcade.total;}else if(scoreFlash>0)scoreFlash--;
   rankingUI.position();
   positionGiveUpButton();
+  giveUpConfirm.position();
   if (!paused && !manualPaused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
   if(screen.phase==='ranking')drawOpeningBackground(ctx);else if(screen.phase==='ending')drawEnding(ctx);else if(screen.phase==='stage-reveal')drawStageReveal(ctx,now);else if(screen.phase==='stage-choice')drawStageChoice(ctx,now);else if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);

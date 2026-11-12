@@ -12,7 +12,7 @@ const rankingUI = (() => {
   const message=document.getElementById('ranking-message');
   const table=document.getElementById('ranking-table');
   const next=document.getElementById('ranking-next');
-  let timer, generation=0, completed=false, savedId=null, runId=null, busy=false;
+  let timer, generation=0, completed=false, returnHome=false, savedId=null, runId=null, busy=false;
   const clean=value=>Array.from(value.normalize('NFC').replace(/[\p{Cc}\p{Cf}]/gu,'').trim()).slice(0,6).join('');
   const api=()=>window.SEAL_RANKING_API?.replace(/\/$/,'');
   async function request(path,options={}) {
@@ -70,7 +70,8 @@ const rankingUI = (() => {
     if(!fromResult){completed=false;savedId=null;}
     prepare('ranking');load();timer=setTimeout(finish,8000);
   }
-  function record(clear) {
+  function record(clear,home=false) {
+    returnHome=home;
     completed=clear;savedId=null;runId=crypto.randomUUID();
     prepare('record');showScore();form.hidden=false;submit.hidden=false;
     submit.textContent=clear?'エンディングへ':'ホームに戻る';
@@ -91,19 +92,20 @@ const rankingUI = (() => {
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;
     const value=clean(name.value);name.value=value;
-    if(!value){show(true,true);return;}
+    if(!value){afterRecord();return;}
     busy=true;submit.disabled=true;next.disabled=true;message.textContent='登録中…';
     const version=generation;
     try{
       const data=await request('/scores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:runId,name:value,score:arcade.total,continues:arcade.continues,startStage:campaign.selectedStage,cleared:completed})});
       if(version!==generation)return;
       try{localStorage.setItem('seal-ranking-name',value);}catch{}
-      savedId=data.id;show(true,true);
+      savedId=data.id;afterRecord();
     }catch(error){if(version===generation){message.textContent=error.message;busy=false;submit.disabled=false;next.disabled=false;next.hidden=false;}}
   });
   name.addEventListener('input',event=>{if(!event.isComposing)name.value=clean(name.value);});
   name.addEventListener('compositionend',()=>{name.value=clean(name.value);});
-  next.addEventListener('click',()=>{if(!busy)show(true,true);});
+  function afterRecord(){if(returnHome){completed=false;finish();}else show(true,true);}
+  next.addEventListener('click',()=>{if(!busy)afterRecord();});
   dialog.addEventListener('cancel',event=>event.preventDefault());
   // The attract screen can start a game; its timer is never cancelled by incidental input.
   function startFromRanking(){if(screen.phase!=='ranking')return;close();returnToOpening();startOpening();}

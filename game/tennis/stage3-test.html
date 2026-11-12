@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" href="assets/icon.png?v=62">
   <link rel="manifest" href="manifest.webmanifest?v=62">
   <title>AZARASHI TENNIS</title>
-  <link rel="stylesheet" href="style.css?v=ranking-71">
+  <link rel="stylesheet" href="style.css?v=ranking-72">
   <style>
     #game-container[data-screen="title"] .toolbar,
     #game-container[data-screen="title"] #status { display: none; }
@@ -18,7 +18,7 @@
 </head>
 <body>
   <div id="game-container" data-screen="title">
-    <p class="version">AZARASHI TENNIS · Version 71</p>
+    <p class="version">AZARASHI TENNIS · Version 72</p>
     <canvas id="gameCanvas" width="512" height="640"></canvas>
     
     <p id="status" role="status">読み込み中</p>
@@ -45,6 +45,14 @@
 
   <script>window.SEAL_START_STAGE = 3;</script>
   <button id="btn-give-up" type="button" hidden>ギブアップ</button>
+  <dialog id="giveup-confirm" aria-label="OPEN画面に戻る？">
+    <div id="giveup-confirm-panel">
+      <img src="assets/ending-confirm.png" alt="OPEN画面に戻る？ YES NO" draggable="false">
+      <img id="giveup-ball" src="assets/choice-ball.png" alt="" draggable="false">
+      <button id="giveup-yes" type="button" aria-label="YES"></button>
+      <button id="giveup-no" type="button" aria-label="NO"></button>
+    </div>
+  </dialog>
   <dialog id="ranking-dialog" aria-labelledby="ranking-heading">
     <section id="ranking-panel">
       <form id="ranking-form">
@@ -62,10 +70,10 @@
       <button id="ranking-next" type="button" hidden>登録せず進む</button>
     </section>
   </dialog>
-  <script defer src="ranking-config.js?v=71"></script>
-  <script defer src="scoring.js?v=71"></script>
-  <script defer src="ranking.js?v=71"></script>
-  <script defer src="main.js?v=ranking-71"></script>
+  <script defer src="ranking-config.js?v=72"></script>
+  <script defer src="scoring.js?v=72"></script>
+  <script defer src="ranking.js?v=72"></script>
+  <script defer src="main.js?v=ranking-72"></script>
 
 </body>
 </html>

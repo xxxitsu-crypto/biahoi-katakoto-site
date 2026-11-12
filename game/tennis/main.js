@@ -1865,11 +1865,22 @@ function toggleManualPause(){
  const button=document.getElementById('btn-pause');
  button.textContent=manualPaused?'再開':'ポーズ';button.setAttribute('aria-label',manualPaused?'再開':'ポーズ');button.setAttribute('aria-pressed',String(manualPaused));
 }
+const giveUpButton=document.getElementById('btn-give-up');
+function positionGiveUpButton(){
+ giveUpButton.hidden=!manualPaused;
+ if(!manualPaused)return;
+ const bounds=canvas.getBoundingClientRect();
+ Object.assign(giveUpButton.style,{left:(bounds.left+bounds.width*.3)+'px',top:(bounds.top+bounds.height*.89)+'px',width:(bounds.width*.4)+'px',height:(bounds.height*.065)+'px',fontSize:(bounds.width*.035)+'px'});
+}
+giveUpButton.addEventListener('click',()=>{
+ if(!manualPaused)return;
+ giveUpButton.hidden=true;returnToOpening();canvas.focus();
+});
 document.getElementById('btn-pause').addEventListener('click',toggleManualPause);
 window.addEventListener('keydown',event=>{
  if(['record','ranking','result'].includes(screen.phase))return;
  if(event.code==='KeyP'){event.preventDefault();event.stopImmediatePropagation();if(!event.repeat)toggleManualPause();}
- else if(manualPaused){event.preventDefault();event.stopImmediatePropagation();}
+ else if(manualPaused&&event.code!=='Tab'&&!(event.target===giveUpButton&&['Enter','Space'].includes(event.code))){event.preventDefault();event.stopImmediatePropagation();}
 },{capture:true});
 
 function toggleServePractice() {
@@ -1879,6 +1890,7 @@ function toggleServePractice() {
 }
 function resetPractice() {
   manualPaused=false;
+  document.getElementById('btn-give-up').hidden=true;
   const pauseButton=document.getElementById('btn-pause');pauseButton.textContent='ポーズ';pauseButton.setAttribute('aria-label','ポーズ');pauseButton.setAttribute('aria-pressed','false');
   endingMusic.reset();
   screen.phase = 'starting'; screen.ticks = 120;
@@ -1902,6 +1914,7 @@ function resetPractice() {
 }
 function returnToOpening() {
   manualPaused=false;
+  document.getElementById('btn-give-up').hidden=true;
   const pauseButton=document.getElementById('btn-pause');pauseButton.textContent='ポーズ';pauseButton.setAttribute('aria-label','ポーズ');pauseButton.setAttribute('aria-pressed','false');
   endingMusic.reset();
   input.cancel();campaign.transitionTicks=0;match.reset('cpu');cpu.reset();ball.resetServe();
@@ -1963,6 +1976,7 @@ window.addEventListener('pagehide', () => { clearPauseInput(); endingMusic.pause
 function gameLoop(now) {
   if(arcade.total!==lastArcadeTotal){scoreFlash=120;lastArcadeTotal=arcade.total;}else if(scoreFlash>0)scoreFlash--;
   rankingUI.position();
+  positionGiveUpButton();
   if (!paused && !manualPaused && !document.hidden) clock.advance(now);
   ctx.imageSmoothingEnabled = false;
   if(screen.phase==='ranking')drawOpeningBackground(ctx);else if(screen.phase==='ending')drawEnding(ctx);else if(screen.phase==='stage-reveal')drawStageReveal(ctx,now);else if(screen.phase==='stage-choice')drawStageChoice(ctx,now);else if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);

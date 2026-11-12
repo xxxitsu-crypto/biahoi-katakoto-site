@@ -25,9 +25,9 @@
       if(!this.stageLostPoints)this.add(100,'SUPER PERFECT');
       if(!this.retried){this.noContinue++;this.add([20,30,40][Math.min(2,this.noContinue-1)],'NO CONTINUE');}
     }
-    breakdown() {
+    breakdown(stageOnly=false) {
       const groups=[['GAMEポイント',['ゲーム獲得','ゲーム先取']],['連続得点',['連続得点']],['連勝',['2ゲーム連続','3ゲーム連続']],['パーフェクト',['PERFECT','完封']],['スーパーパーフェクト',['SUPER PERFECT']],['ノーコンテニュー',['NO CONTINUE']]];
-      return groups.map(([label,labels])=>({label,points:this.events.filter(e=>labels.includes(e.label)).reduce((sum,e)=>sum+e.points,0)})).filter(row=>row.points>0);
+      return groups.map(([label,labels])=>({label,points:this.events.slice(stageOnly?this.checkpointEvents:0).filter(e=>labels.includes(e.label)).reduce((sum,e)=>sum+e.points,0)})).filter(row=>row.points>0);
     }
     retry() {
       this.total=this.checkpoint;this.noContinue=0;this.continues++;

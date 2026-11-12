@@ -137,3 +137,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 
 #ranking-stage { position:absolute; top:9%; left:5%; width:90%; margin:0; font-size:4.6cqw; font-weight:bold; }
 #ranking-stage-points { position:absolute; top:53%; left:4%; width:92%; margin:0; font-size:3cqw; }
+
+#btn-give-up { position:fixed; z-index:3; border:2px solid #fff; border-radius:0; background:transparent; color:#fff; font-family:monospace,sans-serif; padding:0; touch-action:manipulation; }
+#btn-give-up[hidden] { display:none; }
+#btn-give-up:hover,#btn-give-up:focus-visible { background:rgba(255,255,255,.15); }

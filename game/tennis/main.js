@@ -1070,19 +1070,20 @@ const BOY_SHOTS = {
 };
 class BoyPlayer extends CpuPlayer {
  shots() { return BOY_SHOTS; }
- reset() { super.reset(); this.curveBlunderUsed=false; this.centerObservedHits=-1; this.centerWhiff=false; }
+ reset() { super.reset(); this.curveBlunderUsed=false; this.centerObservedHits=-1; this.centerWhiff=false; this.incomingTargetX=128; }
  update(ball) {
   if(this.isSwinging){this.swingElapsed++;if(!this.phase())this.isSwinging=false;}
   if(ball.resetTimer||ball.cpuServing){this.moving=false;return;}
   const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
   if(incoming&&this.centerObservedHits!==ball.rallyHits){
    this.centerObservedHits=ball.rallyHits;
+   this.incomingTargetX=predictLandingX(ball);
    // サーブは中央の苦手判定から除外。ラリー中は1球につき1回だけ抽選する。
-   this.centerWhiff=campaign.stage===2&&!this.receivingServe(ball)&&Math.abs(predictLandingX(ball)-128)<=16&&Math.random()<.50;
+   this.centerWhiff=campaign.stage===2&&!this.receivingServe(ball)&&Math.abs(this.incomingTargetX-128)<=16&&Math.random()<.50;
   }
   if(ball.serveWaiting||ball.serving){this.targetX=ball.servePhase==='waiting'?serveAimX(player):ball.serviceTargetX;this.targetY=58;}
   else if(incoming){
-   if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=this.receivingServe(ball)?0:predictLandingX(ball)>128?11:6;this.plan=null;}
+   if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=this.receivingServe(ball)?0:this.incomingTargetX>128?11:6;this.plan=null;}
    if(this.reactionTimer>0)this.reactionTimer--;else this.plan=this.predict(ball);
    this.targetX=this.plan?.x??Math.max(24,Math.min(232,ball.x));this.targetY=this.plan?.y??58;
   }else if(!this.isSwinging||this.hasHit){this.targetX=128;this.targetY=58;}
@@ -1128,7 +1129,12 @@ class BoyPlayer extends CpuPlayer {
   return {x:this.x+(x-ax)*scale,y:this.y,z:Math.max(2,(ay-y)*scale),radiusX:7*scale,radiusY:9*scale,hitRadius:7*scale+6,hitHeight:9*scale+6};
  }
  receivingServe(ball){return match.server==='player'&&ball.rallyHits===0&&ball.lastHitter==='player';}
- receiveSpeed(ball){return (this.receivingServe(ball)?1.5:CPU_SETTINGS.speed)*(this.fatigueMoveShots>0?.6:1);}
+ receiveSpeed(ball){
+  // 判定を広げず、長いフォアの打点まで足で寄せる。バック側の弱点は残す。
+  const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
+  const speed=this.receivingServe(ball)?1.5:incoming?(this.incomingTargetX<112?1.45:this.incomingTargetX>144?1.1:1.2):CPU_SETTINGS.speed;
+  return speed*(this.fatigueMoveShots>0?.6:1);
+ }
  phaseAt(kind,elapsed){
   for(const phase of this.shots()[kind].phases){if(elapsed<phase.ticks)return phase;elapsed-=phase.ticks;}
   return null;

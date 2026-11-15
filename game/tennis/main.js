@@ -1063,7 +1063,7 @@ for (const [key,file,cuts,h] of [
 const BOY_SHOTS = {
  leftShot: { centers:[[10,33],[64,18],[98,32],[98,61],[10,33]], anchor:[40,92], phases:[
   {frame:1,ticks:7},{frame:2,ticks:6,quality:'float'},{frame:3,ticks:7,quality:'critical'},{frame:4,ticks:8}] },
- rightShot: { centers:[[16,40],[24,10],[14,54],[10,83],[70,88],[14,54]], anchor:[40,94], phases:[
+ rightShot: { centers:[[16,40],[24,10],[10,54],[24,67],[100,63],[14,54]], anchor:[40,94], phases:[
   {frame:1,ticks:7},{frame:2,ticks:7,quality:'critical'},{frame:3,ticks:6,quality:'float'},{frame:4,ticks:7},{frame:5,ticks:7}] },
  overhead: { centers:[[27,65],[28,41],[36,39],[39,39],[44,14],[113,106],[20,80]], anchor:[55,120], phases:[
   {frame:1,ticks:7},{frame:2,ticks:7},{frame:3,ticks:7},{frame:4,ticks:8,quality:'smash'},{frame:5,ticks:12},{frame:6,ticks:8}] }
@@ -1077,28 +1077,27 @@ class BoyPlayer extends CpuPlayer {
   const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
   if(incoming&&this.centerObservedHits!==ball.rallyHits){
    this.centerObservedHits=ball.rallyHits;
-   // One roll per incoming ball. Central lane: court center +/-16 world units.
-   // Keep tracking and swinging normally; only suppress contact on a whiff.
-   this.centerWhiff=campaign.stage===2&&Math.abs(predictLandingX(ball)-128)<=16&&Math.random()<.50;
+   // サーブは中央の苦手判定から除外。ラリー中は1球につき1回だけ抽選する。
+   this.centerWhiff=campaign.stage===2&&!this.receivingServe(ball)&&Math.abs(predictLandingX(ball)-128)<=16&&Math.random()<.50;
   }
   if(ball.serveWaiting||ball.serving){this.targetX=ball.servePhase==='waiting'?serveAimX(player):ball.serviceTargetX;this.targetY=58;}
-  else if(incoming&&!this.isSwinging){
-   if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=predictLandingX(ball)>128?11:6;this.plan=null;}
+  else if(incoming){
+   if(this.observedHits!==ball.rallyHits){this.observedHits=ball.rallyHits;this.reactionTimer=this.receivingServe(ball)?0:predictLandingX(ball)>128?11:6;this.plan=null;}
    if(this.reactionTimer>0)this.reactionTimer--;else this.plan=this.predict(ball);
    this.targetX=this.plan?.x??Math.max(24,Math.min(232,ball.x));this.targetY=this.plan?.y??58;
   }else if(!this.isSwinging||this.hasHit){this.targetX=128;this.targetY=58;}
   // 前へ突進せず、後方から長いリーチで返球する。
   this.targetY=Math.max(46,Math.min(84,this.targetY));
   const dx=this.targetX-this.x,dy=this.targetY-this.y,d=Math.hypot(dx,dy);
-  if(d>.1){const speed=CPU_SETTINGS.speed*(this.fatigueMoveShots>0?.6:1),step=Math.min(speed,d);this.x+=dx/d*step;this.y+=dy/d*step;}
+  if(d>.1){const speed=this.receiveSpeed(ball),step=Math.min(speed,d);this.x+=dx/d*step;this.y+=dy/d*step;}
   this.y=Math.min(84,this.y);this.moving=d>.1;this.animationTick=this.moving?this.animationTick+1:0;
   if(Math.abs(dx)>.1)this.visualFacing=Math.sign(dx);
   if(incoming&&!this.isSwinging&&this.plan&&this.plan.n<=this.plan.windup+1)this.startSwing(this.plan.kind);
  }
  canHit(ball) {
-  if(this.centerWhiff||!super.canHit(ball))return false;
+  if(this.centerWhiff||!super.canHit(ball)||!this.contactAt(ball.x,ball.y,ball.z,this.racket(),this.x,this.y,ball.radius))return false;
   // 苦手なバックのジャスト打点は短い。浮きのコマはそのまま使う。
-  if(this.shotKind==='leftShot'&&this.phase()?.quality==='critical')return this.swingElapsed<17;
+  if(!this.receivingServe(ball)&&this.shotKind==='leftShot'&&this.phase()?.quality==='critical')return this.swingElapsed<17;
   return true;
  }
  hit(ball) {
@@ -1126,26 +1125,63 @@ class BoyPlayer extends CpuPlayer {
  }
  racket(kind=this.shotKind,frame=this.phase()?.frame??0) {
   const c=this.shots()[kind], [x,y]=c.centers[frame], [ax,ay]=c.anchor, scale=32/71;
-  return {x:this.x+(x-ax)*scale,y:this.y,z:Math.max(2,(ay-y)*scale),radiusX:5,radiusY:5,hitRadius:kind==='leftShot'?18:26,hitHeight:15};
+  return {x:this.x+(x-ax)*scale,y:this.y,z:Math.max(2,(ay-y)*scale),radiusX:7*scale,radiusY:9*scale,hitRadius:7*scale+6,hitHeight:9*scale+6};
  }
- predict(ball) {
-  let x=ball.x,y=ball.y,z=ball.z,vz=ball.vz,bounces=ball.bouncesInCurrentCourt,g=ball.gravity;
-  let vx=ball.vx,curve=ball.curve,curveTicks=ball.curveTicks,cap=ball.nextBounceMaxVz,factor=ball.nextBounceFactor;
-  for(let n=1;n<=110;n++){
+ receivingServe(ball){return match.server==='player'&&ball.rallyHits===0&&ball.lastHitter==='player';}
+ receiveSpeed(ball){return (this.receivingServe(ball)?1.5:CPU_SETTINGS.speed)*(this.fatigueMoveShots>0?.6:1);}
+ phaseAt(kind,elapsed){
+  for(const phase of this.shots()[kind].phases){if(elapsed<phase.ticks)return phase;elapsed-=phase.ticks;}
+  return null;
+ }
+ contactAt(x,y,z,r,actorX,actorY,radius=3){
+  const offset=r.x-this.x;
+  if(Math.hypot(x-actorX-offset,y-actorY)>=r.hitRadius||Math.abs(z-r.z)>=r.hitHeight)return false;
+  const p=projectCourt(actorX,actorY),b=projectCourt(x,y);
+  const dx=b.x-(p.x+offset*p.scale),dy=b.y-z*b.scale-(p.y-r.z*p.scale);
+  const rx=r.radiusX*p.scale+radius*b.scale+1,ry=r.radiusY*p.scale+radius*b.scale+1;
+  return (dx/rx)**2+(dy/ry)**2<=1;
+ }
+ predict(ball){
+  let x=ball.x,y=ball.y,z=ball.z,vx=ball.vx,vz=ball.vz,g=ball.gravity;
+  let bounces=ball.bouncesInCurrentCourt,curve=ball.curve,curveTicks=ball.curveTicks;
+  let nextBounce=ball.nextBounceFactor,nextBounceMaxVz=ball.nextBounceMaxVz;
+  for(let n=1;n<=140;n++){
    if(curveTicks>0){vx+=curve;curve*=.985;curveTicks--;}
    const oldY=y;x+=vx;y+=ball.vy;z+=vz;vz-=g;
    if(oldY>120&&y<=120)bounces=0;
-   if(z<=0){z=0;vz*=-(factor??Math.abs(ball.bounce));if(cap!=null)vz=Math.min(vz,cap);factor=cap=null;g=SETTINGS.gravity;if(++bounces>=2)break;}
-   if(y<30)break;if(y>98)continue;
-   for(const kind of z>=36?['overhead',x>128?'leftShot':'rightShot']:[x>128?'leftShot':'rightShot']){
-    const phases=this.shots()[kind].phases, target=phases.find(p=>p.quality==='critical'||p.quality==='smash');
-    const windup=phases.slice(0,phases.indexOf(target)).reduce((v,p)=>v+p.ticks,0);
-    if(n<windup)continue;const r=this.racket(kind,target.frame);
-    if(Math.abs(z-r.z)>r.hitHeight-2)continue;
-    const tx=Math.max(24,Math.min(232,x-(r.x-this.x))),ty=Math.max(46,Math.min(84,y));
-    if(Math.abs(y-ty)<r.hitRadius-4&&Math.hypot(tx-this.x,ty-this.y)<=CPU_SETTINGS.speed*n+(kind==='leftShot'?4:r.hitRadius-5))return{x:tx,y:ty,n,kind,windup};
+   if(z<=0){z=0;vz*=-(nextBounce??Math.abs(ball.bounce));
+    if(nextBounceMaxVz!==null&&nextBounceMaxVz!==undefined)vz=Math.min(vz,nextBounceMaxVz);
+    nextBounce=null;nextBounceMaxVz=null;g=SETTINGS.gravity;if(++bounces>=2)break;}
+   if(y<24)break;
+   if(y>108||x<24||x>232||z>85||(ball.servicePending&&bounces===0))continue;
+   const kinds=this.isSwinging?[this.shotKind]:z>=32?['overhead','leftShot','rightShot']:[x<this.x?'leftShot':'rightShot',x<this.x?'rightShot':'leftShot'];
+   for(const kind of kinds){
+    const candidates=[];let elapsed=0;
+    if(this.isSwinging){
+     const at=this.swingElapsed+n-1,phase=this.phaseAt(kind,at);
+     if(!this.hasHit&&phase?.quality&&!(kind==='leftShot'&&phase.quality==='critical'&&!this.receivingServe(ball)&&at>=17))candidates.push({phase,windup:0});
+    }else{
+     for(const phase of this.shots()[kind].phases){
+      if(phase.quality&&n>=elapsed+1)candidates.push({phase,windup:elapsed});
+      elapsed+=phase.ticks;
+     }
+    }
+    for(const {phase,windup} of candidates){
+     const r=this.racket(kind,phase.frame);
+     if(Math.abs(z-r.z)>=r.hitHeight-2)continue;
+     // 遠近投影後のラケット面を未来のボール位置へ合わせる。
+     const bp=projectCourt(x,y),screenY=bp.y-z*bp.scale;
+     let low=46,high=84;
+     for(let i=0;i<12;i++){const mid=(low+high)/2,p=projectCourt(128,mid);
+      if(p.y-r.z*p.scale<screenY)low=mid;else high=mid;}
+     const ty=(low+high)/2,p=projectCourt(128,ty);
+     const tx=Math.max(28,Math.min(228,128+(bp.x-p.x)/p.scale-(r.x-this.x)));
+     if(!this.contactAt(x,y,z,r,tx,ty,ball.radius))continue;
+     if(Math.hypot(tx-this.x,ty-this.y)<=this.receiveSpeed(ball)*n){return{x:tx,y:ty,n,kind,windup};}
+    }
    }
-  }return null;
+  }
+  return null;
  }
  updateServe(ball) {
   this.serveAge++;this.shotKind='overhead';
@@ -1195,7 +1231,7 @@ function launchOverNet(ball,x,y,ticks,gravity=.06){
 }
 class ErinPlayer extends BoyPlayer {
  shots(){return ERIN_SHOTS;}
- reset(){super.reset();this.superUsed=false;this.lastMoveY=46;this.smashRecovery=0;this.lobCooldown=0;}
+ reset(){super.reset();this.superUsed=false;this.lastMoveY=46;this.smashRecovery=0;this.lobCooldown=0;this.missSwingHits=-1;}
  racket(kind=this.shotKind,frame=this.phase()?.frame??0){
   const c=this.shots()[kind],[x,y]=c.centers[frame],[ax,ay]=c.anchor,scale=32/71;
   const [rx,ry]=c.radii[frame];
@@ -1257,7 +1293,7 @@ class ErinPlayer extends BoyPlayer {
   this.lastMoveY=this.y;
   if(this.isSwinging){this.swingElapsed++;if(!this.phase())this.isSwinging=false;}
   if(ball.resetTimer||ball.cpuServing){this.moving=false;return;}
-  const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting&&!ball.guaranteedWinner&&!ball.erinRecoveryMiss;
+  const incoming=ball.lastHitter==='player'&&ball.vy<0&&!ball.serving&&!ball.serveWaiting;
   if(ball.serveWaiting||ball.serving){
    this.targetX=ball.servePhase==='waiting'?serveAimX(player):ball.serviceTargetX;this.targetY=58;
   }else if(incoming){
@@ -1269,7 +1305,13 @@ class ErinPlayer extends BoyPlayer {
   if(d>.1){const step=Math.min(incoming?2.2:1.2,d);this.x+=dx/d*step;this.y+=dy/d*step;}
   this.moving=d>.1;this.animationTick=this.moving?this.animationTick+1:0;
   if(Math.abs(dx)>.1)this.visualFacing=Math.sign(dx);
-  if(incoming&&!this.isSwinging&&this.plan&&this.plan.n<=this.plan.windup+1)this.startSwing(this.plan.kind);
+  if(incoming&&!this.isSwinging&&this.plan&&this.plan.n<=this.plan.windup+1){
+   const missed=ball.guaranteedWinner||ball.erinRecoveryMiss;
+   if(!missed||this.missSwingHits!==ball.rallyHits){
+    this.startSwing(this.plan.kind);
+    if(missed){this.swingElapsed=-5;this.missSwingHits=ball.rallyHits;}
+   }
+  }
  }
  launchShot(ball,x,y,ticks,gravity){
   // 到達時間を2/3にし、重力も合わせて弾道の高さを保つ。
@@ -1341,6 +1383,7 @@ function createOpponent(){return campaign.stage===3?new ErinPlayer():campaign.st
 class Ball {
   constructor() { this.returnCount = 0; this.resetServe(); }
   resetServe() {
+    this.pointFlight = null;
     practiceMode = match.server === 'player' ? 'serve' : 'rally';
     this.servicePending = false; this.netTouched = false; this.erinSuper=false; this.bodyAim=false; this.guaranteedWinner=null;
     this.serviceTargetX = 128;
@@ -1418,6 +1461,7 @@ class Ball {
     const heldAim = input.horizontalAim || player.swingAim || 0;
     const aimOffset = heldAim ? heldAim * (player.shotType === 'smash' ? 78 : 64) + contact * 8 : timingAim * 52 + contact * 20 + movementAim * 12;
     let targetX = Math.max(39, Math.min(217, 128 + aimOffset));
+    this.playerTargetX = targetX;
     const targetY = player.lobShot ? 50 : 60;
     // CPUスマッシュへの返球はプレイヤー側の打点タイミングで難度を付ける。
     const counteringSmash = player.incomingWasSmash === true;
@@ -1572,6 +1616,9 @@ class Ball {
   }
   endRally(message, winner = null) {
     if (this.resetTimer || match.winner) return;
+    if(winner==='player'&&(this.erinOpeningSmash||this.guaranteedWinner)){
+      this.pointFlight={x:this.x,y:this.y,z:this.z,vx:this.vx,vy:this.vy,vz:Math.max(0,this.vz),ticks:36};
+    }
     this.servicePending = false;
     this.message = message;
     referee.call(['取り逃し', '2バウンド'].includes(message) ? 'インッ' : 'アウト');
@@ -1630,7 +1677,7 @@ class Ball {
         }
         this.servicePending = false; match.faults = 0;
       }
-      if(this.guaranteedWinner&&this.isOnReceiverSide()&&this.isInsideCourt()){this.endRally('取り逃し',this.guaranteedWinner);return;}
+      // 必殺技の返球も、着地で止めずバウンドして抜けてから得点にする。
       if (this.bouncesInCurrentCourt === 0 && (!this.isInsideCourt() || !this.isOnReceiverSide())) {
         this.endRally(this.netTouched && !this.isOnReceiverSide() ? 'ネット' : 'アウト', this.lastHitter === 'player' ? 'cpu' : 'player'); return;
       }
@@ -1660,10 +1707,10 @@ class Ball {
         this.bouncesInCurrentCourt = 0;
         player.incomingWasSmash = counteringSmash;
         this.launchFromPlayer(player, r, counterQuality, counterQuality);
-        if(superCounter){launchOverNet(this,128,58,40,.13);this.guaranteedWinner='player';}
+        if(superCounter){launchOverNet(this,Math.max(54,Math.min(202,this.playerTargetX)),58,40,.13);this.guaranteedWinner='player';}
         else if(openingSmash){
           const miss=Math.random()<.30;
-          launchOverNet(this,128,58,30,.16);this.erinRecoveryMiss=miss;this.erinOpeningSmash=true;
+          launchOverNet(this,Math.max(54,Math.min(202,this.playerTargetX)),58,30,.16);this.erinRecoveryMiss=miss;this.erinOpeningSmash=true;
         }
         player.incomingWasSmash = false;
         player.incomingCounterQuality = null;
@@ -1681,14 +1728,21 @@ class Ball {
       else this.endRally(this.bouncesInCurrentCourt > 0 ? '取り逃し' : 'アウト', this.bouncesInCurrentCourt > 0 ? this.lastHitter : (this.lastHitter === 'player' ? 'cpu' : 'player'));
     }
   }
+  updatePointFlight() {
+    const f=this.pointFlight;if(!f||f.ticks<=0)return;
+    f.ticks--;f.x+=f.vx;f.y+=f.vy;f.z+=f.vz;f.vz-=SETTINGS.gravity;
+    if(f.z<0){f.z=0;f.vz=Math.abs(f.vz)*.65;}
+  }
   draw(context) {
+    const shown=this.pointFlight??this;
+    if(this.pointFlight&&(shown.ticks<=0||shown.y < -30||shown.x < -20||shown.x > 276))return;
     context.fillStyle = 'rgba(0,0,0,0.45)';
     context.beginPath();
-    context.ellipse(this.x, this.y, this.radius, this.radius * 0.5, 0, 0, Math.PI * 2);
+    context.ellipse(shown.x, shown.y, this.radius, this.radius * 0.5, 0, 0, Math.PI * 2);
     context.fill();
     context.fillStyle = '#ffff33';
     context.beginPath();
-    context.arc(this.x, this.y - Math.max(0, this.z), this.radius, 0, Math.PI * 2);
+    context.arc(shown.x, shown.y - Math.max(0, shown.z), this.radius, 0, Math.PI * 2);
     context.fill();
   }
 }
@@ -1822,6 +1876,7 @@ const ball = new Ball();
 let cpu = createOpponent();
 cpu.x = 128; cpu.targetX = 128;
 const clock = new FixedClock(() => {
+  ball.updatePointFlight();
   if (screen.phase === 'ending-win') { input.cancel(); if (--screen.ticks === 0) rankingUI.result(); return; }
   if (screen.phase === 'ending') { input.cancel(); screen.ticks++; endingMusic.sync(); return; }
   if (screen.phase === 'record' || screen.phase === 'ranking' || screen.phase === 'result') { input.cancel(); return; }
@@ -2031,5 +2086,6 @@ function gameLoop(now) {
   requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);
+
 
 

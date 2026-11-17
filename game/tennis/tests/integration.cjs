@@ -3,7 +3,7 @@ const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/st
 const root=path.join(__dirname,'..');
 const draw=new Proxy({}, {get:(_,key)=>key==='measureText'?()=>({width:100}):()=>{}});
 const elements=new Map();
-function element(id){if(!elements.has(id))elements.set(id,{dataset:{},style:{},classList:{toggle(){}},addEventListener(type,fn){(this.listeners??={})[type]=fn;},setAttribute(){},removeAttribute(){},getContext:()=>draw,getBoundingClientRect:()=>({left:0,top:0,width:512,height:640}),focus(){},replaceChildren(){},append(){},showModal(){this.open=true},close(){this.open=false},value:'',textContent:''});return elements.get(id);}
+function element(id){if(!elements.has(id))elements.set(id,{dataset:{},style:{},classList:{toggle(){}},addEventListener(type,fn){(this.listeners??={})[type]=fn;},setAttribute(){},removeAttribute(){},getContext:()=>draw,getBoundingClientRect:()=>({left:0,top:0,width:512,height:640}),focus(){},replaceChildren(){},append(){},show(){this.open=true},showModal(){this.open=true},close(){this.open=false},value:'',textContent:''});return elements.get(id);}
 const pending=[];const w={addEventListener(){},SEAL_RANKING_API:''};
 const context={window:w,document:{getElementById:element,createElement:()=>element(Symbol()),addEventListener(){},querySelectorAll:()=>[],hidden:false,hasFocus:()=>true},Image:class{addEventListener(){}},console,performance:{now:()=>0},requestAnimationFrame(){},setTimeout:f=>{pending.push(f);return pending.length},clearTimeout(){},crypto:require('node:crypto').webcrypto,localStorage:{getItem:()=>'',setItem(){}},fetch:async()=>({ok:false}),Audio:class{addEventListener(){}},ResizeObserver:class{observe(){}},innerHeight:800,innerWidth:600};
 w.window=w;vm.createContext(context);
@@ -54,3 +54,9 @@ assert.equal(run('manualPaused'),false);assert.equal(run('screen.phase'),'record
 element('ranking-name').value='';element('ranking-form').listeners.submit({preventDefault(){}});
 assert.equal(run('screen.phase'),'title');assert.equal(element('ranking-dialog').open,false);
 console.log('Give-up: NO preserves paused game and points; YES opens name entry and returns directly home');
+
+run('returnToOpening();menuDirection("down");menuShot()');assert.equal(run('screen.phase'),'ranking');
+run('input.pressShot("test")');assert.equal(run('screen.phase'),'title');assert.equal(run('titleSelected'),0);
+run('menuDirection("down");menuDirection("up");menuShot()');assert.equal(run('screen.phase'),'confirming');
+run('returnToOpening();for(const dir of STAGE_COMMAND)menuDirection(dir);menuShot()');assert.equal(run('screen.phase'),'stage-reveal');
+console.log('Opening menu: ranking selection, shot returns home, play selection and stage command passed');

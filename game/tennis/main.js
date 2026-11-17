@@ -190,9 +190,10 @@ const score = { player: 0, cpu: 0 };
 const arcade = new TennisScore();
 let scoreFlash=0, lastArcadeTotal=0;
 let titleIdle = 0;
+let titleSelected = 0;
 
 const openingImages = {};
-for (const [key, file] of Object.entries({ background: 'opening-scroll.jpg', logo: 'logo.png', cursor: 'choice-ball.png' })) {
+for (const [key, file] of Object.entries({ background: 'opening-scroll.jpg', logo: 'logo.png', cursor: 'ball.png' })) {
   const image = new Image(); image.src = assetUrl(file); openingImages[key] = image;
 }
 const screen = { phase: 'title', ticks: 0 };
@@ -206,6 +207,9 @@ function menuDirection(dir) {
     if(endingExit.open && ['left','right'].includes(dir)) endingExit.selected=dir==='right'?1:0;
   } else if (screen.phase === 'title') {
     titleIdle=0;
+    if(dir==='up')titleSelected=0;
+    if(dir==='down')titleSelected=1;
+    updateOpeningLabel();
     stageMenu.sequence.push(dir);
     while (stageMenu.sequence.length && !stageMenu.sequence.every((value, i) => value === STAGE_COMMAND[i])) stageMenu.sequence.shift();
   } else if (screen.phase === 'stage-choice' && ['left','right'].includes(dir)) {
@@ -214,6 +218,7 @@ function menuDirection(dir) {
   }
   return true;
 }
+function updateOpeningLabel(){canvas.setAttribute('aria-label',(titleSelected?'ランキング':'push to play')+'。上下で選択、ショットで決定');}
 function updateStageMenuLabel() {
   canvas.setAttribute('aria-label', 'ステージ選択 ST0' + stageMenu.selected + '。左右で選択、ショットで決定');
 }
@@ -233,7 +238,8 @@ function menuShot() {
       screen.phase = 'stage-reveal'; screen.ticks = 48;
       document.getElementById('game-container').dataset.screen = 'stage-choice';
       updateStageMenuLabel();
-    } else { campaign.selectedStage = 1; startOpening(); }
+    } else if(titleSelected===1){rankingUI.show();}
+    else { campaign.selectedStage = 1; startOpening(); }
   } else if (screen.phase === 'stage-choice') {
     campaign.selectedStage = stageMenu.selected;
     screen.phase = 'title'; startOpening();
@@ -354,11 +360,13 @@ function beginStageIntro(){
 function drawOpening(context, now) {
   drawOpeningBackground(context);
   drawOpeningLogo(context);
-  if (Math.floor(now / (screen.phase === 'confirming' ? 80 : 650)) % 2 === 0) {
-    context.save(); context.fillStyle = '#fff'; context.textAlign = 'center';
-    context.font = 'bold italic 26px Georgia, serif';
-    context.fillText('push to play', 256, 228); context.restore();
+  context.save();context.fillStyle='#fff';context.textAlign='center';
+  context.font='bold italic 26px Georgia, serif';context.fillText('push to play',256,212);
+  if(screen.phase==='title'){
+    context.font='bold 20px sans-serif';context.fillText('ランキング',256,258);
+    if(imageReady(openingImages.cursor))context.drawImage(openingImages.cursor,titleSelected?177:145,titleSelected?242:195,16,16);
   }
+  context.restore();
 }
 const judgeImages = {};
 for (const [key, file] of Object.entries({ referee: 'sinpan.png', bubble: 'fukidasi.png', win: 'WIN.png', lose: 'gameover.png' })) {
@@ -481,6 +489,7 @@ class InputHandler {
     this.consumeQueue.push({ dir, isRhythmJump });
   }
   pressShot(source) {
+    if(screen.phase==='ranking'){rankingUI.backToOpening();return;}
     if(giveUpConfirm.open){giveUpConfirm.choose();return;}
     if(manualPaused)return;
     if (menuShot()) return;
@@ -2016,9 +2025,9 @@ function returnToOpening() {
   input.cancel();campaign.transitionTicks=0;match.reset('cpu');cpu.reset();ball.resetServe();
   screen.phase='title';screen.ticks=0;referee.text='';referee.ticks=0;
   document.getElementById('game-container').dataset.screen='title';
-  titleIdle=0;
+  titleIdle=0;titleSelected=0;
   stageMenu.sequence=[];stageMenu.selected=1;campaign.selectedStage=1;
-  canvas.setAttribute('role','button');canvas.setAttribute('aria-label','push to play');clock.reset();
+  canvas.setAttribute('role','button');updateOpeningLabel();clock.reset();
 }
 function startOpening() {
   if (screen.phase !== 'title') return;
@@ -2030,7 +2039,7 @@ function startOpening() {
   screen.phase = 'confirming'; screen.ticks = 72;
   canvas.removeAttribute('role'); canvas.setAttribute('aria-label', 'アザラシテニス');
 }
-canvas.setAttribute('role', 'button'); canvas.setAttribute('aria-label', 'push to play'); canvas.tabIndex = 0;
+canvas.setAttribute('role', 'button');updateOpeningLabel();canvas.tabIndex=0;
 canvas.addEventListener('click', event => {
   if(screen.phase==='ending'){
     if(!endingExit.open){menuShot();return;}
@@ -2039,7 +2048,11 @@ canvas.addEventListener('click', event => {
     if(y>=286&&y<=331&&x>=165&&x<=330){endingExit.selected=x<250?0:1;menuShot();}
     return;
   }
-  if (screen.phase === 'title') { menuShot(); return; }
+  if(screen.phase==='title'){
+    const b=canvas.getBoundingClientRect(),x=(event.clientX-b.left)*512/b.width,y=(event.clientY-b.top)*640/b.height;
+    if(x>=125&&x<=387&&y>=182&&y<=274){titleSelected=y>=232?1:0;updateOpeningLabel();menuShot();}
+    return;
+  }
   if (screen.phase !== 'stage-choice') return;
   const bounds=canvas.getBoundingClientRect();
   const x=(event.clientX-bounds.left)*512/bounds.width, y=(event.clientY-bounds.top)*640/bounds.height;

@@ -353,7 +353,7 @@ function drawStageIntro(context){
  if(imageReady(intro.portrait))context.drawImage(intro.portrait,78,247,115,147);
 }
 function beginStageIntro(){
- input.cancel();screen.phase='intro';screen.ticks=60;
+ input.cancel();screen.phase='intro';screen.ticks=180;
  document.getElementById('game-container').dataset.screen='intro';
  canvas.setAttribute('aria-label','ステージ'+campaign.stage+' キャラクター紹介');
 }
@@ -361,7 +361,8 @@ function drawOpening(context, now) {
   drawOpeningBackground(context);
   drawOpeningLogo(context);
   context.save();context.fillStyle='#fff';context.textAlign='center';
-  context.font='bold italic 26px Georgia, serif';context.fillText('push to play',256,212);
+  context.font='bold italic 26px Georgia, serif';
+  if(screen.phase!=='confirming'||Math.floor(screen.ticks/5)%2===0)context.fillText('push to play',256,212);
   if(screen.phase==='title'){
     context.font='bold 20px sans-serif';context.fillText('ランキング',256,258);
     if(imageReady(openingImages.cursor))context.drawImage(openingImages.cursor,titleSelected?177:145,titleSelected?242:195,16,16);
@@ -489,6 +490,7 @@ class InputHandler {
     this.consumeQueue.push({ dir, isRhythmJump });
   }
   pressShot(source) {
+    if(screen.phase==='result'){rankingUI.advanceResult();return;}
     if(screen.phase==='ranking'){rankingUI.backToOpening();return;}
     if(giveUpConfirm.open){giveUpConfirm.choose();return;}
     if(manualPaused)return;

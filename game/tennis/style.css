@@ -124,7 +124,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 #ranking-table td:last-child { width:28%; text-align:right; }
 #ranking-dialog[data-mode="ranking"] #ranking-message { position:static; margin-top:5%; width:100%; }
 #ranking-table .my-record { color:#fff8a6; }
-#game-container[data-screen="record"] #virtual-controller,#game-container[data-screen="result"] #virtual-controller { visibility:hidden; }
+#game-container[data-screen="record"] #virtual-controller { visibility:hidden; }
 
 #ranking-message:not(:empty) { background:rgba(9,38,96,.8); padding:1%; }
 #ranking-dialog[data-mode="ranking"] #ranking-message { background:transparent; }
@@ -153,3 +153,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 
 #ranking-dialog[data-mode="ranking"] { z-index:3; }
 #game-container[data-screen="ranking"] #btn-pause { visibility:hidden; }
+
+#ranking-dialog[data-mode="result"] { z-index:3; }
+#ranking-dialog[data-mode="result"] #ranking-next { top:auto; bottom:3% !important; background:transparent !important; }
+#game-container[data-screen="result"] #btn-pause { visibility:hidden; }

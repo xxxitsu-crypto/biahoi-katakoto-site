@@ -124,7 +124,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 #ranking-table td:last-child { width:28%; text-align:right; }
 #ranking-dialog[data-mode="ranking"] #ranking-message { position:static; margin-top:5%; width:100%; }
 #ranking-table .my-record { color:#fff8a6; }
-#game-container[data-screen="record"] #virtual-controller,#game-container[data-screen="ranking"] #virtual-controller,#game-container[data-screen="result"] #virtual-controller { visibility:hidden; }
+#game-container[data-screen="record"] #virtual-controller,#game-container[data-screen="result"] #virtual-controller { visibility:hidden; }
 
 #ranking-message:not(:empty) { background:rgba(9,38,96,.8); padding:1%; }
 #ranking-dialog[data-mode="ranking"] #ranking-message { background:transparent; }
@@ -150,3 +150,6 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 #giveup-confirm-panel button { position:absolute; top:49%; height:47%; width:38%; border:0; border-radius:0; background:transparent; }
 #giveup-yes { left:10%; } #giveup-no { left:51%; }
 #giveup-confirm-panel button:focus-visible { outline:none; }
+
+#ranking-dialog[data-mode="ranking"] { z-index:3; }
+#game-container[data-screen="ranking"] #btn-pause { visibility:hidden; }

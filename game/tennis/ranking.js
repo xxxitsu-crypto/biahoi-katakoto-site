@@ -36,9 +36,9 @@ const rankingUI = (() => {
     dialog.dataset.mode=phase;
     heading.textContent=phase==='ranking'?'ランキング':'スコア';
     table.replaceChildren();breakdown.replaceChildren();message.textContent='';scoreText.textContent='';
-    stageLabel.hidden=true;stagePoints.hidden=true;form.hidden=true;submit.hidden=true;next.hidden=true;submit.disabled=false;next.disabled=false;busy=false;
+    stageLabel.hidden=true;stagePoints.hidden=true;form.hidden=true;submit.hidden=true;next.hidden=true;next.textContent='登録せず進む';submit.disabled=false;next.disabled=false;busy=false;
     if(dialog.open)dialog.close();
-    if(phase==='ranking')dialog.show();else dialog.showModal();
+    if(phase==='ranking'||phase==='result')dialog.show();else dialog.showModal();
     position();
   }
   function close() {clearTimeout(timer);generation++;dialog.close();input.cancel();}
@@ -85,10 +85,12 @@ const rankingUI = (() => {
     completed=campaign.stage===3;prepare('result');showScore(true);
     stageLabel.hidden=false;stageLabel.textContent='STAGE '+campaign.stage+' CLEAR';
     stagePoints.hidden=false;stagePoints.textContent='今回 ＋'+(arcade.total-arcade.checkpoint)+'点 ／ 累計 '+arcade.total+'点';
-    timer=setTimeout(()=>{
-      if(completed){record(true);return;}
-      close();campaign.stage++;arcade.startStage();cpu=createOpponent();beginStageIntro();
-    },8000);
+    next.hidden=false;next.textContent='次へ';
+  }
+  function advanceResult(){
+    if(screen.phase!=='result')return;
+    if(completed){record(true);return;}
+    close();campaign.stage++;arcade.startStage();cpu=createOpponent();beginStageIntro();
   }
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;
@@ -106,7 +108,7 @@ const rankingUI = (() => {
   name.addEventListener('input',event=>{if(!event.isComposing)name.value=clean(name.value);});
   name.addEventListener('compositionend',()=>{name.value=clean(name.value);});
   function afterRecord(){if(returnHome){completed=false;finish();}else show(true,true);}
-  next.addEventListener('click',()=>{if(!busy)afterRecord();});
+  next.addEventListener('click',()=>{if(screen.phase==='result')advanceResult();else if(!busy)afterRecord();});
   dialog.addEventListener('cancel',event=>event.preventDefault());
   // The attract screen can start a game; its timer is never cancelled by incidental input.
   function backToOpening(){if(screen.phase!=='ranking')return;close();completed=false;returnToOpening();canvas.focus();}
@@ -114,9 +116,9 @@ const rankingUI = (() => {
   for(const kind of ['keydown','keyup'])window.addEventListener(kind,event=>{
     if(!dialog.open)return;
     event.stopImmediatePropagation();
-    if(kind==='keydown'&&screen.phase==='ranking'&&['Space','Enter','KeyZ'].includes(event.code)){event.preventDefault();backToOpening();}
+    if(kind==='keydown'&&['ranking','result'].includes(screen.phase)&&['Space','Enter','KeyZ'].includes(event.code)){event.preventDefault();if(event.repeat)return;if(screen.phase==='result')advanceResult();else backToOpening();}
   },{capture:true});
   window.addEventListener('pointerdown',()=>{if(screen.phase==='title')titleIdle=0;},{passive:true});
   window.addEventListener('resize',position);
-  return {record,result,show,position,backToOpening};
+  return {record,result,show,position,backToOpening,advanceResult};
 })();

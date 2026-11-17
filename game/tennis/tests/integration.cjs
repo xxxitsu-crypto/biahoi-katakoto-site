@@ -18,13 +18,13 @@ run('for(let n=0;n<480;n++)clock.update()');assert.equal(run('screen.phase'),'ra
 pending.at(-1)();assert.equal(run('screen.phase'),'title');
 run('returnToOpening();startOpening();resetPractice();for(let n=0;n<12;n++)match.award("player")');
 assert.equal(run('arcade.total'),615);assert.equal(run('match.winner'),'player');
-run('screen.phase="playing";screen.phase="playing";campaign.transitionTicks=1;clock.update()');assert.equal(run('campaign.stage'),1);assert.equal(run('screen.phase'),'result');assert.equal(element('ranking-stage-points').textContent,'今回 ＋615点 ／ 累計 615点');pending.at(-1)();assert.equal(run('campaign.stage'),2);assert.equal(run('screen.phase'),'intro');
+run('screen.phase="playing";screen.phase="playing";campaign.transitionTicks=1;clock.update()');assert.equal(run('campaign.stage'),1);assert.equal(run('screen.phase'),'result');assert.equal(element('ranking-stage-points').textContent,'今回 ＋615点 ／ 累計 615点');run('input.pressShot("test")');assert.equal(run('campaign.stage'),2);assert.equal(run('screen.phase'),'intro');
 run('resetPractice();for(let n=0;n<4;n++)match.award("player");for(let n=0;n<12;n++)match.award("cpu");screen.phase="continue";input.pressShot("test")');
 assert.equal(run('arcade.total'),615);assert.equal(run('arcade.continues'),1);
 run('screen.phase="continue";screen.ticks=1;clock.update()');assert.equal(run('screen.phase'),'record');
 assert.equal(element('ranking-form').hidden,false);
 run('returnToOpening();campaign.selectedStage=3;startOpening();resetPractice();for(let n=0;n<12;n++)match.award("player");screen.ticks=1;clock.update()');
-assert.equal(run('screen.phase'),'result');pending.at(-1)();assert.equal(run('screen.phase'),'record');assert.equal(element('ranking-submit').textContent,'エンディングへ');
+assert.equal(run('screen.phase'),'result');run('input.pressShot("test")');assert.equal(run('screen.phase'),'record');assert.equal(element('ranking-submit').textContent,'エンディングへ');
 console.log('Integration: idle ranking, game scoring, stage transition, retry rollback, timeout record, clear record passed');
 
 // Match point on the player's serve: first fault keeps 0–40, second ends the match.
@@ -38,11 +38,11 @@ for (const stage of [1,2,3]) {
 }
 // Stage 2 result shows only new points alongside the cumulative score.
 run('returnToOpening();startOpening();resetPractice();for(let n=0;n<12;n++)match.award("player");screen.phase="playing";campaign.transitionTicks=1;clock.update()');
-pending.at(-1)();
+run('input.pressShot("test")');
 run('resetPractice();for(let n=0;n<12;n++)match.award("player");screen.phase="playing";campaign.transitionTicks=1;clock.update()');
 assert.equal(run('campaign.stage'),2);assert.equal(element('ranking-stage-points').textContent,'今回 ＋625点 ／ 累計 1240点');
 assert.equal(run('arcade.breakdown(true).reduce((n,r)=>n+r.points,0)'),625);
-pending.at(-1)();assert.equal(run('campaign.stage'),3);assert.equal(run('screen.phase'),'intro');
+run('input.pressShot("test")');assert.equal(run('campaign.stage'),3);assert.equal(run('screen.phase'),'intro');
 console.log('Stage results and match-point double faults on all three stages passed');
 
 run('returnToOpening();startOpening();resetPractice();screen.phase="playing";for(let n=0;n<4;n++)match.award("player");toggleManualPause();giveUpConfirm.show()');
@@ -60,3 +60,13 @@ run('input.pressShot("test")');assert.equal(run('screen.phase'),'title');assert.
 run('menuDirection("down");menuDirection("up");menuShot()');assert.equal(run('screen.phase'),'confirming');
 run('returnToOpening();for(const dir of STAGE_COMMAND)menuDirection(dir);menuShot()');assert.equal(run('screen.phase'),'stage-reveal');
 console.log('Opening menu: ranking selection, shot returns home, play selection and stage command passed');
+
+for(const stage of [1,2,3]){
+ run(`returnToOpening();campaign.stage=${stage};beginStageIntro()`);assert.equal(run('screen.ticks'),180);
+ run('for(let n=0;n<179;n++)clock.update()');assert.equal(run('screen.phase'),'intro');
+ run('clock.update()');assert.equal(run('screen.phase'),'starting');
+}
+run('returnToOpening();campaign.stage=1;rankingUI.result();for(let n=0;n<600;n++)clock.update()');
+assert.equal(run('screen.phase'),'result');assert.equal(run('campaign.stage'),1);
+element('ranking-next').listeners.click();assert.equal(run('screen.phase'),'intro');assert.equal(run('campaign.stage'),2);
+console.log('Transitions: all intros last 180 frames; result waits for shot or Next button');

@@ -8,7 +8,7 @@
     point(winner) {
       if(winner==='cpu'){this.gameLostPoints++;this.stageLostPoints++;return;}
       this.gamePoints++;
-      if(!this.gameLostPoints && this.gamePoints<=4) this.add([10,15,20,30][this.gamePoints-1],'連続得点');
+      if(!this.gameLostPoints && this.gamePoints<=4) this.add([10,15,20,30][this.gamePoints-1],this.gamePoints===1?'先制得点':'連続得点');
     }
     game(winner) {
       if(winner==='player') {
@@ -26,7 +26,7 @@
       if(!this.retried){this.noContinue++;this.add([20,30,40][Math.min(2,this.noContinue-1)],'NO CONTINUE');}
     }
     breakdown(stageOnly=false) {
-      const groups=[['GAMEポイント',['ゲーム獲得','ゲーム先取']],['連続得点',['連続得点']],['連勝',['2ゲーム連続','3ゲーム連続']],['パーフェクト',['PERFECT','完封']],['スーパーパーフェクト',['SUPER PERFECT']],['ノーコンテニュー',['NO CONTINUE']]];
+      const groups=[['GAMEポイント',['ゲーム獲得','ゲーム先取']],['先制得点',['先制得点']],['連続得点',['連続得点']],['連勝',['2ゲーム連続','3ゲーム連続']],['パーフェクト',['PERFECT','完封']],['スーパーパーフェクト',['SUPER PERFECT']],['ノーコンテニュー',['NO CONTINUE']]];
       return groups.map(([label,labels])=>({label,points:this.events.slice(stageOnly?this.checkpointEvents:0).filter(e=>labels.includes(e.label)).reduce((sum,e)=>sum+e.points,0)})).filter(row=>row.points>0);
     }
     retry() {

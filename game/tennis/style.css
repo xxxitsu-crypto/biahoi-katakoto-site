@@ -157,3 +157,23 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #ffdf73; outlin
 #ranking-dialog[data-mode="result"] { z-index:3; }
 #ranking-dialog[data-mode="result"] #ranking-next { top:auto; bottom:3% !important; background:transparent !important; }
 #game-container[data-screen="result"] #btn-pause { visibility:hidden; }
+
+@font-face { font-family:ArcadeDot; src:url('assets/fonts/DotGothic16-Regular.woff2') format('woff2'); font-weight:400; font-style:normal; font-display:swap; }
+#ranking-dialog,#ranking-dialog button,#ranking-name,#ranking-message,#btn-give-up { font-family:ArcadeDot,monospace; font-weight:400; font-synthesis:none; }
+#ranking-dialog h1,#ranking-table table,#ranking-breakdown,#ranking-score,#ranking-stage { font-weight:400; }
+#ranking-dialog[data-mode="result"] #ranking-stage { top:8%; font-size:4.3cqw; }
+#ranking-dialog[data-mode="result"] #ranking-heading { position:absolute; top:25%; left:0; width:100%; margin:0; font-size:7cqw; }
+#ranking-dialog[data-mode="result"] #ranking-score { position:absolute; top:39%; left:3%; width:94%; margin:0; display:flex; justify-content:center; align-items:center; gap:0; font-size:10cqw; line-height:1; font-variant-numeric:tabular-nums; }
+.score-current { display:inline-block; transition:transform .35s ease; }
+.score-plus,.score-previous { display:inline-block; overflow:hidden; max-width:0; opacity:0; transform:translateX(12px); transition:max-width .4s ease,opacity .3s ease,transform .4s ease; }
+.score-plus,.score-previous { color:#fff2c6; }
+.paired .score-plus { max-width:8cqw; margin-left:1cqw; }
+.paired .score-previous { max-width:28cqw; }
+.paired .score-plus,.paired .score-previous { opacity:1; transform:translateX(0); }
+#ranking-dialog[data-mode="result"] #ranking-stage-points { top:53%; font-size:2.8cqw; }
+#ranking-dialog[data-mode="result"] #ranking-breakdown { position:absolute; left:7%; top:59%; width:86%; gap:.35cqw; font-size:3.2cqw; line-height:1; }
+.score-detail { transition:opacity .12s ease,transform .16s ease; }
+.score-pending { opacity:0; transform:translateY(5px); }
+.score-pop .score-current { animation:score-total-pop .5s ease both; }
+@keyframes score-total-pop { 0% { transform:scale(1); } 40% { transform:scale(1.24); } 100% { transform:scale(1); } }
+@media (prefers-reduced-motion:reduce) { .score-current,.score-plus,.score-previous,.score-detail { transition:none; } .score-pop .score-current { animation:none; } }

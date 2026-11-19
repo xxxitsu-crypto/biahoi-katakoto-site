@@ -3,14 +3,15 @@ const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/st
 const root=path.join(__dirname,'..');
 const draw=new Proxy({}, {get:(_,key)=>key==='measureText'?()=>({width:100}):()=>{}});
 const elements=new Map();
-function element(id){if(!elements.has(id))elements.set(id,{dataset:{},style:{},classList:{toggle(){}},addEventListener(type,fn){(this.listeners??={})[type]=fn;},setAttribute(){},removeAttribute(){},getContext:()=>draw,getBoundingClientRect:()=>({left:0,top:0,width:512,height:640}),focus(){},replaceChildren(){},append(){},show(){this.open=true},showModal(){this.open=true},close(){this.open=false},value:'',textContent:''});return elements.get(id);}
+function element(id){if(!elements.has(id))elements.set(id,{dataset:{},style:{},classList:{toggle(){},remove(){}},addEventListener(type,fn){(this.listeners??={})[type]=fn;},setAttribute(){},removeAttribute(){},getContext:()=>draw,getBoundingClientRect:()=>({left:0,top:0,width:512,height:640}),focus(){},replaceChildren(){},append(){},show(){this.open=true},showModal(){this.open=true},close(){this.open=false},value:'',textContent:''});return elements.get(id);}
 const pending=[];const w={addEventListener(){},SEAL_RANKING_API:''};
 const context={window:w,document:{getElementById:element,createElement:()=>element(Symbol()),addEventListener(){},querySelectorAll:()=>[],hidden:false,hasFocus:()=>true},Image:class{addEventListener(){}},console,performance:{now:()=>0},requestAnimationFrame(){},setTimeout:f=>{pending.push(f);return pending.length},clearTimeout(){},crypto:require('node:crypto').webcrypto,localStorage:{getItem:()=>'',setItem(){}},fetch:async()=>({ok:false}),Audio:class{addEventListener(){}},ResizeObserver:class{observe(){}},innerHeight:800,innerWidth:600};
 w.window=w;vm.createContext(context);
-for(const f of ['scoring.js','ranking.js','main.js']){vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),context,{filename:f});if(f==='scoring.js')context.TennisScore=w.TennisScore;}
+for(const f of ['scoring.js','score-reveal.js','ranking.js','main.js']){vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),context,{filename:f});if(f==='scoring.js')context.TennisScore=w.TennisScore;if(f==='score-reveal.js')context.ScoreReveal=w.ScoreReveal;}
 // scoring.js attaches to window as in a browser.
 
 const run=source=>vm.runInContext(source,context);
+const finishReveal=()=>run('rankingUI.update(0);for(let n=1;n<=160;n++)rankingUI.update(n*100)');
 assert.equal(run('screen.phase'),'title');
 run('for(let n=0;n<480;n++)clock.update()');assert.equal(run('screen.phase'),'ranking');
 pending.at(-1)();assert.equal(run('screen.phase'),'title');
@@ -18,13 +19,13 @@ run('for(let n=0;n<480;n++)clock.update()');assert.equal(run('screen.phase'),'ra
 pending.at(-1)();assert.equal(run('screen.phase'),'title');
 run('returnToOpening();startOpening();resetPractice();for(let n=0;n<12;n++)match.award("player")');
 assert.equal(run('arcade.total'),615);assert.equal(run('match.winner'),'player');
-run('screen.phase="playing";screen.phase="playing";campaign.transitionTicks=1;clock.update()');assert.equal(run('campaign.stage'),1);assert.equal(run('screen.phase'),'result');assert.equal(element('ranking-stage-points').textContent,'今回 ＋615点 ／ 累計 615点');run('input.pressShot("test")');assert.equal(run('campaign.stage'),2);assert.equal(run('screen.phase'),'intro');
+run('screen.phase="playing";screen.phase="playing";campaign.transitionTicks=1;clock.update()');assert.equal(run('campaign.stage'),1);assert.equal(run('screen.phase'),'result');assert.equal(element('ranking-stage-points').textContent,'今回の獲得スコア');finishReveal();run('input.pressShot("test")');assert.equal(run('campaign.stage'),2);assert.equal(run('screen.phase'),'intro');
 run('resetPractice();for(let n=0;n<4;n++)match.award("player");for(let n=0;n<12;n++)match.award("cpu");screen.phase="continue";input.pressShot("test")');
 assert.equal(run('arcade.total'),615);assert.equal(run('arcade.continues'),1);
 run('screen.phase="continue";screen.ticks=1;clock.update()');assert.equal(run('screen.phase'),'record');
 assert.equal(element('ranking-form').hidden,false);
 run('returnToOpening();campaign.selectedStage=3;startOpening();resetPractice();for(let n=0;n<12;n++)match.award("player");screen.ticks=1;clock.update()');
-assert.equal(run('screen.phase'),'result');run('input.pressShot("test")');assert.equal(run('screen.phase'),'record');assert.equal(element('ranking-submit').textContent,'エンディングへ');
+assert.equal(run('screen.phase'),'result');finishReveal();run('input.pressShot("test")');assert.equal(run('screen.phase'),'record');assert.equal(element('ranking-submit').textContent,'エンディングへ');
 console.log('Integration: idle ranking, game scoring, stage transition, retry rollback, timeout record, clear record passed');
 
 // Match point on the player's serve: first fault keeps 0–40, second ends the match.
@@ -38,11 +39,11 @@ for (const stage of [1,2,3]) {
 }
 // Stage 2 result shows only new points alongside the cumulative score.
 run('returnToOpening();startOpening();resetPractice();for(let n=0;n<12;n++)match.award("player");screen.phase="playing";campaign.transitionTicks=1;clock.update()');
-run('input.pressShot("test")');
+finishReveal();run('input.pressShot("test")');
 run('resetPractice();for(let n=0;n<12;n++)match.award("player");screen.phase="playing";campaign.transitionTicks=1;clock.update()');
-assert.equal(run('campaign.stage'),2);assert.equal(element('ranking-stage-points').textContent,'今回 ＋625点 ／ 累計 1240点');
+assert.equal(run('campaign.stage'),2);assert.equal(element('ranking-stage-points').textContent,'今回の獲得スコア');
 assert.equal(run('arcade.breakdown(true).reduce((n,r)=>n+r.points,0)'),625);
-run('input.pressShot("test")');assert.equal(run('campaign.stage'),3);assert.equal(run('screen.phase'),'intro');
+finishReveal();run('input.pressShot("test")');assert.equal(run('campaign.stage'),3);assert.equal(run('screen.phase'),'intro');
 console.log('Stage results and match-point double faults on all three stages passed');
 
 run('returnToOpening();startOpening();resetPractice();screen.phase="playing";for(let n=0;n<4;n++)match.award("player");toggleManualPause();giveUpConfirm.show()');
@@ -68,5 +69,9 @@ for(const stage of [1,2,3]){
 }
 run('returnToOpening();campaign.stage=1;rankingUI.result();for(let n=0;n<600;n++)clock.update()');
 assert.equal(run('screen.phase'),'result');assert.equal(run('campaign.stage'),1);
-element('ranking-next').listeners.click();assert.equal(run('screen.phase'),'intro');assert.equal(run('campaign.stage'),2);
+run('input.pressShot("test")');assert.equal(run('screen.phase'),'result');finishReveal();element('ranking-next').listeners.click();assert.equal(run('screen.phase'),'intro');assert.equal(run('campaign.stage'),2);
 console.log('Transitions: all intros last 180 frames; result waits for shot or Next button');
+
+run('returnToOpening();arcade.reset();for(let g=0;g<3;g++){for(let n=0;n<4;n++)arcade.point("player");arcade.game("player");}arcade.clearStage();campaign.stage=1;globalThis.revealSounds=[];sound.tune=kind=>revealSounds.push(kind);rankingUI.result()');
+finishReveal();assert.equal(run('revealSounds.filter(s=>s==="bonus").length'),run('arcade.breakdown(true).length'));assert.equal(run('revealSounds.filter(s=>s==="score-total").length'),1);assert.equal(run('arcade.total'),615);assert.equal(element('ranking-next').disabled,false);
+console.log('Score reveal: one sound per row, one completion sound, gameplay score unchanged');

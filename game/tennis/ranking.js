@@ -12,6 +12,7 @@ const rankingUI = (() => {
   const message=document.getElementById('ranking-message');
   const table=document.getElementById('ranking-table');
   const next=document.getElementById('ranking-next');
+  let reveal=null, revealNodes=[], currentNumber=null, previousNumber=null, plusSign=null, lastFrame=null, announcedRows=0, totalAnnounced=false;
   let timer, generation=0, completed=false, returnHome=false, savedId=null, runId=null, busy=false;
   const clean=value=>Array.from(value.normalize('NFC').replace(/[\p{Cc}\p{Cf}]/gu,'').trim()).slice(0,6).join('');
   const api=()=>window.SEAL_RANKING_API?.replace(/\/$/,'');
@@ -31,6 +32,7 @@ const rankingUI = (() => {
     Object.assign(dialog.style,{left:b.left+'px',top:b.top+'px',width:b.width+'px',height:b.height+'px'});
   }
   function prepare(phase) {
+    reveal=null;lastFrame=null;scoreText.removeAttribute('aria-label');scoreText.classList.remove('paired','score-pop');
     clearTimeout(timer);generation++;input.cancel();screen.phase=phase;
     document.getElementById('game-container').dataset.screen=phase;
     dialog.dataset.mode=phase;
@@ -41,7 +43,7 @@ const rankingUI = (() => {
     if(phase==='ranking'||phase==='result')dialog.show();else dialog.showModal();
     position();
   }
-  function close() {clearTimeout(timer);generation++;dialog.close();input.cancel();}
+  function close() {reveal=null;lastFrame=null;clearTimeout(timer);generation++;dialog.close();input.cancel();}
   function finish() {close();if(completed)beginEnding();else returnToOpening();canvas.focus();}
   function showScore(stageOnly=false) {
     scoreText.textContent=String(arcade.total);
@@ -82,13 +84,41 @@ const rankingUI = (() => {
     submit.focus();
   }
   function result() {
-    completed=campaign.stage===3;prepare('result');showScore(true);
+    completed=campaign.stage===3;prepare('result');
     stageLabel.hidden=false;stageLabel.textContent='STAGE '+campaign.stage+' CLEAR';
-    stagePoints.hidden=false;stagePoints.textContent='今回 ＋'+(arcade.total-arcade.checkpoint)+'点 ／ 累計 '+arcade.total+'点';
-    next.hidden=false;next.textContent='次へ';
+    const rows=arcade.breakdown(true);
+    reveal=new ScoreReveal(rows,arcade.checkpoint);announcedRows=0;totalAnnounced=false;lastFrame=null;
+    currentNumber=document.createElement('span');currentNumber.className='score-current';
+    plusSign=document.createElement('span');plusSign.className='score-plus';plusSign.textContent='＋';
+    previousNumber=document.createElement('span');previousNumber.className='score-previous';
+    scoreText.append(currentNumber,plusSign,previousNumber);
+    revealNodes=rows.map(row=>{
+      const line=document.createElement('div');line.className='score-detail score-pending';
+      const label=document.createElement('span');label.textContent=row.label;
+      const value=document.createElement('span');value.textContent=String(row.points);
+      line.append(label,value);breakdown.append(line);return line;
+    });
+    stagePoints.hidden=false;next.hidden=false;next.disabled=true;next.textContent='集計中…';
+    paintReveal(reveal.state());
+  }
+  function paintReveal(state){
+    currentNumber.textContent=String(state.score);previousNumber.textContent=String(state.previous);
+    scoreText.classList.toggle('paired',state.paired);scoreText.classList.toggle('score-pop',state.pop);
+    plusSign.setAttribute('aria-hidden',String(!state.paired));previousNumber.setAttribute('aria-hidden',String(!state.paired));
+    revealNodes.forEach((line,i)=>{line.classList.toggle('score-pending',i>=state.revealed);line.setAttribute('aria-hidden',String(i>=state.revealed));});
+    stagePoints.textContent=state.phase==='bonuses'?'今回の獲得スコア':state.paired?'今回 ＋ 前回までの累計':'合計スコア';
+    if(state.done){next.disabled=false;next.textContent='次へ';scoreText.setAttribute('aria-label','合計スコア '+state.score);}
+  }
+  function update(now){
+    if(!reveal||screen.phase!=='result'){lastFrame=null;return;}
+    if(document.hidden){lastFrame=null;return;}
+    const delta=lastFrame===null?0:Math.min(100,Math.max(0,now-lastFrame));lastFrame=now;
+    const state=reveal.advance(delta);paintReveal(state);
+    while(announcedRows<state.revealed){sound.tune('bonus');announcedRows++;}
+    if((state.pop||state.done)&&!totalAnnounced){sound.tune('score-total');totalAnnounced=true;}
   }
   function advanceResult(){
-    if(screen.phase!=='result')return;
+    if(screen.phase!=='result'||(reveal&&!reveal.state().done))return;
     if(completed){record(true);return;}
     close();campaign.stage++;arcade.startStage();cpu=createOpponent();beginStageIntro();
   }
@@ -120,5 +150,5 @@ const rankingUI = (() => {
   },{capture:true});
   window.addEventListener('pointerdown',()=>{if(screen.phase==='title')titleIdle=0;},{passive:true});
   window.addEventListener('resize',position);
-  return {record,result,show,position,backToOpening,advanceResult};
+  return {record,result,show,position,backToOpening,advanceResult,update};
 })();

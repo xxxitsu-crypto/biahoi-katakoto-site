@@ -83,6 +83,8 @@ const sound = {
     const songs = {
       start: [[659,.10],[784,.10],[988,.10],[784,.10],[1047,.42]],
       in: [[784,.09],[1047,.30]],
+      bonus: [[1047,.04],[1397,.07]],
+      'score-total': [[1047,.07],[1319,.07],[1568,.18]],
       sad: [[659,.10],[494,.12],[330,.30]],
       win: [[523,.12],[659,.12],[784,.16],[1047,.50]],
       lose: [[494,.20],[440,.20],[392,.24],[262,.55]]
@@ -2087,6 +2089,7 @@ window.addEventListener('pagehide', () => { clearPauseInput(); endingMusic.pause
 function gameLoop(now) {
   if(arcade.total!==lastArcadeTotal){scoreFlash=120;lastArcadeTotal=arcade.total;}else if(scoreFlash>0)scoreFlash--;
   rankingUI.position();
+  rankingUI.update(now);
   positionGiveUpButton();
   giveUpConfirm.position();
   if (!paused && !manualPaused && !document.hidden) clock.advance(now);
@@ -2094,9 +2097,9 @@ function gameLoop(now) {
   if(screen.phase==='ranking')drawOpeningBackground(ctx);else if(screen.phase==='ending')drawEnding(ctx);else if(screen.phase==='stage-reveal')drawStageReveal(ctx,now);else if(screen.phase==='stage-choice')drawStageChoice(ctx,now);else if (screen.phase === 'title' || screen.phase === 'confirming') drawOpening(ctx, now); else if(screen.phase==='intro')drawStageIntro(ctx); else drawScene(ctx);
   if(manualPaused){
     ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,0,512,640);
-    ctx.fillStyle='#fff';ctx.font='bold 30px monospace';ctx.textAlign='center';ctx.fillText('スコア',256,248);
-    ctx.font='bold 44px monospace';ctx.fillText(String(arcade.total),256,324);
-    ctx.font='bold 20px monospace';ctx.textAlign='left';
+    ctx.fillStyle='#fff';ctx.font='30px ArcadeDot, monospace';ctx.textAlign='center';ctx.fillText('スコア',256,248);
+    ctx.font='44px ArcadeDot, monospace';ctx.fillText(String(arcade.total),256,324);
+    ctx.font='20px ArcadeDot, monospace';ctx.textAlign='left';
     arcade.breakdown().forEach((row,i)=>{ctx.fillText(row.label,105,380+i*30);ctx.textAlign='right';ctx.fillText(String(row.points),405,380+i*30);ctx.textAlign='left';});
   }
   const guideButton = document.getElementById('guide-toggle');
